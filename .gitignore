@@ -1,0 +1,7 @@
+# Ignore user vscode preferences.
+.vscode/
+
+# Ignore artifacts from nix-build.
+result
+src/result
+

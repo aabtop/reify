@@ -9,21 +9,9 @@ RUN apt-get update --fix-missing && apt-get -y install \
 RUN apt-get clean && apt-get purge && apt-get autoremove --purge -y && \
     rm -rf /var/lib/apt/lists/*
 
-#ARG USERNAME=default_user
-
-#RUN useradd -m -d /home/$USERNAME -s /bin/bash $USERNAME
-#RUN usermod -a -G sudo $USERNAME
-#RUN echo " $USERNAME      ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
-
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
-#ENV LC_ALL en_US.UTF-8
-
-#ENV HOME /home/$USERNAME
-#WORKDIR /home/$USERNAME
-#USER $USERNAME
-#ENV USER $USERNAME
 
 # Download Nix and install it into the system.
 # The following has been copied from the nixos/nix build setup.  We don't
@@ -42,16 +30,6 @@ RUN wget https://nixos.org/releases/nix/nix-2.3.3/nix-2.3.3-x86_64-linux.tar.xz 
     && /nix/var/nix/profiles/default/bin/nix-store --optimise \
     && /nix/var/nix/profiles/default/bin/nix-store --verify --check-contents
 
-#ENV \
-#    ENV=/etc/profile \
-#    USER=root \
-#    PATH=/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin:/bin:/sbin:/usr/bin:/usr/sbin \
-#    GIT_SSL_CAINFO=/nix/var/nix/profiles/default/etc/ssl/certs/ca-bundle.crt \
-#    NIX_SSL_CERT_FILE=/nix/var/nix/profiles/default/etc/ssl/certs/ca-bundle.crt \
-#    NIX_PATH=/nix/var/nix/profiles/per-user/root/channels
-
-#RUN curl https://nixos.org/nix/install | sh
-
 # Setup the Nix environment normally setup by
 # /home/$USERNAME/.nix-profile/etc/profile.d/nix.sh
 ENV \
@@ -65,9 +43,5 @@ ENV \
     NIX_PROFILES="/nix/var/nix/profiles/default $HOME/.nix-profile" \
     NIX_SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
 
-#RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
-#    && sudo echo $SNIPPET >> "/root/.bashrc" \
-#    && mkdir /commandhistory \
-#    && touch /commandhistory/.bash_history \
-#    && chown -R $USERNAME /commandhistory \
-#    && echo $SNIPPET >> "/home/$USERNAME/.bashrc"
+RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+    && echo $SNIPPET >> "/root/.bashrc" \
