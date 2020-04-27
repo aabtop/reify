@@ -11,6 +11,10 @@
 		"terminal.integrated.shell.linux": "/bin/bash",
 		"nixEnvSelector.nixShellConfig": "${workspaceRoot}/src/default.nix",
 		"cmake.buildDirectory": "${workspaceRoot}/cmake_out",
+		"editor.formatOnSave": true,
+		"files.associations": {
+			"*.hs": "haskell",
+		},
 	},
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
@@ -18,6 +22,8 @@
 		"ms-vscode.cpptools",
 		"twxs.cmake",
 		"ms-vscode.cmake-tools",
+		"justusadam.language-haskell",
+		"maxgabriel.brittany",
 	],
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],

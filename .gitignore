@@ -6,3 +6,6 @@
 result
 src/result
 
+# Ignore cmake artifacts.
+cmake_out/
+
