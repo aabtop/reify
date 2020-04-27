@@ -1,5 +1,6 @@
 # Ignore user vscode preferences.
 .vscode/
+*.code-workspace
 
 # Ignore artifacts from nix-build.
 result
