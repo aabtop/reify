@@ -1,15 +1,14 @@
 module Main where
 
-import           Text.Groom
 import           System.IO
 
 import           Idt
-import           IdtIdt
+import           ReifyIdt
 import           IdtProcessing
 import           TargetHaskell
 import           TargetTypeScript
 
-declarationSequence = asDeclarationSequence idtIdt
+declarationSequence = asDeclarationSequence reifyIdt
 
 main :: IO ()
 main = case declarationSequence of

@@ -1,3 +1,4 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ haskellPackages ? (import <nixpkgs> {}).haskellPackages }:
 
-pkgs.haskellPackages.callCabal2nix "idt" ./. {}
+# This package is just a simple Cabal-based library.
+haskellPackages.callCabal2nix "idt" ./. {}
