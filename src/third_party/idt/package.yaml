@@ -35,6 +35,7 @@ library:
     - Idt
     - IdtIdt
     - IdtProcessing
+    - IdtStandardPipeline
     - TargetHaskell
     - TargetTypeScript
   source-dirs: src
