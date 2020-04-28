@@ -13,4 +13,4 @@ executables:
   reify-interface-builder-cpp-v8:
     main: CppV8Main.hs
     other-modules:
-      - ReifyIdt  
+      - ReifyIdt

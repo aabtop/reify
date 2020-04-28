@@ -2,11 +2,35 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
 #include <libplatform/libplatform.h>
 #include <v8.h>
 
+void ProcessResult(const v8::Local<v8::Value> &result)
+{
+}
+
+std::string LoadFile(const char *filename)
+{
+  std::ifstream in(filename);
+  std::stringstream buffer;
+  buffer << in.rdbuf();
+  return buffer.str();
+}
+
 int main(int argc, char *argv[])
 {
+  if (argc < 2)
+  {
+    std::cerr << "USAGE: " << argv[0] << " INPUT_FILE" << std::endl;
+    return 1;
+  }
+
+  std::string input_file_contents = LoadFile(argv[1]);
+
   // Initialize V8.
   v8::V8::InitializeICUDefaultLocation(argv[0]);
   v8::V8::InitializeExternalStartupData(argv[0]);
@@ -26,51 +50,67 @@ int main(int argc, char *argv[])
     v8::Local<v8::Context> context = v8::Context::New(isolate);
     // Enter the context for compiling and running the hello world script.
     v8::Context::Scope context_scope(context);
+
     {
+      // We're just about to compile the script; set up an error handler to
+      // catch any exceptions the script might throw.
+      v8::TryCatch try_catch(isolate);
+
       // Create a string containing the JavaScript source code.
-      v8::Local<v8::String> source =
-          v8::String::NewFromUtf8(isolate, "'Hello' + ', World!'", v8::NewStringType::kNormal).ToLocalChecked();
+      v8::Local<v8::String> source;
+      if (!v8::String::NewFromUtf8(isolate, input_file_contents.c_str(), v8::NewStringType::kNormal).ToLocal(&source))
+      {
+        v8::String::Utf8Value error(isolate, try_catch.Exception());
+        std::cerr << "Error: " << *error << std::endl;
+        return 1;
+      }
+
       // Compile the source code.
-      v8::Local<v8::Script> script =
-          v8::Script::Compile(context, source).ToLocalChecked();
+      v8::Local<v8::Script> script;
+      if (!v8::Script::Compile(context, source).ToLocal(&script))
+      {
+        v8::String::Utf8Value error(isolate, try_catch.Exception());
+        std::cerr << "Error: " << *error << std::endl;
+        return 1;
+      }
+
       // Run the script to get the result.
-      v8::Local<v8::Value> result = script->Run(context).ToLocalChecked();
-      // Convert the result to an UTF8 string and print it.
-      v8::String::Utf8Value utf8(isolate, result);
-      printf("%s\n", *utf8);
-    }
-    {
-      // Use the JavaScript API to generate a WebAssembly module.
-      //
-      // |bytes| contains the binary format for the following module:
-      //
-      //     (func (export "add") (param i32 i32) (result i32)
-      //       get_local 0
-      //       get_local 1
-      //       i32.add)
-      //
-      const char csource[] = R"(
-        let bytes = new Uint8Array([
-          0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x07, 0x01,
-          0x60, 0x02, 0x7f, 0x7f, 0x01, 0x7f, 0x03, 0x02, 0x01, 0x00, 0x07,
-          0x07, 0x01, 0x03, 0x61, 0x64, 0x64, 0x00, 0x00, 0x0a, 0x09, 0x01,
-          0x07, 0x00, 0x20, 0x00, 0x20, 0x01, 0x6a, 0x0b
-        ]);
-        let module = new WebAssembly.Module(bytes);
-        let instance = new WebAssembly.Instance(module);
-        instance.exports.add(3, 4);
-      )";
-      // Create a string containing the JavaScript source code.
-      v8::Local<v8::String> source =
-          v8::String::NewFromUtf8(isolate, csource, v8::NewStringType::kNormal).ToLocalChecked();
-      // Compile the source code.
-      v8::Local<v8::Script> script =
-          v8::Script::Compile(context, source).ToLocalChecked();
-      // Run the script to get the result.
-      v8::Local<v8::Value> result = script->Run(context).ToLocalChecked();
-      // Convert the result to a uint32 and print it.
-      uint32_t number = result->Uint32Value(context).ToChecked();
-      printf("3 + 4 = %u\n", number);
+      v8::Local<v8::Value> global_result;
+      if (!script->Run(context).ToLocal(&global_result))
+      {
+        v8::String::Utf8Value error(isolate, try_catch.Exception());
+        std::cerr << "Error: " << *error << std::endl;
+        return 1;
+      }
+
+      // The script compiled and ran correctly.  Now we fetch out the
+      // Process function from the global object.
+      v8::Local<v8::String> function_name =
+          v8::String::NewFromUtf8(isolate, "Jeep", v8::NewStringType::kNormal).ToLocalChecked();
+
+      // If there is no Process function, or if it is not a function,
+      // bail out.
+      v8::Local<v8::Value> function_untyped_val;
+      if (!context->Global()->Get(context, function_name).ToLocal(&function_untyped_val) ||
+          !function_untyped_val->IsFunction())
+      {
+        std::cerr << "Could not find function 'Jeep'." << std::endl;
+        return 1;
+      }
+
+      // It is a function; cast it to a Function
+      v8::Local<v8::Function> entrypoint = v8::Local<v8::Function>::Cast(function_untyped_val);
+
+      // Call the entrypoint function.
+      v8::Local<v8::Value> result;
+      if (!entrypoint->Call(context, context->Global(), 0, nullptr).ToLocal(&result))
+      {
+        v8::String::Utf8Value error(isolate, try_catch.Exception());
+        std::cerr << "Error: " << *error << std::endl;
+        return 1;
+      }
+
+      ProcessResult(result);
     }
   }
   // Dispose the isolate and tear down V8.
