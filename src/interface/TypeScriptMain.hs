@@ -2,7 +2,8 @@ module Main where
 
 import           IdtProcessing
 import           IdtStandardPipeline
-import           ReifyIdt
 import           TargetTypeScript
+
+import           ReifyIdt
 
 main = buildTargetToStdio reifyIdt toTypeScriptSourceCode

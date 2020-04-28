@@ -1,39 +1,16 @@
 name:                reify-interface-builder
-version:             0.1.0.0
-github:              "aabtop/reify"
-license:             BSD3
-author:              "Andrew Top"
-maintainer:          "aabtop@gmail.com"
-copyright:           "2020 Andrew Top"
-
-extra-source-files:
-- README.md
-- ChangeLog.md
-
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/aabtop/idt#readme>
-
-default-extensions:
-  - DuplicateRecordFields
-  - StandaloneDeriving
 
 dependencies:
 - base >= 4.7 && < 5
 - idt
 
+
 executables:
-  reify-interface-builder:
-    main:                Main.hs
-    source-dirs:         .
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - idt
+  reify-interface-builder-ts:
+    main: TypeScriptMain.hs
+    other-modules:
+      - ReifyIdt
+  reify-interface-builder-cpp-v8:
+    main: CppV8Main.hs
+    other-modules:
+      - ReifyIdt  
