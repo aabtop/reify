@@ -17,7 +17,7 @@ enumConstructorString enumName (n, ts) =
         ++ intercalate ", " (enumTypesToParameters ts)
         ++ "): "
         ++ enumName
-        ++ "{\n  return { "
+        ++ " {\n  return { "
         ++ intercalate ", " structConstructors
         ++ "};\n}"
 
