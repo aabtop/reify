@@ -30,6 +30,7 @@
 		"ms-vscode.cmake-tools",
 		"justusadam.language-haskell",
 		"maxgabriel.brittany",
+		"bbenoist.nix",
 	],
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
