@@ -16,6 +16,10 @@
 		"files.associations": {
 			"*.hs": "haskell",
 		},
+		"editor.tabSize": 2,
+		"editor.rulers": [
+			80
+		],
 	},
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
