@@ -4,7 +4,7 @@ FROM debian:10
 LABEL description="Linux development environment for building Reify."
 
 RUN apt-get update --fix-missing && apt-get -y install \
-    curl perl sudo locales bzip2 bash xz-utils git wget vim
+    curl perl sudo locales bzip2 bash xz-utils git wget vim man
 
 RUN apt-get clean && apt-get purge && apt-get autoremove --purge -y && \
     rm -rf /var/lib/apt/lists/*

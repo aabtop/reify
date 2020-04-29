@@ -10,7 +10,8 @@
 	"settings": {
 		"terminal.integrated.shell.linux": "/bin/bash",
 		"nixEnvSelector.nixShellConfig": "${workspaceRoot}/src/default.nix",
-		"cmake.buildDirectory": "${workspaceRoot}/cmake_out",
+		"cmake.buildDirectory": "/cmake_out",
+		"cmake.sourceDirectory": "${workspaceFolder}/src",
 		"editor.formatOnSave": true,
 		"files.associations": {
 			"*.hs": "haskell",

@@ -1,5 +1,8 @@
 # Ignore user vscode preferences.
-.vscode/
+.vscode/*
+# Enable tasks to be checked in so that we can supply the build task.
+!.vscode/tasks.json
+
 *.code-workspace
 
 # Ignore artifacts from nix-build.

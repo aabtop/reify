@@ -1,0 +1,22 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      // First open a nix-shell, which will ensure that all dependencies of the
+      // cmake file are built.  Then run cmake within the nix-shell to enable
+      // iterative building of the final result.
+      "command": "nix-shell --run \"mkdir -p ${config:cmake.buildDirectory} && cd ${config:cmake.buildDirectory} && cmake ${workspaceFolder}/src && cmake --build .\" ${workspaceFolder}/src",
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
