@@ -20,6 +20,9 @@
 		"editor.rulers": [
 			80
 		],
+		// Need to figure out still how to ensure that brittany is installed and
+		// in the environment before enabling this extension in vs code.
+		"brittany.enable": false,
 	},
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [

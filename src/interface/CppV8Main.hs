@@ -2,8 +2,8 @@ module Main where
 
 import           IdtProcessing
 import           IdtStandardPipeline
-import           TargetHaskell
+import           TargetCppV8
 
 import           ReifyIdt
 
-main = buildTargetToStdio reifyIdt toHaskellSourceCode
+main = buildTargetToStdio reifyIdt toCppV8SourceCode
