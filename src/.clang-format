@@ -1,0 +1,6 @@
+Language: Cpp
+BasedOnStyle: Google
+
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left

@@ -20,6 +20,7 @@
 	"extensions": [
 		"arrterian.nix-env-selector",
 		"ms-vscode.cpptools",
+		"xaver.clang-format",
 		"twxs.cmake",
 		"ms-vscode.cmake-tools",
 		"justusadam.language-haskell",
