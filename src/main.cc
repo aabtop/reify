@@ -9,8 +9,15 @@
 #include <libplatform/libplatform.h>
 #include <v8.h>
 
-void ProcessResult(const v8::Local<v8::Value> &result)
+void ProcessResult(v8::Isolate *isolate, const v8::Local<v8::Value> &result)
 {
+  auto mesh3_obj = v8::Local<v8::Object>::Cast(result);
+
+  v8::Local<v8::String> key_name =
+      v8::String::NewFromUtf8(isolate, "__kind", v8::NewStringType::kNormal).ToLocalChecked();
+
+  v8::String::Utf8Value utf8_kind_value(isolate, mesh3_obj->Get(key_name).As<v8::String>());
+  std::cout << "Kind: " << *utf8_kind_value << std::endl;
 }
 
 std::string LoadFile(const char *filename)
@@ -110,7 +117,7 @@ int main(int argc, char *argv[])
         return 1;
       }
 
-      ProcessResult(result);
+      ProcessResult(isolate, result);
     }
   }
   // Dispose the isolate and tear down V8.
