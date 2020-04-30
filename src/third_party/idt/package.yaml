@@ -27,15 +27,15 @@ default-extensions:
 
 dependencies:
 - base >= 4.7 && < 5
-- groom == 0.1.2.1
-- mtl == 2.2.2
-- containers == 0.6.2.1
-- haskell-src-meta == 0.8.5
-- stache == 2.1.1
-- file-embed == 0.0.11.2
-- text == 1.2.4.0
+- groom >= 0.1.2.1
+- mtl >= 2.2.2
+- containers >= 0.6.0.0
+- haskell-src-meta >= 0.8.0
+- stache >= 2.0.0
+- file-embed >= 0.0.11.0
+- text >= 1.2.0.0
 - aeson >= 1.4.0.0
-- megaparsec >= 8.0.0
+- megaparsec >= 7.0.0
 - ghc >= 8.0.0
 
 library:

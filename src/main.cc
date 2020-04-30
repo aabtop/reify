@@ -65,6 +65,7 @@ class Mesh3 : public v8::Object {
       return MeshUnion;
     } else {
       assert(false);
+      return static_cast<SubType>(-1);
     }
   }
 

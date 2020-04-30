@@ -23,6 +23,7 @@ class {{name}} : public v8::Object {
   {{/constructors}}
     } else {
       assert(false);
+      return static_cast<SubType>(-1);
     }
   }
 

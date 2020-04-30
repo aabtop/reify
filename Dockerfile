@@ -17,8 +17,8 @@ ENV LANG en_US.UTF-8
 # The following has been copied from the nixos/nix build setup.  We don't
 # use that image here however because it is based off of alpine which is
 # incompatible with vs code's C++ plugin.
-RUN wget https://nixos.org/releases/nix/nix-2.3.3/nix-2.3.3-x86_64-linux.tar.xz \
-    && tar xf nix-2.3.3-x86_64-linux.tar.xz \
+RUN wget https://nixos.org/releases/nix/nix-2.3.4/nix-2.3.4-x86_64-linux.tar.xz \
+    && tar xf nix-2.3.4-x86_64-linux.tar.xz \
     && addgroup --gid 30000 --system nixbld \
     && for i in $(seq 1 30); do useradd --system -M --uid $((30000 + i)) --groups nixbld nixbld$i ; done \
     && mkdir -m 0755 /etc/nix \
@@ -45,3 +45,14 @@ ENV \
 
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
     && echo $SNIPPET >> "/root/.bashrc"
+
+# Set our channel to the nixos-20.03 channel as opposed to the unstable channel.
+# In particular, I was having trouble getting the brittany tool installed in
+# the unstable channel.
+RUN nix-channel --remove nixpkgs && \
+    nix-channel --add https://nixos.org/channels/nixos-20.03 nixpkgs && \
+    nix-channel --update
+
+RUN nix-env -f "<nixpkgs>" -iA haskellPackages.brittany hlint
+
+#RUN stack install brittany
