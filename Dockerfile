@@ -44,4 +44,4 @@ ENV \
     NIX_SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
 
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
-    && echo $SNIPPET >> "/root/.bashrc" \
+    && echo $SNIPPET >> "/root/.bashrc"
