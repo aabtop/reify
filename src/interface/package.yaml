@@ -4,7 +4,6 @@ dependencies:
 - base >= 4.7 && < 5
 - idt
 
-
 executables:
   reify-interface-builder-ts:
     main: TypeScriptMain.hs

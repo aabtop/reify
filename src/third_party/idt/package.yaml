@@ -22,6 +22,8 @@ description:         Please see the README on GitHub at <https://github.com/aabt
 default-extensions:
   - DuplicateRecordFields
   - StandaloneDeriving
+  - TemplateHaskell
+  - OverloadedStrings
 
 dependencies:
 - base >= 4.7 && < 5
@@ -29,6 +31,12 @@ dependencies:
 - mtl == 2.2.2
 - containers == 0.6.2.1
 - haskell-src-meta == 0.8.5
+- stache == 2.1.1
+- file-embed == 0.0.11.2
+- text == 1.2.4.0
+- aeson == 1.4.7.1
+- megaparsec == 8.0.0
+- ghc == 8.8.3
 
 library:
   exposed-modules:
