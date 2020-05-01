@@ -9,93 +9,21 @@
 #include <iostream>
 #include <sstream>
 
-class Mesh3;
-
-template <typename T>
-class List : public v8::Array {
- public:
-  V8_INLINE static List<T>* Cast(Value* obj) {
-#ifdef V8_ENABLE_CHECKS
-    CheckCast(obj);
-#endif
-    return static_cast<List<T>*>(obj);
-  }
-
-  v8::MaybeLocal<T> Get(uint32_t index) {
-    if (index >= Length()) {
-      return v8::MaybeLocal<T>();
-    }
-
-    return v8::Array::Get(index).As<T>();
-  }
-
- private:
-  static void CheckCast(Value* obj) {}
-};
-
-class Mesh3 : public v8::Object {
- public:
-  // static Local<Value> New(Isolate* isolate, int64_t value);
-
-  V8_INLINE static Mesh3* Cast(Value* obj) {
-#ifdef V8_ENABLE_CHECKS
-    CheckCast(obj);
-#endif
-    return static_cast<Mesh3*>(obj);
-  }
-
-  enum SubType {
-    ExtrudeMesh2AsMesh,
-    TransformMesh3AsMesh,
-    MeshUnion,
-  };
-  SubType sub_type() {
-    v8::Local<v8::String> key_name =
-        v8::String::NewFromUtf8(GetIsolate(), "__kind");
-
-    v8::String::Utf8Value utf8_kind_value(GetIsolate(),
-                                          Get(key_name).As<v8::String>());
-    std::string kind_value(*utf8_kind_value, utf8_kind_value.length());
-
-    if (kind_value == "ExtrudeMesh2AsMesh") {
-      return ExtrudeMesh2AsMesh;
-    } else if (kind_value == "TransformMesh3AsMesh") {
-      return TransformMesh3AsMesh;
-    } else if (kind_value == "MeshUnion") {
-      return MeshUnion;
-    } else {
-      assert(false);
-      return static_cast<SubType>(-1);
-    }
-  }
-
-  v8::MaybeLocal<List<Mesh3>> AsMeshUnion() {
-    if (sub_type() != MeshUnion) {
-      return v8::MaybeLocal<List<Mesh3>>();
-    }
-    v8::Local<v8::String> key_name =
-        v8::String::NewFromUtf8(GetIsolate(), "p0");
-
-    return Get(key_name).As<List<Mesh3>>();
-  }
-
- private:
-  static void CheckCast(Value* obj) {}
-};
+#include "reify_interface/reify_cpp_v8_interface.h"
 
 void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
-  auto mesh3 = v8::Local<Mesh3>::Cast(result);
+  auto mesh3 = v8::Local<reify::Mesh3>::Cast(result);
 
   std::cout << "Kind: " << mesh3->sub_type() << std::endl;
 
   switch (mesh3->sub_type()) {
-    case Mesh3::ExtrudeMesh2AsMesh:
+    case reify::Mesh3::ExtrudeMesh2AsMesh:
       std::cout << "ExtrudeMesh2AsMesh" << std::endl;
       break;
-    case Mesh3::TransformMesh3AsMesh:
+    case reify::Mesh3::TransformMesh3AsMesh:
       std::cout << "TransformMesh3AsMesh" << std::endl;
       break;
-    case Mesh3::MeshUnion:
+    case reify::Mesh3::MeshUnion:
       std::cout << "MeshUnion" << std::endl;
       auto meshes = mesh3->AsMeshUnion().ToLocalChecked();
       std::cout << "  Number of meshes: " << meshes->Length() << std::endl;

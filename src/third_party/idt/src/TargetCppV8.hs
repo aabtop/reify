@@ -80,7 +80,10 @@ members = map member
 
 namedTypeDefinition :: Declaration -> String
 namedTypeDefinition t = case t of
-  ForwardDeclaration _ -> ""
+  ForwardDeclaration (NamedType n (Enum   _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n (Struct _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration _ ->
+    panic "Only forward declarations of Enum and Structs are supported."
   TypeDeclaration (NamedType n t@(Enum l)) ->
     DTL.unpack $ renderMustache enumTemplate $ object
       ["name" .= n, "constructors" .= constructors l]

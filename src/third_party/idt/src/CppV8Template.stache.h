@@ -7,7 +7,7 @@ namespace {{namespace}} {
 
 namespace internal {
   std::string GetPropertyAsString(
-      v8::Local<v8::Object> object, const char* key) {
+      v8::Object* object, const char* key) {
     v8::Local<v8::String> key_name =
         v8::String::NewFromUtf8(object->GetIsolate(), key);
 

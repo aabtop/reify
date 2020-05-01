@@ -15,11 +15,11 @@ class {{name}} : public v8::Object {
   };
 
   SubType sub_type() {
-    std::string kind_value = internal::GetPropertyAsString(Get, "__kind");
+    std::string kind_value = internal::GetPropertyAsString(this, "__kind");
     if (false) {
   {{#constructors}}
     } else if (kind_value == "{{__kind}}") {
-      return {{__kind}}
+      return {{__kind}};
   {{/constructors}}
     } else {
       assert(false);
