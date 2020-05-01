@@ -25,6 +25,9 @@ set(REIFY_TS_INTERFACE_GENERATOR_FILENAME reify-interface-builder-ts)
 set(REIFY_CPP_V8_INTERFACE_GENERATOR ${CMAKE_CURRENT_BINARY_DIR}/${REIFY_CPP_V8_INTERFACE_GENERATOR_FILENAME})
 set(REIFY_TS_INTERFACE_GENERATOR ${CMAKE_CURRENT_BINARY_DIR}/${REIFY_TS_INTERFACE_GENERATOR_FILENAME})
 
+# nix-build the interface generators, and then copy them into the cmake binary
+# directory.  The copy is performed because cmake seems to have some trouble
+# with dependency tracking surrounding the symbolic links created by Nix.
 add_custom_command(
     OUTPUT ${REIFY_CPP_V8_INTERFACE_GENERATOR} ${REIFY_TS_INTERFACE_GENERATOR}
     DEPENDS ${REIFY_INTERFACE_FILES} ${IDT_FILES}

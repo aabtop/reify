@@ -29,8 +29,7 @@ void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
       std::cout << "  Number of meshes: " << meshes->Length() << std::endl;
       std::cout << "  [" << std::endl;
       for (int i = 0; i < meshes->Length(); ++i) {
-        std::cout << "    " << meshes->Get(i).ToLocalChecked()->sub_type()
-                  << std::endl;
+        ProcessResult(isolate, meshes->Get(i).ToLocalChecked());
       }
       std::cout << "  ]" << std::endl;
   }
