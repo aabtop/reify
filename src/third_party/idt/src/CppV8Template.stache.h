@@ -12,7 +12,7 @@ namespace internal {
         v8::String::NewFromUtf8(object->GetIsolate(), key);
 
     v8::String::Utf8Value utf8_kind_value(
-        object->GetIsolate(), object->Get(key_name).As<v8::String>());
+        object->GetIsolate(), object->Get(key_name).template As<v8::String>());
 
     return std::string(*utf8_kind_value, utf8_kind_value.length());
   }
@@ -33,7 +33,7 @@ class List : public v8::Array {
       return v8::MaybeLocal<T>();
     }
 
-    return v8::Array::Get(index).As<T>();
+    return v8::Array::Get(index).template As<T>();
   }
 
  private:
@@ -58,7 +58,7 @@ class Tuple : public v8::Array {
 
   template <int N>
   internal::NthTypeOf<N, Types...> Get() {
-    return v8::Array::Get(N).As<internal::NthTypeOf<N, Types...>>();
+    return v8::Array::Get(N).template As<internal::NthTypeOf<N, Types...>>();
   }
 
  private:

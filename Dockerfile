@@ -3,6 +3,7 @@ FROM debian:10
 
 LABEL description="Linux development environment for building Reify."
 
+# Install some basic tools to enable us to get nix installed.
 RUN apt-get update --fix-missing && apt-get -y install \
     curl perl sudo locales bzip2 bash xz-utils git wget vim man
 
@@ -53,6 +54,8 @@ RUN nix-channel --remove nixpkgs && \
     nix-channel --add https://nixos.org/channels/nixos-20.03 nixpkgs && \
     nix-channel --update
 
-RUN nix-env -f "<nixpkgs>" -iA haskellPackages.brittany hlint
-
-#RUN stack install brittany
+# Setup the dev environment apps.
+RUN nix-env -f "<nixpkgs>" -iA \
+    haskellPackages.brittany \
+    hlint \
+    gdb

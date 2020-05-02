@@ -36,7 +36,7 @@ class {{name}} : public v8::Object {
     v8::Local<v8::String> key_name =
         v8::String::NewFromUtf8(GetIsolate(), "p0");
 
-    return Get(key_name).As<{{{p0}}}>();
+    return Get(key_name).template As<{{{p0}}}>();
   }
 {{/constructors}}
 

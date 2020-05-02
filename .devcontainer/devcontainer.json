@@ -10,8 +10,6 @@
 	"settings": {
 		"terminal.integrated.shell.linux": "/bin/bash",
 		"nixEnvSelector.nixShellConfig": "${workspaceRoot}/src",
-		"cmake.buildDirectory": "/cmake_out",
-		"cmake.sourceDirectory": "${workspaceRoot}/src",
 		"editor.formatOnSave": true,
 		"files.associations": {
 			"*.hs": "haskell",
@@ -31,7 +29,6 @@
 		"ms-vscode.cpptools",
 		"xaver.clang-format",
 		"twxs.cmake",
-		"ms-vscode.cmake-tools",
 		"justusadam.language-haskell",
 		"maxgabriel.brittany",
 		"hoovercj.haskell-linter",

@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Main",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "/cmake_out/reify",
+      "args": [
+        "${workspaceFolder}/src/test_data/jeep.js"
+      ],
+      "stopAtEntry": false,
+      "cwd": "/tmp",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "build"
+    }
+  ]
+}
