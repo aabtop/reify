@@ -15,37 +15,45 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -U_FORTIFY_SOURCE")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -U_FORTIFY_SOURCE")
 
-# Build the TypeScript and C++ V8 Reify interface generators.
-set(REIFY_INTERFACE_DIRECTORY ${CMAKE_SOURCE_DIR}/interface)
-file(GLOB_RECURSE REIFY_INTERFACE_FILES "*.*")
-set(IDT_DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/idt)
-file(GLOB_RECURSE IDT_FILES "*.*")
 
-# Setup the nix result directory variables.
-set(GENERATED_REIFY_INTERFACE_NIX_RESULT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/reify_interface_builders)
+set(REIFY_INTERFACE_GENERATOR_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "\
+The directory where the Reify interface generator programs can be found. \
+If unset, they (the generators) will be generated during the build.")
 
 set(REIFY_CPP_V8_INTERFACE_GENERATOR_FILENAME reify-interface-builder-cpp-v8)
 set(REIFY_TS_INTERFACE_GENERATOR_FILENAME reify-interface-builder-ts)
+set(REIFY_CPP_V8_INTERFACE_GENERATOR ${REIFY_INTERFACE_GENERATOR_DIRECTORY}/${REIFY_CPP_V8_INTERFACE_GENERATOR_FILENAME})
+set(REIFY_TS_INTERFACE_GENERATOR ${REIFY_INTERFACE_GENERATOR_DIRECTORY}/${REIFY_TS_INTERFACE_GENERATOR_FILENAME})
 
-set(REIFY_CPP_V8_INTERFACE_GENERATOR ${CMAKE_CURRENT_BINARY_DIR}/${REIFY_CPP_V8_INTERFACE_GENERATOR_FILENAME})
-set(REIFY_TS_INTERFACE_GENERATOR ${CMAKE_CURRENT_BINARY_DIR}/${REIFY_TS_INTERFACE_GENERATOR_FILENAME})
+if (${REIFY_INTERFACE_GENERATOR_DIRECTORY} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
+    # Build the TypeScript and C++ V8 Reify interface generators.
+    set(REIFY_INTERFACE_DIRECTORY ${CMAKE_SOURCE_DIR}/interface)
+    file(GLOB_RECURSE REIFY_INTERFACE_FILES "*.*")
+    set(IDT_DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/idt)
+    file(GLOB_RECURSE IDT_FILES "*.*")
 
-# nix-build the interface generators, and then copy them into the cmake binary
-# directory.  The copy is performed because cmake seems to have some trouble
-# with dependency tracking surrounding the symbolic links created by Nix.
-add_custom_command(
-    OUTPUT ${REIFY_CPP_V8_INTERFACE_GENERATOR} ${REIFY_TS_INTERFACE_GENERATOR}
-    DEPENDS ${REIFY_INTERFACE_FILES} ${IDT_FILES}
-    COMMAND nix-build -o ${GENERATED_REIFY_INTERFACE_NIX_RESULT_DIRECTORY} ${REIFY_INTERFACE_DIRECTORY} &&
-            ${CMAKE_COMMAND} -E copy
-            ${GENERATED_REIFY_INTERFACE_NIX_RESULT_DIRECTORY}/bin/${REIFY_CPP_V8_INTERFACE_GENERATOR_FILENAME}
-            ${REIFY_CPP_V8_INTERFACE_GENERATOR} &&
-            ${CMAKE_COMMAND} -E copy
-            ${GENERATED_REIFY_INTERFACE_NIX_RESULT_DIRECTORY}/bin/${REIFY_TS_INTERFACE_GENERATOR_FILENAME}
-            ${REIFY_TS_INTERFACE_GENERATOR}
+    # Setup the nix result directory variables.
 
-    COMMENT "Building Reify interface generators."
-)
+    set(GENERATED_REIFY_INTERFACE_NIX_RESULT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/reify_interface_builders)
+
+    # nix-build the interface generators, and then copy them into the cmake binary
+    # directory.  The copy is performed because cmake seems to have some trouble
+    # with dependency tracking surrounding the symbolic links created by Nix.
+    add_custom_command(
+        OUTPUT ${REIFY_CPP_V8_INTERFACE_GENERATOR} ${REIFY_TS_INTERFACE_GENERATOR}
+        DEPENDS ${REIFY_INTERFACE_FILES} ${IDT_FILES}
+        COMMAND nix-build -o ${GENERATED_REIFY_INTERFACE_NIX_RESULT_DIRECTORY} ${REIFY_INTERFACE_DIRECTORY} &&
+                ${CMAKE_COMMAND} -E copy
+                ${GENERATED_REIFY_INTERFACE_NIX_RESULT_DIRECTORY}/bin/${REIFY_CPP_V8_INTERFACE_GENERATOR_FILENAME}
+                ${REIFY_CPP_V8_INTERFACE_GENERATOR} &&
+                ${CMAKE_COMMAND} -E copy
+                ${GENERATED_REIFY_INTERFACE_NIX_RESULT_DIRECTORY}/bin/${REIFY_TS_INTERFACE_GENERATOR_FILENAME}
+                ${REIFY_TS_INTERFACE_GENERATOR}
+
+        COMMENT "Building Reify interface generators."
+  : ${REIFY_INTERFACE_GENERATOR_DIRECTORY}  
+    )
+endif(${REIFY_INTERFACE_GENERATOR_DIRECTORY} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
 
 # Now, using the Reify interface generators built above, build the interfaces.
 set(GENERATED_SOURCE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src_gen)

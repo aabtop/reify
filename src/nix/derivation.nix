@@ -9,4 +9,9 @@ stdenv.mkDerivation {
   src = ../.;
 
   enableParallelBuilding = true;
+
+  cmakeFlags = [
+    ("-DREIFY_INTERFACE_GENERATOR_DIRECTORY:PATH=" +
+      (reify-interface.outPath + "/bin"))
+  ];
 }
