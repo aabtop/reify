@@ -1,6 +1,6 @@
-{clangStdenv, cmake, memdesc, v8, reify-interface, clang-tools}:
+{stdenv, cmake, memdesc, v8, reify-interface, clang-tools}:
  
-clangStdenv.mkDerivation {
+stdenv.mkDerivation {
   name = "reify";
   
   nativeBuildInputs = [cmake memdesc reify-interface clang-tools];

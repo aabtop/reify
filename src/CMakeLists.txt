@@ -10,6 +10,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 
+# Explicitly use "-O0" instead of the default "-Og" since "-Og" seems to be
+# emitting code that is difficult to step through.
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -U_FORTIFY_SOURCE")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -U_FORTIFY_SOURCE")
+
 # Build the TypeScript and C++ V8 Reify interface generators.
 set(REIFY_INTERFACE_DIRECTORY ${CMAKE_SOURCE_DIR}/interface)
 file(GLOB_RECURSE REIFY_INTERFACE_FILES "*.*")
