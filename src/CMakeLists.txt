@@ -83,11 +83,37 @@ add_custom_command(
 )
 
 
-include_directories(${GENERATED_SOURCE_DIRECTORY})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+
+# Download and extract the TypeScript compiler package.
+set(TYPESCRIPT_WORK_DIR ${CMAKE_CURRENT_BINARY_DIR}/typescript)
+set(TYPESCRIPT_TAR_FILE typescript-3.8.3.tgz)
+file(DOWNLOAD https://registry.npmjs.org/typescript/-/${TYPESCRIPT_TAR_FILE} ${TYPESCRIPT_WORK_DIR}/${TYPESCRIPT_TAR_FILE})
+set(TYPESCRIPT_BINARY ${TYPESCRIPT_WORK_DIR}/package/lib/typescriptServices.js)
+add_custom_command(
+    OUTPUT ${TYPESCRIPT_BINARY}
+    COMMAND cd ${TYPESCRIPT_WORK_DIR} &&
+            ${CMAKE_COMMAND} -E tar xfz ${TYPESCRIPT_WORK_DIR}/${TYPESCRIPT_TAR_FILE}
+    COMMENT "Unpacking TypeScript compiler."
+)
+set(GENERATED_TYPESCRIPT_HEADER ${GENERATED_SOURCE_DIRECTORY}/typescript_compiler_js.h)
+
+add_custom_command(
+    OUTPUT ${GENERATED_TYPESCRIPT_HEADER}
+    DEPENDS ${TYPESCRIPT_BINARY} ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
+    COMMAND cmake -DBINARYBAKER_INPUT_FILE=${TYPESCRIPT_BINARY}
+                  -DBINARYBAKER_OUTPUT_FILE=${GENERATED_TYPESCRIPT_HEADER}
+                  -DBINARYBAKER_VARIABLE_NAME=typescript_compiler_js
+                  -P ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
+    COMMENT "Converting TypeScript compiler binary into a header file.")
 
 add_executable(reify
   main.cc
+  typescript_compiler.cc
+  typescript_compiler.h
   ${GENERATED_CPP_V8_REIFY_INTERFACE}
+  ${GENERATED_TYPESCRIPT_HEADER}
 )
 
 target_link_libraries(reify v8 pthread)

@@ -7,7 +7,7 @@
       "request": "launch",
       "program": "/cmake_out/reify",
       "args": [
-        "${workspaceFolder}/src/test_data/jeep.js"
+        "${workspaceFolder}/src/test_data/jeep.ts"
       ],
       "stopAtEntry": false,
       "cwd": "/tmp",

@@ -9,7 +9,23 @@
 #include <iostream>
 #include <sstream>
 
-#include "reify_interface/reify_cpp_v8_interface.h"
+#include "src_gen/reify_interface/reify_cpp_v8_interface.h"
+#include "typescript_compiler.h"
+
+namespace {
+std::string ToStdString(v8::Isolate* isolate, const v8::Local<v8::Value> str) {
+  v8::String::Utf8Value utf8_kind_value(isolate, str.template As<v8::String>());
+
+  return std::string(*utf8_kind_value, utf8_kind_value.length());
+}
+
+std::string LoadFile(const char* filename) {
+  std::ifstream in(filename);
+  std::stringstream buffer;
+  buffer << in.rdbuf();
+  return buffer.str();
+}
+}  // namespace
 
 void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
   auto mesh3 = v8::Local<reify::Mesh3>::Cast(result);
@@ -35,20 +51,11 @@ void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
   }
 }
 
-std::string LoadFile(const char* filename) {
-  std::ifstream in(filename);
-  std::stringstream buffer;
-  buffer << in.rdbuf();
-  return buffer.str();
-}
-
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     std::cerr << "USAGE: " << argv[0] << " INPUT_FILE" << std::endl;
     return 1;
   }
-
-  std::string input_file_contents = LoadFile(argv[1]);
 
   // Initialize V8.
   v8::V8::InitializeICUDefaultLocation(argv[0]);
@@ -56,21 +63,27 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<v8::Platform> platform = v8::platform::NewDefaultPlatform();
   v8::V8::InitializePlatform(platform.get());
   v8::V8::Initialize();
-  // Create a new Isolate and make it the current one.
-  v8::Isolate::CreateParams create_params;
-  create_params.array_buffer_allocator =
-      v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-  v8::Isolate* isolate = v8::Isolate::New(create_params);
-  {
-    v8::Isolate::Scope isolate_scope(isolate);
-    // Create a stack-allocated handle scope.
-    v8::HandleScope handle_scope(isolate);
-    // Create a new context.
-    v8::Local<v8::Context> context = v8::Context::New(isolate);
-    // Enter the context for compiling and running the hello world script.
-    v8::Context::Scope context_scope(context);
 
+  {
+    TypeScriptCompiler tsc;
+    std::string input_file_contents =
+        tsc.TranspileToJavaScript(LoadFile(argv[1]).c_str());
+    std::cout << input_file_contents << std::endl << std::endl;
+
+    // Create a new Isolate and make it the current one.
+    v8::Isolate::CreateParams create_params;
+    create_params.array_buffer_allocator =
+        v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+    v8::Isolate* isolate = v8::Isolate::New(create_params);
     {
+      v8::Isolate::Scope isolate_scope(isolate);
+      // Create a stack-allocated handle scope.
+      v8::HandleScope handle_scope(isolate);
+      // Create a new context.
+      v8::Local<v8::Context> context = v8::Context::New(isolate);
+      // Enter the context for compiling and running the hello world script.
+      v8::Context::Scope context_scope(context);
+
       // We're just about to compile the script; set up an error handler to
       // catch any exceptions the script might throw.
       v8::TryCatch try_catch(isolate);
@@ -133,11 +146,13 @@ int main(int argc, char* argv[]) {
 
       ProcessResult(isolate, result);
     }
+
+    // Dispose the isolate and tear down V8.
+    isolate->Dispose();
+    delete create_params.array_buffer_allocator;
   }
-  // Dispose the isolate and tear down V8.
-  isolate->Dispose();
+
   v8::V8::Dispose();
   v8::V8::ShutdownPlatform();
-  delete create_params.array_buffer_allocator;
   return 0;
 }
