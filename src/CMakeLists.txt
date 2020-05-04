@@ -90,7 +90,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 set(TYPESCRIPT_WORK_DIR ${CMAKE_CURRENT_BINARY_DIR}/typescript)
 set(TYPESCRIPT_TAR_FILE typescript-3.8.3.tgz)
 file(DOWNLOAD https://registry.npmjs.org/typescript/-/${TYPESCRIPT_TAR_FILE} ${TYPESCRIPT_WORK_DIR}/${TYPESCRIPT_TAR_FILE})
-set(TYPESCRIPT_BINARY ${TYPESCRIPT_WORK_DIR}/package/lib/typescriptServices.js)
+set(TYPESCRIPT_BINARY ${TYPESCRIPT_WORK_DIR}/package/lib/typescript.js)
 set(MINIFIED_TYPESCRIPT_BINARY ${TYPESCRIPT_WORK_DIR}/minified_typescript.js)
 add_custom_command(
     OUTPUT ${MINIFIED_TYPESCRIPT_BINARY}
