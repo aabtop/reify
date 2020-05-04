@@ -91,18 +91,20 @@ set(TYPESCRIPT_WORK_DIR ${CMAKE_CURRENT_BINARY_DIR}/typescript)
 set(TYPESCRIPT_TAR_FILE typescript-3.8.3.tgz)
 file(DOWNLOAD https://registry.npmjs.org/typescript/-/${TYPESCRIPT_TAR_FILE} ${TYPESCRIPT_WORK_DIR}/${TYPESCRIPT_TAR_FILE})
 set(TYPESCRIPT_BINARY ${TYPESCRIPT_WORK_DIR}/package/lib/typescriptServices.js)
+set(MINIFIED_TYPESCRIPT_BINARY ${TYPESCRIPT_WORK_DIR}/minified_typescript.js)
 add_custom_command(
-    OUTPUT ${TYPESCRIPT_BINARY}
+    OUTPUT ${MINIFIED_TYPESCRIPT_BINARY}
     COMMAND cd ${TYPESCRIPT_WORK_DIR} &&
-            ${CMAKE_COMMAND} -E tar xfz ${TYPESCRIPT_WORK_DIR}/${TYPESCRIPT_TAR_FILE}
-    COMMENT "Unpacking TypeScript compiler."
+            ${CMAKE_COMMAND} -E tar xfz ${TYPESCRIPT_WORK_DIR}/${TYPESCRIPT_TAR_FILE} &&
+            closure-compiler --js ${TYPESCRIPT_BINARY} --js_output_file ${MINIFIED_TYPESCRIPT_BINARY}
+    COMMENT "Unpacking TypeScript compiler and minifying it."
 )
 set(GENERATED_TYPESCRIPT_HEADER ${GENERATED_SOURCE_DIRECTORY}/typescript_compiler_js.h)
 
 add_custom_command(
     OUTPUT ${GENERATED_TYPESCRIPT_HEADER}
-    DEPENDS ${TYPESCRIPT_BINARY} ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
-    COMMAND cmake -DBINARYBAKER_INPUT_FILE=${TYPESCRIPT_BINARY}
+    DEPENDS ${MINIFIED_TYPESCRIPT_BINARY} ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
+    COMMAND cmake -DBINARYBAKER_INPUT_FILE=${MINIFIED_TYPESCRIPT_BINARY}
                   -DBINARYBAKER_OUTPUT_FILE=${GENERATED_TYPESCRIPT_HEADER}
                   -DBINARYBAKER_VARIABLE_NAME=typescript_compiler_js
                   -P ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
