@@ -13,6 +13,11 @@
 #include "typescript_compiler.h"
 
 namespace {
+#include "src_gen/reify_interface/reify_ts_interface.ts.h"
+#include "src_gen/ts_lib_reify.ts.h"
+}  // namespace
+
+namespace {
 std::string ToStdString(v8::Isolate* isolate, const v8::Local<v8::Value> str) {
   v8::String::Utf8Value utf8_kind_value(isolate, str.template As<v8::String>());
 
@@ -57,6 +62,12 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  std::string reify_ts_interface_src_str(
+      reinterpret_cast<const char*>(reify_ts_interface_src),
+      sizeof(reify_ts_interface_src));
+  std::string ts_lib_reify_str(reinterpret_cast<const char*>(ts_lib_reify_src),
+                               sizeof(ts_lib_reify_src));
+
   // Initialize V8.
   v8::V8::InitializeICUDefaultLocation(argv[0]);
   v8::V8::InitializeExternalStartupData(argv[0]);
@@ -65,9 +76,13 @@ int main(int argc, char* argv[]) {
   v8::V8::Initialize();
 
   {
+    std::string interface_augmented_input_src = reify_ts_interface_src_str +
+                                                ts_lib_reify_str + "\n" +
+                                                LoadFile(argv[1]);
+
     TypeScriptCompiler tsc;
     std::string input_file_contents =
-        tsc.TranspileToJavaScript(LoadFile(argv[1]).c_str());
+        tsc.TranspileToJavaScript(interface_augmented_input_src.c_str());
     std::cout << input_file_contents << std::endl << std::endl;
 
     // Create a new Isolate and make it the current one.

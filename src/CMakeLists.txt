@@ -108,14 +108,40 @@ add_custom_command(
                   -DBINARYBAKER_OUTPUT_FILE=${GENERATED_TYPESCRIPT_HEADER}
                   -DBINARYBAKER_VARIABLE_NAME=typescript_compiler_js
                   -P ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
-    COMMENT "Converting TypeScript compiler binary into a header file.")
+    COMMENT "Converting TypeScript compiler binary into a header file."
+)
 
+set(GENERATED_TS_REIFY_INTERFACE_HEADER ${GENERATED_REIFY_INTERFACES_DIRECTORY}/reify_ts_interface.ts.h)
+add_custom_command(
+    OUTPUT ${GENERATED_TS_REIFY_INTERFACE_HEADER}
+    DEPENDS ${GENERATED_TS_REIFY_INTERFACE} ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
+    COMMAND cmake -DBINARYBAKER_INPUT_FILE=${GENERATED_TS_REIFY_INTERFACE}
+                    -DBINARYBAKER_OUTPUT_FILE=${GENERATED_TS_REIFY_INTERFACE_HEADER}
+                    -DBINARYBAKER_VARIABLE_NAME=reify_ts_interface_src
+                    -P ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
+    COMMENT "Converting Reify TypeScript interface source into a C++ header file."
+)
+
+set(TS_LIB_REIFY ${CMAKE_SOURCE_DIR}/ts_lib/reify.ts)
+set(GENERATED_TS_LIB_REIFY_HEADER ${GENERATED_SOURCE_DIRECTORY}/ts_lib_reify.ts.h)
+add_custom_command(
+    OUTPUT ${GENERATED_TS_LIB_REIFY_HEADER}
+    DEPENDS ${TS_LIB_REIFY} ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
+    COMMAND cmake -DBINARYBAKER_INPUT_FILE=${TS_LIB_REIFY}
+                    -DBINARYBAKER_OUTPUT_FILE=${GENERATED_TS_LIB_REIFY_HEADER}
+                    -DBINARYBAKER_VARIABLE_NAME=ts_lib_reify_src
+                    -P ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
+    COMMENT "Converting ts_lib/reify.ts into a C++ header file."
+)
+    
 add_executable(reify
   main.cc
   typescript_compiler.cc
   typescript_compiler.h
   ${GENERATED_CPP_V8_REIFY_INTERFACE}
   ${GENERATED_TYPESCRIPT_HEADER}
+  ${GENERATED_TS_REIFY_INTERFACE_HEADER}
+  ${GENERATED_TS_LIB_REIFY_HEADER}
 )
 
 target_link_libraries(reify v8 pthread)
