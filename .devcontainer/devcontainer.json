@@ -24,6 +24,10 @@
 		// in the environment before enabling this extension in vs code.
 		"brittany.enable": true,
 		"brittany.stackEnable": false,
+		// This project has a lot of unorthodox JS/TS usage, so disable the error
+		// highlighting for it.
+		"typescript.validate.enable": false,
+		"javascript.validate.enable": false,
 	},
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
@@ -35,6 +39,7 @@
 		"maxgabriel.brittany",
 		"hoovercj.haskell-linter",
 		"bbenoist.nix",
+		"ms-vscode.vscode-typescript-next",
 	],
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
