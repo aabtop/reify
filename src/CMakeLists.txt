@@ -97,11 +97,13 @@ set(TSC_EMBEDDED_JS ${TSC_EMBEDDED_DIRECTORY}/dist/tsc_embedded.js)
 find_program(NPM npm)
 find_program(NPX npx)
 
+# NPM doesn't like it when there is no home directory, so give it one in the
+# CMake build dir.
 add_custom_command(
     OUTPUT ${TSC_EMBEDDED_JS}
     DEPENDS ${TSC_EMBEDDED_FILES}
     COMMAND cd ${TSC_EMBEDDED_DIRECTORY} &&
-            ${NPM} install &&
+    ${CMAKE_COMMAND} -E env HOME=${CMAKE_CURRENT_BINARY_DIR}/home ${NPM} install &&
             ${NPX} webpack
     COMMENT "Building TypeScript compiler wrapper script."
 )
