@@ -6,7 +6,7 @@ export type TranspileResults = {
                    // error message in the case of an error.
 };
 
-export function TranspileModuleFoobar(source: string): TranspileResults {
+export function TranspileModule(source: string): TranspileResults {
   let result = ts.transpileModule(
       source, {compilerOptions: {module: ts.ModuleKind.CommonJS}});
 

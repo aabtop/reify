@@ -77,24 +77,25 @@ TypeScriptCompiler::TypeScriptCompiler() {
   }
 
   v8::Local<v8::String> namespace_name =
-      v8::String::NewFromUtf8(isolate_, "ts", v8::NewStringType::kNormal)
+      v8::String::NewFromUtf8(isolate_, "tsc_embedded",
+                              v8::NewStringType::kNormal)
           .ToLocalChecked();
-  auto ts_object = context->Global()
-                       ->Get(context, namespace_name)
-                       .ToLocalChecked()
-                       .As<v8::Object>();
-  assert(ts_object->IsObject());
+  auto tsc_embedded_object = context->Global()
+                                 ->Get(context, namespace_name)
+                                 .ToLocalChecked()
+                                 .As<v8::Object>();
+  assert(tsc_embedded_object->IsObject());
 
   // The script compiled and ran correctly.  Now we fetch out the
   // Process function from the global object.
   v8::Local<v8::String> function_name =
-      v8::String::NewFromUtf8(isolate_, "transpileModule",
+      v8::String::NewFromUtf8(isolate_, "TranspileModule",
                               v8::NewStringType::kNormal)
           .ToLocalChecked();
 
   // If there is no Process function, or if it is not a function,
   // bail out.
-  auto transpile_function = ts_object->Get(context, function_name)
+  auto transpile_function = tsc_embedded_object->Get(context, function_name)
                                 .ToLocalChecked()
                                 .As<v8::Function>();
   assert(transpile_function->IsFunction());
@@ -125,16 +126,14 @@ std::string TypeScriptCompiler::TranspileToJavaScript(
                               v8::NewStringType::kNormal)
           .ToLocalChecked();
 
-  v8::Local<v8::Value> parameters[] = {input_typescript_v8_str,
-                                       v8::Object::New(isolate_)};
+  v8::Local<v8::Value> parameters[] = {input_typescript_v8_str};
   v8::Local<v8::Object> global = context->Global();
-  auto result = transpile_function->Call(context, global, 2, parameters)
+  auto result = transpile_function->Call(context, global, 1, parameters)
                     .ToLocalChecked()
                     .As<v8::Object>();
 
   v8::Local<v8::String> output_text_name =
-      v8::String::NewFromUtf8(isolate_, "outputText",
-                              v8::NewStringType::kNormal)
+      v8::String::NewFromUtf8(isolate_, "result", v8::NewStringType::kNormal)
           .ToLocalChecked();
   auto output_text =
       result->Get(context, output_text_name).ToLocalChecked().As<v8::String>();
