@@ -13,3 +13,7 @@ src/result
 # Ignore cmake artifacts.
 cmake_out/
 
+# Let's not take our installed dependencies with us!
+node_modules/
+dist/
+package-lock.json

@@ -1,0 +1,21 @@
+{
+  "name": "tsc_embedded",
+  "version": "1.0.0",
+  "description": "TypeScript compiler API wrapper for Reify.",
+  "main": "./tsc_out/tsc_embedded.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Andrew Top",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^13.13.4",
+    "typescript": "^3.8.3"
+  },
+  "devDependencies": {
+    "ts-loader": "^7.0.2",
+    "typescript": "^3.8.3",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11"
+  }
+}

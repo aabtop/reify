@@ -1,9 +1,9 @@
-{stdenv, cmake, memdesc, v8, reify-interface, clang-tools, closurecompiler}:
+{stdenv, cmake, memdesc, v8, reify-interface, clang-tools, closurecompiler, nodejs}:
  
 stdenv.mkDerivation {
   name = "reify";
   
-  nativeBuildInputs = [cmake memdesc reify-interface clang-tools closurecompiler];
+  nativeBuildInputs = [cmake memdesc reify-interface clang-tools closurecompiler nodejs];
   buildInputs = [ v8 ];
 
   src = ../.;

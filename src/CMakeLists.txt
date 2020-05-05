@@ -28,9 +28,9 @@ set(REIFY_TS_INTERFACE_GENERATOR ${REIFY_INTERFACE_GENERATOR_DIRECTORY}/${REIFY_
 if (${REIFY_INTERFACE_GENERATOR_DIRECTORY} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
     # Build the TypeScript and C++ V8 Reify interface generators.
     set(REIFY_INTERFACE_DIRECTORY ${CMAKE_SOURCE_DIR}/interface)
-    file(GLOB_RECURSE REIFY_INTERFACE_FILES "*.*")
+    file(GLOB_RECURSE REIFY_INTERFACE_FILES ${REIFY_INTERFACE_DIRECTORY}/*.*)
     set(IDT_DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/idt)
-    file(GLOB_RECURSE IDT_FILES "*.*")
+    file(GLOB_RECURSE IDT_FILES ${IDT_DIRECTORY}/*.*)
 
     # Setup the nix result directory variables.
 
@@ -86,25 +86,32 @@ add_custom_command(
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 
-# Download and extract the TypeScript compiler package.
-set(TYPESCRIPT_WORK_DIR ${CMAKE_CURRENT_BINARY_DIR}/typescript)
-set(TYPESCRIPT_TAR_FILE typescript-3.8.3.tgz)
-file(DOWNLOAD https://registry.npmjs.org/typescript/-/${TYPESCRIPT_TAR_FILE} ${TYPESCRIPT_WORK_DIR}/${TYPESCRIPT_TAR_FILE})
-set(TYPESCRIPT_BINARY ${TYPESCRIPT_WORK_DIR}/package/lib/typescript.js)
-set(MINIFIED_TYPESCRIPT_BINARY ${TYPESCRIPT_WORK_DIR}/minified_typescript.js)
+# Build our TypeScript Compiler wrapper script.
+set(TSC_EMBEDDED_DIRECTORY ${CMAKE_SOURCE_DIR}/tsc_embedded)
+file(GLOB_RECURSE TSC_EMBEDDED_FILES ${TSC_EMBEDDED_DIRECTORY}/*.*)
+list(FILTER TSC_EMBEDDED_FILES EXCLUDE REGEX "node_modules/*")
+list(FILTER TSC_EMBEDDED_FILES EXCLUDE REGEX "dist/*")
+list(FILTER TSC_EMBEDDED_FILES EXCLUDE REGEX "package-lock.json")
+set(TSC_EMBEDDED_JS ${TSC_EMBEDDED_DIRECTORY}/dist/tsc_embedded.js)
+
+find_program(NPM npm)
+find_program(NPX npx)
+
 add_custom_command(
-    OUTPUT ${MINIFIED_TYPESCRIPT_BINARY}
-    COMMAND cd ${TYPESCRIPT_WORK_DIR} &&
-            ${CMAKE_COMMAND} -E tar xfz ${TYPESCRIPT_WORK_DIR}/${TYPESCRIPT_TAR_FILE} &&
-            closure-compiler --js ${TYPESCRIPT_BINARY} --js_output_file ${MINIFIED_TYPESCRIPT_BINARY}
-    COMMENT "Unpacking TypeScript compiler and minifying it."
+    OUTPUT ${TSC_EMBEDDED_JS}
+    DEPENDS ${TSC_EMBEDDED_FILES}
+    COMMAND cd ${TSC_EMBEDDED_DIRECTORY} &&
+            ${NPM} install &&
+            ${NPX} webpack
+    COMMENT "Building TypeScript compiler wrapper script."
 )
+
 set(GENERATED_TYPESCRIPT_HEADER ${GENERATED_SOURCE_DIRECTORY}/typescript_compiler_js.h)
 
 add_custom_command(
     OUTPUT ${GENERATED_TYPESCRIPT_HEADER}
-    DEPENDS ${MINIFIED_TYPESCRIPT_BINARY} ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
-    COMMAND cmake -DBINARYBAKER_INPUT_FILE=${MINIFIED_TYPESCRIPT_BINARY}
+    DEPENDS ${TSC_EMBEDDED_JS} ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
+    COMMAND cmake -DBINARYBAKER_INPUT_FILE=${TSC_EMBEDDED_JS}
                   -DBINARYBAKER_OUTPUT_FILE=${GENERATED_TYPESCRIPT_HEADER}
                   -DBINARYBAKER_VARIABLE_NAME=typescript_compiler_js
                   -P ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
@@ -133,7 +140,7 @@ add_custom_command(
                     -P ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
     COMMENT "Converting ts_lib/reify.ts into a C++ header file."
 )
-    
+
 add_executable(reify
   main.cc
   typescript_compiler.cc
