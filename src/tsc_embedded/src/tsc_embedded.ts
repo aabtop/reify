@@ -2,6 +2,8 @@ import lib_es2015_core from 'raw-loader!./../node_modules/typescript/lib/lib.es2
 import lib_es5 from 'raw-loader!./../node_modules/typescript/lib/lib.es5.d.ts'
 import * as ts from 'typescript';
 
+const defaultLibContent = lib_es5 + lib_es2015_core;
+
 export type TranspileResults = {
   success: boolean;
   result: string;  // Either the source code in the case of success, or the
@@ -26,7 +28,7 @@ export function TranspileModule(text: string) {
       ts.createSourceFile(dummyFilePath, text, ts.ScriptTarget.Latest);
 
   const defaultLibAst = ts.createSourceFile(
-      '/lib.d.ts', lib_es5 + lib_es2015_core, ts.ScriptTarget.Latest);
+      '/lib.d.ts', defaultLibContent, ts.ScriptTarget.Latest);
 
   let writtenFiles: {[key: string]: string} = {};
   const options: ts.CompilerOptions = {};
