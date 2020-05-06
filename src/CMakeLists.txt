@@ -89,21 +89,20 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 # Build our TypeScript Compiler wrapper script.
 set(TSC_EMBEDDED_DIRECTORY ${CMAKE_SOURCE_DIR}/tsc_embedded)
 file(GLOB_RECURSE TSC_EMBEDDED_FILES ${TSC_EMBEDDED_DIRECTORY}/*.*)
-list(FILTER TSC_EMBEDDED_FILES EXCLUDE REGEX "node_modules/*")
-list(FILTER TSC_EMBEDDED_FILES EXCLUDE REGEX "dist/*")
-list(FILTER TSC_EMBEDDED_FILES EXCLUDE REGEX "package-lock.json")
-set(TSC_EMBEDDED_JS ${TSC_EMBEDDED_DIRECTORY}/dist/tsc_embedded.js)
 
 find_program(NPM npm)
 find_program(NPX npx)
 
 # NPM doesn't like it when there is no home directory, so give it one in the
 # CMake build dir.
+set(TSC_EMBEDDED_WORK_DIR ${CMAKE_CURRENT_BINARY_DIR}/tsc_embedded)
+set(TSC_EMBEDDED_JS ${TSC_EMBEDDED_WORK_DIR}/dist/tsc_embedded.js)
 add_custom_command(
     OUTPUT ${TSC_EMBEDDED_JS}
     DEPENDS ${TSC_EMBEDDED_FILES}
-    COMMAND cd ${TSC_EMBEDDED_DIRECTORY} &&
-    ${CMAKE_COMMAND} -E env HOME=${CMAKE_CURRENT_BINARY_DIR}/home ${NPM} install &&
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${TSC_EMBEDDED_DIRECTORY} ${TSC_EMBEDDED_WORK_DIR} &&
+            cd ${TSC_EMBEDDED_WORK_DIR} &&
+            ${CMAKE_COMMAND} -E env HOME=${CMAKE_CURRENT_BINARY_DIR}/home ${NPM} install &&
             ${NPX} webpack
     COMMENT "Building TypeScript compiler wrapper script."
 )
