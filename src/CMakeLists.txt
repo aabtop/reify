@@ -87,21 +87,21 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 
 # Build our TypeScript Compiler wrapper script.
-set(TSC_EMBEDDED_DIRECTORY ${CMAKE_SOURCE_DIR}/tsc_embedded)
-file(GLOB_RECURSE TSC_EMBEDDED_FILES ${TSC_EMBEDDED_DIRECTORY}/*.*)
+set(TSC_WRAPPER_DIRECTORY ${CMAKE_SOURCE_DIR}/tsc_wrapper)
+file(GLOB_RECURSE TSC_WRAPPER_FILES ${TSC_WRAPPER_DIRECTORY}/*.*)
 
 find_program(NPM npm)
 find_program(NPX npx)
 
 # NPM doesn't like it when there is no home directory, so give it one in the
 # CMake build dir.
-set(TSC_EMBEDDED_WORK_DIR ${CMAKE_CURRENT_BINARY_DIR}/tsc_embedded)
-set(TSC_EMBEDDED_JS ${TSC_EMBEDDED_WORK_DIR}/dist/tsc_embedded.js)
+set(TSC_WRAPPER_WORK_DIR ${CMAKE_CURRENT_BINARY_DIR}/tsc_wrapper)
+set(TSC_WRAPPER_JS ${TSC_WRAPPER_WORK_DIR}/dist/tsc_wrapper.js)
 add_custom_command(
-    OUTPUT ${TSC_EMBEDDED_JS}
-    DEPENDS ${TSC_EMBEDDED_FILES}
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${TSC_EMBEDDED_DIRECTORY} ${TSC_EMBEDDED_WORK_DIR} &&
-            cd ${TSC_EMBEDDED_WORK_DIR} &&
+    OUTPUT ${TSC_WRAPPER_JS}
+    DEPENDS ${TSC_WRAPPER_FILES}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${TSC_WRAPPER_DIRECTORY} ${TSC_WRAPPER_WORK_DIR} &&
+            cd ${TSC_WRAPPER_WORK_DIR} &&
             ${CMAKE_COMMAND} -E env HOME=${CMAKE_CURRENT_BINARY_DIR}/home ${NPM} install &&
             ${NPX} webpack
     COMMENT "Building TypeScript compiler wrapper script."
@@ -111,8 +111,8 @@ set(GENERATED_TYPESCRIPT_HEADER ${GENERATED_SOURCE_DIRECTORY}/typescript_compile
 
 add_custom_command(
     OUTPUT ${GENERATED_TYPESCRIPT_HEADER}
-    DEPENDS ${TSC_EMBEDDED_JS} ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
-    COMMAND cmake -DBINARYBAKER_INPUT_FILE=${TSC_EMBEDDED_JS}
+    DEPENDS ${TSC_WRAPPER_JS} ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake
+    COMMAND cmake -DBINARYBAKER_INPUT_FILE=${TSC_WRAPPER_JS}
                   -DBINARYBAKER_OUTPUT_FILE=${GENERATED_TYPESCRIPT_HEADER}
                   -DBINARYBAKER_VARIABLE_NAME=typescript_compiler_js
                   -P ${CMAKE_SOURCE_DIR}/embed_binary_as_header.script.cmake

@@ -1,8 +1,8 @@
 {
-  "name": "tsc_embedded",
+  "name": "tsc_wrapper",
   "version": "1.0.0",
   "description": "TypeScript compiler API wrapper for Reify.",
-  "main": "./tsc_out/tsc_embedded.js",
+  "main": "./tsc_out/tsc_wrapper.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -1,11 +1,11 @@
 const path = require('path');
 
 module.exports = {
-  entry: path.join(__dirname, './src/tsc_embedded.ts'),
+  entry: path.join(__dirname, './src/tsc_wrapper.ts'),
   output: {
-    filename: 'tsc_embedded.js',
+    filename: 'tsc_wrapper.js',
     path: __dirname + '/dist',
-    library: 'tsc_embedded'
+    library: 'tsc_wrapper'
   },
   module: {
     rules: [
