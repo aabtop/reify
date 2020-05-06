@@ -2,16 +2,30 @@ import lib_es2015_core from 'raw-loader!./../node_modules/typescript/lib/lib.es2
 import lib_es5 from 'raw-loader!./../node_modules/typescript/lib/lib.es5.d.ts'
 import * as ts from 'typescript';
 
-const defaultLibContent = lib_es5 + lib_es2015_core;
+const defaultLibFilename = '/lib.d.ts';
+const defaultLibSourceFile = ts.createSourceFile(
+    defaultLibFilename, lib_es5 + lib_es2015_core, ts.ScriptTarget.Latest);
+
+export type TranspilationOutput = {
+  // Mapping from a JS file path to file contents.
+  js_modules: {[key: string]: string};
+  // The file path of the primary module, e.g. the transpiled input source
+  // module.  This can be used to index into |js_modules| above.
+  primary_module: string;
+};
 
 export type TranspileResults = {
+  // True if there were no errors.
   success: boolean;
-  result: string;  // Either the source code in the case of success, or the
-                   // error message in the case of an error.
+  // Contains the error message if |success| is false, otherwise it is invalid.
+  error_msg: string;
+  // Contains the transpilation results if |success| is true, otherwise it is
+  // invalid.
+  output: TranspilationOutput;
 };
 
 function GetDiagnosticsMessage(diagnostic: string|ts.DiagnosticMessageChain|
-                               undefined): String {
+                               undefined): string {
   if (typeof diagnostic === 'string') {
     return diagnostic;
   } else if (diagnostic === undefined) {
@@ -22,30 +36,62 @@ function GetDiagnosticsMessage(diagnostic: string|ts.DiagnosticMessageChain|
 }
 
 
-export function TranspileModule(text: string) {
-  const dummyFilePath = '/workspaces/reify/src/test_data/error.ts';
-  const textAst =
-      ts.createSourceFile(dummyFilePath, text, ts.ScriptTarget.Latest);
+export function TranspileModule(
+    text: string, systemModules: {[key: string]: string;}): TranspileResults {
+  const dummyFilePath = 'dummy_input_file_path.ts';
+  let results: TranspilationOutput = {
+    js_modules: {},
+    primary_module: 'dummy_input_file_path.js'
+  };
 
-  const defaultLibAst = ts.createSourceFile(
-      '/lib.d.ts', defaultLibContent, ts.ScriptTarget.Latest);
-
-  let writtenFiles: {[key: string]: string} = {};
-  const options: ts.CompilerOptions = {};
+  let sourceMap: {[key: string]: ts.SourceFile} = {
+    [dummyFilePath]:
+        ts.createSourceFile(dummyFilePath, text, ts.ScriptTarget.Latest),
+    [defaultLibFilename]: defaultLibSourceFile,
+  };
+  for (var key in systemModules) {
+    sourceMap[key] =
+        ts.createSourceFile(key, systemModules[key], ts.ScriptTarget.Latest);
+  }
+  console.log('sourceMap:');
+  console.log('/lib.d.ts' in sourceMap);
+  const options: ts.CompilerOptions = {
+    module: ts.ModuleKind.ES2015,
+  };
   const host: ts.CompilerHost = {
-    fileExists: filePath => filePath === dummyFilePath,
-    directoryExists: dirPath => dirPath === '/',
+    fileExists: filePath => {
+      console.log('fileExists: ' + filePath);
+      return filePath in sourceMap;
+    },
+    directoryExists: dirPath => {
+      console.log('directoryExists: ' + dirPath);
+      // return true;
+      return dirPath === '/';
+    },
     getCurrentDirectory: () => '/',
-    getDirectories: path => [],
+    getDirectories: path => {
+      console.log('getDirectories: ' + path);
+      return [];
+    },
     getCanonicalFileName: fileName => fileName,
     getNewLine: () => '\n',
-    getDefaultLibFileName: () => '/lib.d.ts',
-    getSourceFile: filePath => filePath === dummyFilePath ?
-        textAst :
-        filePath === '/lib.d.ts' ? defaultLibAst : undefined,
-    readFile: filePath => filePath === dummyFilePath ? text : undefined,
+    getDefaultLibFileName: () => defaultLibFilename,
+    getSourceFile: filePath => {
+      console.log('getSourceFile: ' + filePath);
+      console.log('found: ' + filePath in sourceMap)
+      return sourceMap[filePath];
+    },
+    readFile: filePath => {
+      console.log('readFile: ' + filePath);
+      return undefined;
+    },
     useCaseSensitiveFileNames: () => true,
-    writeFile: (name, text) => writtenFiles[name] = text
+    writeFile: (name, text) => {
+      console.log('writeFile---');
+      console.log('name: ' + name);
+      console.log('text: ' + text);
+      results.js_modules[name] = text;
+    }
   };
   const program = ts.createProgram({options, rootNames: [dummyFilePath], host});
 
@@ -54,14 +100,19 @@ export function TranspileModule(text: string) {
     let message = '';
     return {
       success: false,
-      result: GetDiagnosticsMessage(diagnostics[0].messageText)
+      error_msg: GetDiagnosticsMessage(diagnostics[0].messageText),
+      output: results
     };
   } else {
     program.emit();
-    if (Object.keys(writtenFiles).length != 1) {
-      return {success: false, result: 'Expected only one file to be output.'};
+    if (Object.keys(results.js_modules).length == 0) {
+      return {
+        success: false,
+        error_msg: 'No output generated.',
+        output: results
+      };
     } else {
-      return {success: true, result: Object.values(writtenFiles)[0]};
+      return {success: true, error_msg: '', output: results};
     }
   }
 }

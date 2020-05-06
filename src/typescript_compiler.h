@@ -4,13 +4,38 @@
 #include <v8.h>
 
 #include <string>
+#include <variant>
+#include <vector>
 
 class TypeScriptCompiler {
  public:
   TypeScriptCompiler();
   ~TypeScriptCompiler();
 
-  std::string TranspileToJavaScript(const char* input_typescript);
+  // Used to represent both input TypeScript modules and output JavaScript
+  // ES2015 modules.
+  struct Module {
+    std::string path;
+    std::string content;
+  };
+  struct CompileOptions {
+    std::vector<Module> system_modules;
+  };
+
+  struct TranspileResults {
+    std::string primary_module;
+    std::vector<Module> modules;
+    const Module* LookupPath(const std::string& path) const;
+    const Module& GetPrimaryModule() const {
+      return *LookupPath(primary_module);
+    }
+  };
+  struct Error {
+    std::string message;
+  };
+  std::variant<TranspileResults, Error> TranspileToJavaScript(
+      const char* input_typescript,
+      const CompileOptions& options = CompileOptions());
 
  private:
   v8::Isolate::CreateParams isolate_create_params_;

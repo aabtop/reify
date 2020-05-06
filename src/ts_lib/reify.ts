@@ -1,18 +1,22 @@
-function Translate3D(translation: reify.Vec3): reify.Matrix44 {
+import * as rci from 'reify_core_interface'
+export * from 'reify_core_interface'
+
+export function Translate3D(translation: rci.Vec3): rci.Matrix44 {
   return [
-    1.0, 0.0, 0.0, translation[0],
-    0.0, 1.0, 0.0, translation[1],
-    0.0, 0.0, 1.0, translation[2],
-    0.0, 0.0, 0.0, 1.0];
+    1.0, 0.0, 0.0, translation[0], 0.0, 1.0, 0.0, translation[1], 0.0, 0.0, 1.0,
+    translation[2], 0.0, 0.0, 0.0, 1.0
+  ];
 }
 
-function TranslatedMesh3(mesh: reify.Mesh3, translation: reify.Vec3): reify.Mesh3 {
-  return reify.TransformMesh3AsMesh({ source: mesh, transform: Translate3D(translation) });
+export function TranslatedMesh3(
+    mesh: rci.Mesh3, translation: rci.Vec3): rci.Mesh3 {
+  return rci.TransformMesh3AsMesh(
+      {source: mesh, transform: Translate3D(translation)});
 }
 
-function Cylinder(radius: number, thickness: number): reify.Mesh3 {
-  return reify.ExtrudeMesh2AsMesh({
-    source: reify.CircleAsMesh({ radius: radius, center: [0, 0] }),
+export function Cylinder(radius: number, thickness: number): rci.Mesh3 {
+  return rci.ExtrudeMesh2AsMesh({
+    source: rci.CircleAsMesh({radius: radius, center: [0, 0]}),
     path: [[0, 0, -thickness * 0.5], [0, 0, thickness * 0.5]]
   });
 }

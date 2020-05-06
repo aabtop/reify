@@ -58,7 +58,4 @@ namedTypeDefinition t = case t of
     "export type " ++ n ++ " = " ++ typeString t ++ ";\n"
 
 toTypeScriptSourceCode :: DeclarationSequence -> String
-toTypeScriptSourceCode decls =
-  "namespace reify {\n"
-    ++ intercalate "\n" (map namedTypeDefinition decls)
-    ++ "\n}  // namespace reify"
+toTypeScriptSourceCode decls = intercalate "\n" (map namedTypeDefinition decls)
