@@ -65,15 +65,19 @@ typeString (Struct l) = panic "Structs may only be referenced as named types."
 enumTypeNames ts = map (("p" ++) . show) [0 .. length ts - 1]
 
 contructorToStacheObject :: (String, [Type]) -> Value
-contructorToStacheObject (n, ts) =
-  object
-    $ ("cname" .= DT.pack n)
-    : [ DT.pack tn .= DT.pack (typeString t)
-      | (tn, t) <- zip (enumTypeNames ts) ts
-      ]
+contructorToStacheObject (n, ts) = object
+  [ "cname" .= DT.pack n
+  , "params"
+    .= zipWith
+         (\tn t ->
+           object ["name" .= DT.pack tn, "type" .= DT.pack (typeString t)]
+         )
+         (enumTypeNames ts)
+         ts
+  ]
 
-enumTypeStrings :: [(String, [Type])] -> [String]
-enumTypeStrings = map (\(n, ts) -> typeString $ head ts)
+constructorNames :: [(String, [Type])] -> [String]
+constructorNames = map fst
 
 constructors :: [(String, [Type])] -> [Value]
 constructors = map contructorToStacheObject
@@ -94,7 +98,7 @@ namedTypeDefinition t = case t of
     DTL.unpack $ renderMustache enumTemplate $ object
       [ "name" .= n
       , "constructors" .= constructors l
-      , "comma_sep_types" .= DT.pack (intercalate ", " (enumTypeStrings l))
+      , "comma_sep_names" .= DT.pack (intercalate ", " (constructorNames l))
       ]
   TypeDeclaration (NamedType n t@(Struct l)) ->
     DTL.unpack $ renderMustache structTemplate $ object

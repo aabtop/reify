@@ -144,10 +144,10 @@ void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
 
 // Just a quick little test function to make sure that this is all working.
 reify::Mesh3 Cylinder(float radius, float thickness) {
-  return reify::ExtrudeMesh2::make_shared(
-      {.source =
-           reify::Circle::make_shared({.radius = radius, .center = {0, 0}}),
-       .path = {{0, 0, -thickness * 0.5f}, {0, 0, thickness * 0.5f}}});
+  return reify::ExtrudeMesh2AsMesh{reify::ExtrudeMesh2::make_shared(
+      {.source = reify::CircleAsMesh{reify::Circle::make_shared(
+           {.radius = radius, .center = {0, 0}})},
+       .path = {{0, 0, -thickness * 0.5f}, {0, 0, thickness * 0.5f}}})};
 }
 }  // namespace
 
