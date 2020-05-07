@@ -11,7 +11,4 @@ struct {{cname}} {
 };
 {{/constructors}}
 
-class {{name}} : public std::variant<{{{comma_sep_names}}}> {
-  using VariantParentType = std::variant<{{{comma_sep_names}}}>;
-  using VariantParentType::VariantParentType;
-};
+{{{tagged_union_def}}}

@@ -120,18 +120,18 @@ std::variant<v8::Local<v8::Module>, std::string> EvaluateModules(
 void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
   auto mesh3 = v8::Local<reify_v8::Mesh3>::Cast(result);
 
-  std::cout << "Kind: " << mesh3->sub_type() << std::endl;
+  std::cout << "Kind: " << mesh3->kind() << std::endl;
 
-  switch (mesh3->sub_type()) {
-    case reify_v8::Mesh3::ExtrudeMesh2AsMesh:
+  switch (mesh3->kind()) {
+    case reify_v8::Mesh3::Kind_ExtrudeMesh2:
       std::cout << "ExtrudeMesh2AsMesh" << std::endl;
       break;
-    case reify_v8::Mesh3::TransformMesh3AsMesh:
+    case reify_v8::Mesh3::Kind_TransformMesh3:
       std::cout << "TransformMesh3AsMesh" << std::endl;
       break;
-    case reify_v8::Mesh3::Mesh3UnionAsMesh:
+    case reify_v8::Mesh3::Kind_Mesh3Union:
       std::cout << "MeshUnion" << std::endl;
-      auto mesh_union = mesh3->AsMesh3UnionAsMesh().ToLocalChecked();
+      auto mesh_union = mesh3->AsMesh3Union().ToLocalChecked();
       std::cout << "  Number of meshes: " << mesh_union->meshes()->Length()
                 << std::endl;
       std::cout << "  [" << std::endl;
@@ -144,10 +144,10 @@ void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
 
 // Just a quick little test function to make sure that this is all working.
 reify::Mesh3 Cylinder(float radius, float thickness) {
-  return reify::ExtrudeMesh2AsMesh{reify::ExtrudeMesh2::make_shared(
-      {.source = reify::CircleAsMesh{reify::Circle::make_shared(
-           {.radius = radius, .center = {0, 0}})},
-       .path = {{0, 0, -thickness * 0.5f}, {0, 0, thickness * 0.5f}}})};
+  return reify::ExtrudeMesh2::make_shared(
+      {.source =
+           reify::Circle::make_shared({.radius = radius, .center = {0, 0}}),
+       .path = {{0, 0, -thickness * 0.5f}, {0, 0, thickness * 0.5f}}});
 }
 }  // namespace
 

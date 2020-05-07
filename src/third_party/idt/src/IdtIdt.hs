@@ -21,8 +21,9 @@ idtIdt =
           , ("List"          , [idt_type_ref])
           , ("Tuple"         , [List idt_type_ref])
           , ("FixedSizeArray", [idt_type_ref, i32])
-          , ("Enum", [List (Tuple [string, List idt_type_ref])])
           , ("Struct"        , [List (Tuple [string, idt_type_ref])])
+          , ("Enum", [List (Tuple [string, List idt_type_ref])])
+          , ("TaggedUnion"   , [List idt_type_ref])
           ]
         )
       idt_type_ref    = Reference idt_type

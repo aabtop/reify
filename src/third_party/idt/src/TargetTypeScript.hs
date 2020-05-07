@@ -4,15 +4,17 @@ module TargetTypeScript
 where
 
 import           Data.List
+import           Panic
+
 import           Idt
 import           IdtProcessing
 
-enumConstructorString :: String -> (String, [Type]) -> String
-enumConstructorString enumName (n, ts) =
-  let structConstructors = ("__kind: " ++ "\"" ++ n ++ "\"")
+enumConstructorFunctionString :: String -> (String, String, [Type]) -> String
+enumConstructorFunctionString enumName (cn, tn, ts) =
+  let structConstructors = ("__kind: " ++ "'" ++ tn ++ "'")
         : map (\x -> x ++ ": " ++ x) (enumTypeNames ts)
   in  "export function "
-        ++ n
+        ++ cn
         ++ "("
         ++ intercalate ", " (enumTypesToParameters ts)
         ++ "): "
@@ -21,19 +23,32 @@ enumConstructorString enumName (n, ts) =
         ++ intercalate ", " structConstructors
         ++ "};\n}"
 
+enumConstructorTypeString :: (String, String, [Type]) -> String
+enumConstructorTypeString (cn, tn, ts) =
+  let structMemberDefs =
+          ("__kind: " ++ "'" ++ tn ++ "'")
+            : zipWith (\n t -> n ++ ": " ++ typeString t) (enumTypeNames ts) ts
+  in  "{" ++ intercalate "; " structMemberDefs ++ "}"
+
 enumTypeNames ts = map (("p" ++) . show) [0 .. length ts - 1]
 
 enumTypesToParameters :: [Type] -> [String]
 enumTypesToParameters ts =
   map (\(n, t) -> n ++ ": " ++ typeString t) (zip (enumTypeNames ts) ts)
 
-enumString :: (String, [Type]) -> String
-enumString (n, ts) =
-  "{__kind: \""
+enumEntryString :: (String, [Type]) -> String
+enumEntryString (n, ts) =
+  "{__kind: '"
     ++ n
-    ++ "\"; "
+    ++ "'; "
     ++ unwords (map (++ ";") (enumTypesToParameters ts))
     ++ " }"
+
+taggedUnionTypeName :: Type -> String
+taggedUnionTypeName t = case t of
+  Concrete (NamedType n _) -> n
+  Reference (NamedType n _) -> n
+  _ -> panic "TaggedUnions may only be passed named types."
 
 typeString :: Type -> String
 typeString (Concrete       (NamedType n _)) = n
@@ -47,16 +62,31 @@ typeString (List  t) = typeString t ++ "[]"
 typeString (Tuple l) = "[" ++ intercalate ", " (map typeString l) ++ "]"
 typeString (FixedSizeArray t s) | s <= 32   = typeString (Tuple $ replicate s t)
                                 | otherwise = typeString (List t)
-typeString (Enum l) = intercalate " | " (map enumString l)
 typeString (Struct l) =
   "{ " ++ concatMap (\(n, t) -> n ++ ": " ++ typeString t ++ "; ") l ++ " }"
+typeString (Enum l) = panic "Enums may only be referenced as named types."
+typeString (TaggedUnion ts) =
+  panic "TaggedUnions may only be referenced as named types."
+
+enumString :: String -> [(String, String, [Type])] -> String
+enumString n cs =
+  concatMap (\c -> enumConstructorFunctionString n c ++ "\n") cs
+    ++ "export type "
+    ++ n
+    ++ " = "
+    ++ intercalate " | " (map enumConstructorTypeString cs)
+    ++ ";\n"
 
 namedTypeDefinition :: Declaration -> String
 namedTypeDefinition t = case t of
   ForwardDeclaration _ -> ""
   TypeDeclaration (NamedType n t@(Enum l)) ->
-    concatMap (\x -> enumConstructorString n x ++ "\n") l
-      ++ ("export type " ++ n ++ " = " ++ typeString t ++ ";\n")
+    enumString n [ (cn, cn, cts) | (cn, cts) <- l ]
+  TypeDeclaration (NamedType n t@(TaggedUnion tuts)) -> enumString
+    n
+    [ (taggedUnionTypeName tut ++ "As" ++ n, taggedUnionTypeName tut, [tut])
+    | tut <- tuts
+    ]
   TypeDeclaration (NamedType n t) ->
     "export type " ++ n ++ " = " ++ typeString t ++ ";\n"
 

@@ -7,13 +7,12 @@ import           Idt
 import           IdtIdt
 import           IdtProcessing
 import           TargetHaskell
-import           TargetTypeScript
 
 declarationSequence = asDeclarationSequence idtIdt
 
 main :: IO ()
 main = case declarationSequence of
-  Right declarations -> putStrLn (toTypeScriptSourceCode declarations)
+  Right declarations -> putStrLn (toHaskellSourceCode declarations)
   Left (CyclicDependencyError et) -> hPutStrLn
     stderr
     (  "Cyclic dependency on type \""

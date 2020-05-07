@@ -25,6 +25,17 @@ enumTemplate =
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
 
+-- brittany @ taggedUnionTemplate --exactprint-only
+taggedUnionTemplate =
+  case
+      compileMustacheText
+        "taggedUnionTemplate"
+        (DT.pack
+           $(embedStringFile "src/CppImmutableRefCountedTaggedUnion.stache.h"))
+    of
+      Left  bundle   -> panic (errorBundlePretty bundle)
+      Right template -> template
+
 -- brittany @ structTemplate --exactprint-only
 structTemplate =
   case
@@ -58,8 +69,10 @@ typeString (Tuple l) =
   "std::tuple<" ++ intercalate ", " [ typeString x | x <- l ] ++ ">"
 typeString (FixedSizeArray t s) =
   "std::array<" ++ typeString t ++ ", " ++ show s ++ ">"
-typeString (Enum   l) = panic "Enums may only be referenced as named types."
 typeString (Struct l) = panic "Structs may only be referenced as named types."
+typeString (Enum   l) = panic "Enums may only be referenced as named types."
+typeString (TaggedUnion l) =
+  panic "TaggedUnions may only be referenced as named types."
 
 
 enumTypeNames ts = map (("p" ++) . show) [0 .. length ts - 1]
@@ -90,19 +103,31 @@ members = map member
 
 namedTypeDefinition :: Declaration -> String
 namedTypeDefinition t = case t of
-  ForwardDeclaration (NamedType n (Enum   _)) -> "class " ++ n ++ ";\n"
-  ForwardDeclaration (NamedType n (Struct _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n (Struct      _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n (Enum        _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n (TaggedUnion _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration _ ->
     panic "Only forward declarations of Enum and Structs are supported."
-  TypeDeclaration (NamedType n t@(Enum l)) ->
-    DTL.unpack $ renderMustache enumTemplate $ object
-      [ "name" .= n
-      , "constructors" .= constructors l
-      , "comma_sep_names" .= DT.pack (intercalate ", " (constructorNames l))
-      ]
   TypeDeclaration (NamedType n t@(Struct l)) ->
     DTL.unpack $ renderMustache structTemplate $ object
       ["name" .= n, "members" .= members l]
+  TypeDeclaration (NamedType n t@(Enum l)) ->
+    DTL.unpack $ renderMustache enumTemplate $ object
+      [ "constructors" .= constructors l
+      , "tagged_union_def" .= renderMustache
+        taggedUnionTemplate
+        (object
+          [ "name" .= DT.pack n
+          , "comma_sep_types" .= DT.pack (intercalate ", " (constructorNames l))
+          ]
+        )
+      ]
+  TypeDeclaration (NamedType n t@(TaggedUnion ts)) ->
+    DTL.unpack $ renderMustache taggedUnionTemplate $ object
+      [ "name" .= DT.pack n
+      , "comma_sep_types"
+        .= DT.pack (intercalate ", " [ typeString t | t <- ts ])
+      ]
   TypeDeclaration (NamedType n t) ->
     "using " ++ n ++ " = " ++ typeString t ++ ";\n"
 

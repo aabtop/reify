@@ -14,7 +14,8 @@ data Type =
   List Type |
   Tuple [Type] |
   FixedSizeArray Type Int |
+  Struct [(String, Type)] |
   Enum [(String, [Type])] |
-  Struct [(String, Type)]
+  TaggedUnion [Type]
 
 type NamedTypeList = [NamedType]

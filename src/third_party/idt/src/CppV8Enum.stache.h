@@ -8,37 +8,37 @@ class {{name}} : public v8::Object {
     return static_cast<{{name}}*>(obj);
   }
 
-  enum SubType {
-{{#constructors}}
-    {{__kind}},
-{{/constructors}}
+  enum Kind {
+{{#unionMembers}}
+    Kind_{{__kind}},
+{{/unionMembers}}
   };
 
-  SubType sub_type() {
+  Kind kind() {
     std::string kind_value = internal::GetPropertyAsString(this, "__kind");
     if (false) {
-  {{#constructors}}
+  {{#unionMembers}}
     } else if (kind_value == "{{__kind}}") {
-      return {{__kind}};
-  {{/constructors}}
+      return Kind_{{__kind}};
+  {{/unionMembers}}
     } else {
       assert(false);
-      return static_cast<SubType>(-1);
+      return static_cast<Kind>(-1);
     }
   }
 
-{{#constructors}}
-  v8::MaybeLocal<{{{p0}}}> As{{__kind}}() {
-    if (sub_type() != {{__kind}}) {
-      return v8::MaybeLocal<{{{p0}}}>();
+{{#unionMembers}}
+  v8::MaybeLocal<{{{firstParam.type}}}> As{{__kind}}() {
+    if (kind() != Kind_{{__kind}}) {
+      return v8::MaybeLocal<{{{firstParam.type}}}>();
     }
 
     v8::Local<v8::String> key_name =
-        v8::String::NewFromUtf8(GetIsolate(), "p0");
+        v8::String::NewFromUtf8(GetIsolate(), "{{firstParam.name}}");
 
-    return Get(key_name).template As<{{{p0}}}>();
+    return Get(key_name).template As<{{{firstParam.type}}}>();
   }
-{{/constructors}}
+{{/unionMembers}}
 
 
  private:

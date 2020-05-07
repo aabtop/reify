@@ -19,10 +19,8 @@ reifyIdt =
       NamedType "Circle" $ Struct [("radius", float), ("center", cvec 2)]
     rectangle = NamedType "Rectangle"
       $ Struct [("width", float), ("height", float), ("top_left", cvec 2)]
-    mesh2 = NamedType "Mesh2" $ Enum
-      [ ("CircleAsMesh"   , [Reference circle])
-      , ("RectangleAsMesh", [Reference rectangle])
-      ]
+    mesh2 =
+      NamedType "Mesh2" $ TaggedUnion [Reference circle, Reference rectangle]
 
     extrudeMesh2 = NamedType "ExtrudeMesh2"
       $ Struct [("source", Concrete mesh2), ("path", Tuple [cvec 3, cvec 3])]
@@ -30,10 +28,7 @@ reifyIdt =
       $ Struct [("source", Concrete mesh3), ("transform", cmat 4 4)]
     mesh3Union =
       NamedType "Mesh3Union" $ Struct [("meshes", List $ Concrete mesh3)]
-    mesh3 = NamedType "Mesh3" $ Enum
-      [ ("ExtrudeMesh2AsMesh"  , [Reference extrudeMesh2])
-      , ("TransformMesh3AsMesh", [Reference transformMesh3])
-      , ("Mesh3UnionAsMesh"    , [Reference mesh3Union])
-      ]
+    mesh3 = NamedType "Mesh3" $ TaggedUnion
+      [Reference extrudeMesh2, Reference transformMesh3, Reference mesh3Union]
   in
     [vec 2, vec 3, mat 4 4, mesh2, mesh3]

@@ -58,22 +58,36 @@ typeString (Tuple l) =
   "Tuple<" ++ intercalate ", " [ typeString x | x <- l ] ++ ">"
 typeString (FixedSizeArray t s) | s <= 32   = typeString (Tuple $ replicate s t)
                                 | otherwise = typeString (List t)
-typeString (Enum   l) = panic "Enums may only be referenced as named types."
 typeString (Struct l) = panic "Structs may only be referenced as named types."
+typeString (Enum   l) = panic "Enums may only be referenced as named types."
+typeString (TaggedUnion l) =
+  panic "TaggedUnions may only be referenced as named types."
 
 
 enumTypeNames ts = map (("p" ++) . show) [0 .. length ts - 1]
 
-contructorToStacheObject :: (String, [Type]) -> Value
-contructorToStacheObject (n, ts) =
-  object
-    $ ("__kind" .= DT.pack n)
-    : [ DT.pack tn .= DT.pack (typeString t)
-      | (tn, t) <- zip (enumTypeNames ts) ts
-      ]
+unionMemberToStacheObject :: (String, [(String, Type)]) -> Value
+unionMemberToStacheObject (k, ts) =
+  let params =
+          [ object ["name" .= DT.pack tn, "type" .= DT.pack (typeString t)]
+          | (tn, t) <- ts
+          ]
+  in  object
+        ["__kind" .= DT.pack k, "params" .= params, "firstParam" .= head params]
 
-constructors :: [(String, [Type])] -> [Value]
-constructors = map contructorToStacheObject
+enumMembers :: [(String, [Type])] -> [Value]
+enumMembers es =
+  [ unionMemberToStacheObject (n, zip (enumTypeNames ts) ts) | (n, ts) <- es ]
+
+taggedUnionTypeName :: Type -> String
+taggedUnionTypeName t = case t of
+  Concrete (NamedType n _) -> n
+  Reference (NamedType n _) -> n
+  _ -> panic "TaggedUnions may only be passed named types."
+
+taggedUnionMembers :: [Type] -> [Value]
+taggedUnionMembers ts =
+  [ unionMemberToStacheObject (taggedUnionTypeName t, [("p0", t)]) | t <- ts ]
 
 member :: (String, Type) -> Value
 member (n, t) = object ["name" .= DT.pack n, "type" .= DT.pack (typeString t)]
@@ -83,16 +97,21 @@ members = map member
 
 namedTypeDefinition :: Declaration -> String
 namedTypeDefinition t = case t of
-  ForwardDeclaration (NamedType n (Enum   _)) -> "class " ++ n ++ ";\n"
-  ForwardDeclaration (NamedType n (Struct _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n (Struct      _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n (Enum        _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n (TaggedUnion _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration _ ->
-    panic "Only forward declarations of Enum and Structs are supported."
-  TypeDeclaration (NamedType n t@(Enum l)) ->
-    DTL.unpack $ renderMustache enumTemplate $ object
-      ["name" .= n, "constructors" .= constructors l]
+    panic
+      "Only forward declarations of Enum, Structs and TaggedUnions are supported."
   TypeDeclaration (NamedType n t@(Struct l)) ->
     DTL.unpack $ renderMustache structTemplate $ object
       ["name" .= n, "members" .= members l]
+  TypeDeclaration (NamedType n t@(Enum l)) ->
+    DTL.unpack $ renderMustache enumTemplate $ object
+      ["name" .= n, "unionMembers" .= enumMembers l]
+  TypeDeclaration (NamedType n t@(TaggedUnion l)) ->
+    DTL.unpack $ renderMustache enumTemplate $ object
+      ["name" .= n, "unionMembers" .= taggedUnionMembers l]
   TypeDeclaration (NamedType n t) ->
     "using " ++ n ++ " = " ++ typeString t ++ ";\n"
 
