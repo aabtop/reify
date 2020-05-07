@@ -9,6 +9,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "src_gen/reify_interface/reify_cpp_immut_ref_counted_interface.h"
 #include "src_gen/reify_interface/reify_cpp_v8_interface.h"
 #include "typescript_compiler.h"
 
@@ -117,18 +118,18 @@ std::variant<v8::Local<v8::Module>, std::string> EvaluateModules(
 }
 
 void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
-  auto mesh3 = v8::Local<reify::Mesh3>::Cast(result);
+  auto mesh3 = v8::Local<reify_v8::Mesh3>::Cast(result);
 
   std::cout << "Kind: " << mesh3->sub_type() << std::endl;
 
   switch (mesh3->sub_type()) {
-    case reify::Mesh3::ExtrudeMesh2AsMesh:
+    case reify_v8::Mesh3::ExtrudeMesh2AsMesh:
       std::cout << "ExtrudeMesh2AsMesh" << std::endl;
       break;
-    case reify::Mesh3::TransformMesh3AsMesh:
+    case reify_v8::Mesh3::TransformMesh3AsMesh:
       std::cout << "TransformMesh3AsMesh" << std::endl;
       break;
-    case reify::Mesh3::MeshUnion:
+    case reify_v8::Mesh3::MeshUnion:
       std::cout << "MeshUnion" << std::endl;
       auto meshes = mesh3->AsMeshUnion().ToLocalChecked();
       std::cout << "  Number of meshes: " << meshes->Length() << std::endl;
@@ -138,6 +139,14 @@ void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
       }
       std::cout << "  ]" << std::endl;
   }
+}
+
+// Just a quick little test function to make sure that this is all working.
+reify::Mesh3 Cylinder(float radius, float thickness) {
+  return reify::ExtrudeMesh2::make_shared(
+      {.source =
+           reify::Circle::make_shared({.radius = radius, .center = {0, 0}}),
+       .path = {{0, 0, -thickness * 0.5}, {0, 0, thickness * 0.5}}});
 }
 }  // namespace
 

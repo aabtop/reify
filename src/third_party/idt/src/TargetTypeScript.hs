@@ -39,8 +39,8 @@ typeString :: Type -> String
 typeString (Concrete       (NamedType n _)) = n
 typeString (Reference      (NamedType n _)) = n
 typeString (NamedPrimitive n              ) = case n of
-  "String" -> "string"
-  "float"  -> "number"
+  "string" -> "string"
+  "f32"    -> "number"
   _        -> n
 typeString (List  t) = typeString t ++ "[]"
 typeString (Tuple l) = "[" ++ intercalate ", " (map typeString l) ++ "]"

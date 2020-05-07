@@ -11,8 +11,11 @@ import           IdtProcessing
 typeString :: Type -> String
 typeString (Concrete       (NamedType n _)) = n
 typeString (Reference      (NamedType n _)) = n
-typeString (NamedPrimitive n              ) = n
-typeString (List           t              ) = "[" ++ typeString t ++ "]"
+typeString (NamedPrimitive n              ) = case n of
+  "string" -> "String"
+  "f32"    -> "float"
+  _        -> n
+typeString (List  t) = "[" ++ typeString t ++ "]"
 typeString (Tuple l) = "(" ++ intercalate ", " (map typeString l) ++ ")"
 typeString (Enum l) =
   intercalate " | " (map (\(n, p) -> n ++ " " ++ unwords (map typeString p)) l)

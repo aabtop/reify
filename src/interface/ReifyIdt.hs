@@ -8,7 +8,7 @@ import           Idt
 reifyIdt :: NamedTypeList
 reifyIdt =
   let
-    float = NamedPrimitive "float"
+    float = NamedPrimitive "f32"
     vec n = NamedType ("Vec" ++ show n) $ Tuple $ replicate n float
     cvec = Concrete . vec
     mat m n =
@@ -25,9 +25,9 @@ reifyIdt =
       ]
 
     extrudeMesh2 = NamedType "ExtrudeMesh2"
-      $ Struct [("source", Reference mesh2), ("path", Tuple [cvec 3, cvec 3])]
+      $ Struct [("source", Concrete mesh2), ("path", Tuple [cvec 3, cvec 3])]
     transformMesh3 = NamedType "TransformMesh3"
-      $ Struct [("source", Reference mesh3), ("transform", cmat 4 4)]
+      $ Struct [("source", Concrete mesh3), ("transform", cmat 4 4)]
     mesh3 = NamedType "Mesh3" $ Enum
       [ ("ExtrudeMesh2AsMesh"  , [Reference extrudeMesh2])
       , ("TransformMesh3AsMesh", [Reference transformMesh3])

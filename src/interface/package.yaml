@@ -13,3 +13,7 @@ executables:
     main: CppV8Main.hs
     other-modules:
       - ReifyIdt
+  reify-interface-builder-cpp-immut-ref-counted:
+    main: CppImmutableRefCountedMain.hs
+    other-modules:
+      - ReifyIdt

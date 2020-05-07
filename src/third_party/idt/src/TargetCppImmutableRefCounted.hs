@@ -1,5 +1,5 @@
-module TargetCppV8
-  ( toCppV8SourceCode
+module TargetCppImmutableRefCounted
+  ( toCppImmutableRefCountedSourceCode
   )
 where
 
@@ -20,7 +20,7 @@ enumTemplate =
   case
       compileMustacheText
         "enumTemplate"
-        (DT.pack  $(embedStringFile "src/CppV8Enum.stache.h"))
+        (DT.pack  $(embedStringFile "src/CppImmutableRefCountedEnum.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -30,7 +30,7 @@ structTemplate =
   case
       compileMustacheText
         "structTemplate"
-        (DT.pack $(embedStringFile "src/CppV8Struct.stache.h"))
+        (DT.pack $(embedStringFile "src/CppImmutableRefCountedStruct.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -40,21 +40,21 @@ topLevelTemplate =
   case
       compileMustacheText
         "topLevelTemplate"
-        (DT.pack $(embedStringFile "src/CppV8.stache.h"))
+        (DT.pack $(embedStringFile "src/CppImmutableRefCounted.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
 
 typeString :: Type -> String
 typeString (Concrete       (NamedType n _)) = n
-typeString (Reference      (NamedType n _)) = n
+typeString (Reference      (NamedType n _)) = "std::shared_ptr<" ++ n ++ ">"
 typeString (NamedPrimitive n              ) = case n of
-  "string" -> "v8::String"
-  "f32"    -> "v8::Number"
+  "string" -> "std::string"
+  "f32"    -> "float"
   _        -> panic $ "Unsupported primitive type: " ++ n
-typeString (List t) = "List<" ++ typeString t ++ ">"
+typeString (List t) = "std::vector<" ++ typeString t ++ ">"
 typeString (Tuple l) =
-  "Tuple<" ++ intercalate ", " [ typeString x | x <- l ] ++ ">"
+  "std::tuple<" ++ intercalate ", " [ typeString x | x <- l ] ++ ">"
 typeString (Enum   l) = panic "Enums may only be referenced as named types."
 typeString (Struct l) = panic "Structs may only be referenced as named types."
 
@@ -64,10 +64,13 @@ enumTypeNames ts = map (("p" ++) . show) [0 .. length ts - 1]
 contructorToStacheObject :: (String, [Type]) -> Value
 contructorToStacheObject (n, ts) =
   object
-    $ ("__kind" .= DT.pack n)
+    $ ("cname" .= DT.pack n)
     : [ DT.pack tn .= DT.pack (typeString t)
       | (tn, t) <- zip (enumTypeNames ts) ts
       ]
+
+enumTypeStrings :: [(String, [Type])] -> [String]
+enumTypeStrings = map (\(n, ts) -> typeString $ head ts)
 
 constructors :: [(String, [Type])] -> [Value]
 constructors = map contructorToStacheObject
@@ -86,15 +89,18 @@ namedTypeDefinition t = case t of
     panic "Only forward declarations of Enum and Structs are supported."
   TypeDeclaration (NamedType n t@(Enum l)) ->
     DTL.unpack $ renderMustache enumTemplate $ object
-      ["name" .= n, "constructors" .= constructors l]
+      [ "name" .= n
+      , "constructors" .= constructors l
+      , "comma_sep_types" .= DT.pack (intercalate ", " (enumTypeStrings l))
+      ]
   TypeDeclaration (NamedType n t@(Struct l)) ->
     DTL.unpack $ renderMustache structTemplate $ object
       ["name" .= n, "members" .= members l]
   TypeDeclaration (NamedType n t) ->
     "using " ++ n ++ " = " ++ typeString t ++ ";\n"
 
-toCppV8SourceCode :: String -> DeclarationSequence -> String
-toCppV8SourceCode namespace decls =
+toCppImmutableRefCountedSourceCode :: String -> DeclarationSequence -> String
+toCppImmutableRefCountedSourceCode namespace decls =
   DTL.unpack $ renderMustache topLevelTemplate $ object
     [ "namespace" .= namespace
     , "declarationSequence" .= [ namedTypeDefinition x | x <- decls ]

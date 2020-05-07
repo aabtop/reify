@@ -44,6 +44,7 @@ library:
     - IdtIdt
     - IdtProcessing
     - IdtStandardPipeline
+    - TargetCppImmutableRefCounted
     - TargetCppV8
     - TargetHaskell
     - TargetTypeScript

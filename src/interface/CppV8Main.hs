@@ -6,4 +6,4 @@ import           TargetCppV8
 
 import           ReifyIdt
 
-main = buildTargetToStdio reifyIdt (toCppV8SourceCode "reify")
+main = buildTargetToStdio reifyIdt (toCppV8SourceCode "reify_v8")

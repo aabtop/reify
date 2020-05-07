@@ -7,7 +7,7 @@ import           Idt
 
 idtIdt :: NamedTypeList
 idtIdt =
-  let string     = NamedPrimitive "String"
+  let string     = NamedPrimitive "string"
       named_type = Concrete $ NamedType
         "NamedType"
         (Struct [("name", string), ("idt_type", idt_type_ref)])
