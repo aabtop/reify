@@ -13,6 +13,7 @@ data Type =
   NamedPrimitive String |
   List Type |
   Tuple [Type] |
+  FixedSizeArray Type Int |
   Enum [(String, [Type])] |
   Struct [(String, Type)]
 

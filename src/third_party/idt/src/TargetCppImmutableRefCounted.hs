@@ -51,10 +51,13 @@ typeString (Reference      (NamedType n _)) = "std::shared_ptr<" ++ n ++ ">"
 typeString (NamedPrimitive n              ) = case n of
   "string" -> "std::string"
   "f32"    -> "float"
+  "i32"    -> "int"
   _        -> panic $ "Unsupported primitive type: " ++ n
 typeString (List t) = "std::vector<" ++ typeString t ++ ">"
 typeString (Tuple l) =
   "std::tuple<" ++ intercalate ", " [ typeString x | x <- l ] ++ ">"
+typeString (FixedSizeArray t s) =
+  "std::array<" ++ typeString t ++ ", " ++ show s ++ ">"
 typeString (Enum   l) = panic "Enums may only be referenced as named types."
 typeString (Struct l) = panic "Structs may only be referenced as named types."
 

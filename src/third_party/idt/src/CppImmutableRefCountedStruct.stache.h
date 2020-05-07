@@ -1,4 +1,6 @@
+// {{!
 // clang-format off
+// }}
 class {{name}} {
  public:
   struct Data {

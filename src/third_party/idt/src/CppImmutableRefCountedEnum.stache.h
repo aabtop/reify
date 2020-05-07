@@ -1,4 +1,6 @@
+// {{!
 // clang-format off
+// }}
 class {{name}} : public std::variant<{{{comma_sep_types}}}> {
   using VariantParentType = std::variant<{{{comma_sep_types}}}>;
   using VariantParentType::VariantParentType;

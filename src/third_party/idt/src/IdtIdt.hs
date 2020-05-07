@@ -8,6 +8,7 @@ import           Idt
 idtIdt :: NamedTypeList
 idtIdt =
   let string     = NamedPrimitive "string"
+      i32        = NamedPrimitive "i32"
       named_type = Concrete $ NamedType
         "NamedType"
         (Struct [("name", string), ("idt_type", idt_type_ref)])
@@ -19,6 +20,7 @@ idtIdt =
           , ("NamedPrimitive", [string])
           , ("List"          , [idt_type_ref])
           , ("Tuple"         , [List idt_type_ref])
+          , ("FixedSizeArray", [idt_type_ref, i32])
           , ("Enum", [List (Tuple [string, List idt_type_ref])])
           , ("Struct"        , [List (Tuple [string, idt_type_ref])])
           ]

@@ -41,10 +41,13 @@ typeString (Reference      (NamedType n _)) = n
 typeString (NamedPrimitive n              ) = case n of
   "string" -> "string"
   "f32"    -> "number"
+  "i32"    -> "number"
   _        -> n
 typeString (List  t) = typeString t ++ "[]"
 typeString (Tuple l) = "[" ++ intercalate ", " (map typeString l) ++ "]"
-typeString (Enum  l) = intercalate " | " (map enumString l)
+typeString (FixedSizeArray t s) | s <= 32   = typeString (Tuple $ replicate s t)
+                                | otherwise = typeString (List t)
+typeString (Enum l) = intercalate " | " (map enumString l)
 typeString (Struct l) =
   "{ " ++ concatMap (\(n, t) -> n ++ ": " ++ typeString t ++ "; ") l ++ " }"
 

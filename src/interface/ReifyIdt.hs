@@ -9,10 +9,10 @@ reifyIdt :: NamedTypeList
 reifyIdt =
   let
     float = NamedPrimitive "f32"
-    vec n = NamedType ("Vec" ++ show n) $ Tuple $ replicate n float
+    vec n = NamedType ("Vec" ++ show n) $ FixedSizeArray float n
     cvec = Concrete . vec
     mat m n =
-      NamedType ("Matrix" ++ show m ++ show n) $ Tuple (replicate (m * n) float)
+      NamedType ("Matrix" ++ show m ++ show n) $ FixedSizeArray float (m * n)
     cmat m n = Concrete $ mat m n
 
     circle =

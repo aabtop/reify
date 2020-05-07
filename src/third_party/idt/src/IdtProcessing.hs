@@ -22,8 +22,10 @@ instance Show Type where
   show (NamedPrimitive n              ) = "NamedPrimitive \"" ++ n ++ "\""
   show (List           t              ) = "List (" ++ show t ++ ")"
   show (Tuple          x              ) = "Tuple " ++ show x
-  show (Enum           x              ) = "Enum " ++ show x
-  show (Struct         x              ) = "Struct " ++ show x
+  show (FixedSizeArray t s) =
+    "(FixedSizeArray " ++ show t ++ " " ++ show s ++ ")"
+  show (Enum   x) = "Enum " ++ show x
+  show (Struct x) = "Struct " ++ show x
 
 data Declaration = TypeDeclaration NamedType | ForwardDeclaration NamedType
                    deriving (Show)
@@ -125,6 +127,8 @@ buildDeclarationSequence under_construction (List t) =
   buildDeclarationSequence under_construction t
 buildDeclarationSequence under_construction (Tuple ts) =
   mapM_ (buildDeclarationSequence under_construction) ts
+buildDeclarationSequence under_construction (FixedSizeArray t s) =
+  buildDeclarationSequence under_construction t
 buildDeclarationSequence under_construction (Enum nts) =
   mapM_ (\(n, ts) -> mapM_ (buildDeclarationSequence under_construction) ts) nts
 buildDeclarationSequence under_construction (Struct nts) =

@@ -147,7 +147,7 @@ reify::Mesh3 Cylinder(float radius, float thickness) {
   return reify::ExtrudeMesh2::make_shared(
       {.source =
            reify::Circle::make_shared({.radius = radius, .center = {0, 0}}),
-       .path = {{0, 0, -thickness * 0.5}, {0, 0, thickness * 0.5}}});
+       .path = {{0, 0, -thickness * 0.5f}, {0, 0, thickness * 0.5f}}});
 }
 }  // namespace
 

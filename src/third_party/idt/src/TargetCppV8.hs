@@ -51,10 +51,13 @@ typeString (Reference      (NamedType n _)) = n
 typeString (NamedPrimitive n              ) = case n of
   "string" -> "v8::String"
   "f32"    -> "v8::Number"
+  "i32"    -> "v8::Number"
   _        -> panic $ "Unsupported primitive type: " ++ n
 typeString (List t) = "List<" ++ typeString t ++ ">"
 typeString (Tuple l) =
   "Tuple<" ++ intercalate ", " [ typeString x | x <- l ] ++ ">"
+typeString (FixedSizeArray t s) | s <= 32   = typeString (Tuple $ replicate s t)
+                                | otherwise = typeString (List t)
 typeString (Enum   l) = panic "Enums may only be referenced as named types."
 typeString (Struct l) = panic "Structs may only be referenced as named types."
 
