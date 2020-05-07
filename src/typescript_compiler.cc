@@ -87,10 +87,7 @@ TypeScriptCompiler::TypeScriptCompiler() {
     assert(false);
   }
 
-  v8::Local<v8::String> namespace_name =
-      v8::String::NewFromUtf8(isolate_, "tsc_wrapper",
-                              v8::NewStringType::kNormal)
-          .ToLocalChecked();
+  auto namespace_name = v8::String::NewFromUtf8(isolate_, "tsc_wrapper");
   auto tsc_wrapper_object = context->Global()
                                 ->Get(context, namespace_name)
                                 .ToLocalChecked()
@@ -99,10 +96,7 @@ TypeScriptCompiler::TypeScriptCompiler() {
 
   // The script compiled and ran correctly.  Now we fetch out the
   // Process function from the global object.
-  v8::Local<v8::String> function_name =
-      v8::String::NewFromUtf8(isolate_, "TranspileModule",
-                              v8::NewStringType::kNormal)
-          .ToLocalChecked();
+  auto function_name = v8::String::NewFromUtf8(isolate_, "TranspileModule");
 
   // If there is no Process function, or if it is not a function,
   // bail out.
@@ -127,14 +121,9 @@ v8::Local<v8::Object> CreateSystemModuleMap(
     const std::vector<TypeScriptCompiler::Module>& system_modules) {
   v8::Local<v8::Object> system_module_map = v8::Object::New(isolate);
   for (const auto& module : system_modules) {
-    v8::Local<v8::String> path_value =
-        v8::String::NewFromUtf8(isolate, module.path.c_str(),
-                                v8::NewStringType::kNormal)
-            .ToLocalChecked();
-    v8::Local<v8::String> content_value =
-        v8::String::NewFromUtf8(isolate, module.content.c_str(),
-                                v8::NewStringType::kNormal)
-            .ToLocalChecked();
+    auto path_value = v8::String::NewFromUtf8(isolate, module.path.c_str());
+    auto content_value =
+        v8::String::NewFromUtf8(isolate, module.content.c_str());
 
     system_module_map->Set(context, path_value, content_value).Check();
   }
@@ -160,10 +149,8 @@ auto TypeScriptCompiler::TranspileToJavaScript(const char* input_path,
       v8::Local<v8::Function>::New(isolate_, transpile_function_);
 
   auto input_path_v8_str = v8::String::NewFromUtf8(isolate_, input_path);
-  v8::Local<v8::String> input_typescript_v8_str =
-      v8::String::NewFromUtf8(isolate_, input_typescript,
-                              v8::NewStringType::kNormal)
-          .ToLocalChecked();
+  auto input_typescript_v8_str =
+      v8::String::NewFromUtf8(isolate_, input_typescript);
 
   v8::Local<v8::Value> parameters[] = {
       input_path_v8_str, input_typescript_v8_str, system_module_map};
@@ -173,9 +160,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(const char* input_path,
                     .As<v8::Object>();
   assert(result->IsObject());
 
-  v8::Local<v8::String> success_field_name =
-      v8::String::NewFromUtf8(isolate_, "success", v8::NewStringType::kNormal)
-          .ToLocalChecked();
+  auto success_field_name = v8::String::NewFromUtf8(isolate_, "success");
   v8::Local<v8::Boolean> success = result->Get(context, success_field_name)
                                        .ToLocalChecked()
                                        .As<v8::Boolean>();
@@ -213,29 +198,21 @@ auto TypeScriptCompiler::TranspileToJavaScript(const char* input_path,
                  .message = ToStdString(isolate_, message)};
   }
 
-  v8::Local<v8::String> output_field_name =
-      v8::String::NewFromUtf8(isolate_, "output", v8::NewStringType::kNormal)
-          .ToLocalChecked();
+  auto output_field_name = v8::String::NewFromUtf8(isolate_, "output");
   v8::Local<v8::Object> output =
       result->Get(context, output_field_name).ToLocalChecked().As<v8::Object>();
   assert(output->IsObject());
 
   TranspileResults return_value;
 
-  v8::Local<v8::String> primary_module_field_name =
-      v8::String::NewFromUtf8(isolate_, "primary_module",
-                              v8::NewStringType::kNormal)
-          .ToLocalChecked();
-  v8::Local<v8::String> primary_module =
-      output->Get(context, primary_module_field_name)
-          .ToLocalChecked()
-          .As<v8::String>();
+  auto primary_module_field_name =
+      v8::String::NewFromUtf8(isolate_, "primary_module");
+  auto primary_module = output->Get(context, primary_module_field_name)
+                            .ToLocalChecked()
+                            .As<v8::String>();
   return_value.primary_module = ToStdString(isolate_, primary_module);
 
-  v8::Local<v8::String> js_modules_field_name =
-      v8::String::NewFromUtf8(isolate_, "js_modules",
-                              v8::NewStringType::kNormal)
-          .ToLocalChecked();
+  auto js_modules_field_name = v8::String::NewFromUtf8(isolate_, "js_modules");
   v8::Local<v8::Object> js_modules = output->Get(context, js_modules_field_name)
                                          .ToLocalChecked()
                                          .As<v8::Object>();
@@ -244,10 +221,10 @@ auto TypeScriptCompiler::TranspileToJavaScript(const char* input_path,
   v8::Local<v8::Array> module_paths =
       js_modules->GetOwnPropertyNames(context).ToLocalChecked();
   for (int i = 0; i < module_paths->Length(); ++i) {
-    v8::Local<v8::String> module_path =
+    auto module_path =
         module_paths->Get(context, i).ToLocalChecked().As<v8::String>();
     std::string module_path_str = ToStdString(isolate_, module_path);
-    v8::Local<v8::String> module_contents =
+    auto module_contents =
         js_modules->Get(context, module_path).ToLocalChecked().As<v8::String>();
     std::string module_conents_str = ToStdString(isolate_, module_contents);
     return_value.modules.push_back(

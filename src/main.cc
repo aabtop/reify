@@ -38,8 +38,7 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
 v8::MaybeLocal<v8::Module> InstantiateModule(
     v8::Local<v8::Context> context, const TypeScriptCompiler::Module& module) {
   auto isolate = context->GetIsolate();
-  v8::Local<v8::String> source_text =
-      v8::String::NewFromUtf8(isolate, module.content.c_str());
+  auto source_text = v8::String::NewFromUtf8(isolate, module.content.c_str());
 
   v8::ScriptOrigin origin(
       v8::String::NewFromUtf8(isolate,
@@ -223,14 +222,11 @@ int main(int argc, char* argv[]) {
 
       // The script compiled and ran correctly.  Now we fetch out the
       // Process function from the global object.
-      v8::Local<v8::String> function_name =
-          v8::String::NewFromUtf8(isolate, "Jeep", v8::NewStringType::kNormal)
-              .ToLocalChecked();
-
       // If there is no Process function, or if it is not a function,
       // bail out.
       v8::Local<v8::Value> function_untyped_val;
-      if (!root_namespace->Get(context, function_name)
+      if (!root_namespace
+               ->Get(context, v8::String::NewFromUtf8(isolate, "Jeep"))
                .ToLocal(&function_untyped_val) ||
           !function_untyped_val->IsFunction()) {
         std::cerr << "Could not find function 'Jeep'." << std::endl;
