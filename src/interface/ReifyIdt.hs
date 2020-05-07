@@ -28,10 +28,12 @@ reifyIdt =
       $ Struct [("source", Concrete mesh2), ("path", Tuple [cvec 3, cvec 3])]
     transformMesh3 = NamedType "TransformMesh3"
       $ Struct [("source", Concrete mesh3), ("transform", cmat 4 4)]
+    mesh3Union =
+      NamedType "Mesh3Union" $ Struct [("meshes", List $ Concrete mesh3)]
     mesh3 = NamedType "Mesh3" $ Enum
       [ ("ExtrudeMesh2AsMesh"  , [Reference extrudeMesh2])
       , ("TransformMesh3AsMesh", [Reference transformMesh3])
-      , ("MeshUnion"           , [List $ Concrete mesh3])
+      , ("Mesh3UnionAsMesh"    , [Reference mesh3Union])
       ]
   in
     [vec 2, vec 3, mat 4 4, mesh2, mesh3]

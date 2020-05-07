@@ -129,13 +129,14 @@ void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
     case reify_v8::Mesh3::TransformMesh3AsMesh:
       std::cout << "TransformMesh3AsMesh" << std::endl;
       break;
-    case reify_v8::Mesh3::MeshUnion:
+    case reify_v8::Mesh3::Mesh3UnionAsMesh:
       std::cout << "MeshUnion" << std::endl;
-      auto meshes = mesh3->AsMeshUnion().ToLocalChecked();
-      std::cout << "  Number of meshes: " << meshes->Length() << std::endl;
+      auto mesh_union = mesh3->AsMesh3UnionAsMesh().ToLocalChecked();
+      std::cout << "  Number of meshes: " << mesh_union->meshes()->Length()
+                << std::endl;
       std::cout << "  [" << std::endl;
-      for (int i = 0; i < meshes->Length(); ++i) {
-        ProcessResult(isolate, meshes->Get(i).ToLocalChecked());
+      for (int i = 0; i < mesh_union->meshes()->Length(); ++i) {
+        ProcessResult(isolate, mesh_union->meshes()->Get(i).ToLocalChecked());
       }
       std::cout << "  ]" << std::endl;
   }
