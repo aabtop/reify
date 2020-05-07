@@ -164,14 +164,16 @@ int main(int argc, char* argv[]) {
   {
     TypeScriptCompiler tsc;
     auto transpile_results_or_error = tsc.TranspileToJavaScript(
-        LoadFile(argv[1]).c_str(),
+        argv[1], LoadFile(argv[1]).c_str(),
         {.system_modules = {
              {"/reify_core_interface.ts", reify_ts_interface_src_str},
              {"/reify.ts", ts_lib_reify_str}}});
     if (auto error = std::get_if<TypeScriptCompiler::Error>(
             &transpile_results_or_error)) {
       std::cerr << "Error compiling TypeScript:" << std::endl;
-      std::cerr << error->message << std::endl;
+      std::cerr << error->path << ":" << error->line + 1 << ":"
+                << error->column + 1 << ": error: " << error->message
+                << std::endl;
       return 1;
     }
     auto transpile_results = std::get<TypeScriptCompiler::TranspileResults>(

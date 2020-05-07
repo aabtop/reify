@@ -31,10 +31,13 @@ class TypeScriptCompiler {
     }
   };
   struct Error {
+    std::string path;
+    int line;
+    int column;
     std::string message;
   };
   std::variant<TranspileResults, Error> TranspileToJavaScript(
-      const char* input_typescript,
+      const char* input_path, const char* input_typescript,
       const CompileOptions& options = CompileOptions());
 
  private:

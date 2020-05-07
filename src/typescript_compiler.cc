@@ -143,7 +143,8 @@ v8::Local<v8::Object> CreateSystemModuleMap(
 }
 }  // namespace
 
-auto TypeScriptCompiler::TranspileToJavaScript(const char* input_typescript,
+auto TypeScriptCompiler::TranspileToJavaScript(const char* input_path,
+                                               const char* input_typescript,
                                                const CompileOptions& options)
     -> std::variant<TranspileResults, Error> {
   v8::Isolate::Scope isolate_scope(isolate_);
@@ -158,15 +159,16 @@ auto TypeScriptCompiler::TranspileToJavaScript(const char* input_typescript,
   auto transpile_function =
       v8::Local<v8::Function>::New(isolate_, transpile_function_);
 
+  auto input_path_v8_str = v8::String::NewFromUtf8(isolate_, input_path);
   v8::Local<v8::String> input_typescript_v8_str =
       v8::String::NewFromUtf8(isolate_, input_typescript,
                               v8::NewStringType::kNormal)
           .ToLocalChecked();
 
-  v8::Local<v8::Value> parameters[] = {input_typescript_v8_str,
-                                       system_module_map};
+  v8::Local<v8::Value> parameters[] = {
+      input_path_v8_str, input_typescript_v8_str, system_module_map};
   v8::Local<v8::Object> global = context->Global();
-  auto result = transpile_function->Call(context, global, 2, parameters)
+  auto result = transpile_function->Call(context, global, 3, parameters)
                     .ToLocalChecked()
                     .As<v8::Object>();
   assert(result->IsObject());
@@ -180,14 +182,35 @@ auto TypeScriptCompiler::TranspileToJavaScript(const char* input_typescript,
   assert(success->IsBoolean());
 
   if (!success->Value()) {
-    v8::Local<v8::String> error_msg_field_name =
-        v8::String::NewFromUtf8(isolate_, "error_msg",
-                                v8::NewStringType::kNormal)
-            .ToLocalChecked();
-    auto error_msg = result->Get(context, error_msg_field_name)
-                         .ToLocalChecked()
-                         .As<v8::String>();
-    return Error{ToStdString(isolate_, error_msg)};
+    auto error =
+        result->Get(context, v8::String::NewFromUtf8(isolate_, "error"))
+            .ToLocalChecked()
+            .As<v8::Object>();
+    assert(error->IsObject());
+
+    auto path = error->Get(context, v8::String::NewFromUtf8(isolate_, "path"))
+                    .ToLocalChecked()
+                    .As<v8::String>();
+    assert(path->IsString());
+    auto line = error->Get(context, v8::String::NewFromUtf8(isolate_, "line"))
+                    .ToLocalChecked()
+                    .As<v8::Number>();
+    assert(line->IsNumber());
+    auto column =
+        error->Get(context, v8::String::NewFromUtf8(isolate_, "column"))
+            .ToLocalChecked()
+            .As<v8::Number>();
+    assert(column->IsNumber());
+    auto message =
+        error->Get(context, v8::String::NewFromUtf8(isolate_, "message"))
+            .ToLocalChecked()
+            .As<v8::String>();
+    assert(message->IsString());
+
+    return Error{.path = ToStdString(isolate_, path),
+                 .line = static_cast<int>(line->Value()),
+                 .column = static_cast<int>(column->Value()),
+                 .message = ToStdString(isolate_, message)};
   }
 
   v8::Local<v8::String> output_field_name =
@@ -230,5 +253,15 @@ auto TypeScriptCompiler::TranspileToJavaScript(const char* input_typescript,
     return_value.modules.push_back(
         {.path = module_path_str, .content = module_conents_str});
   }
+
+  if (!return_value.LookupPath(return_value.primary_module)) {
+    return Error{.path = input_path,
+                 .line = 0,
+                 .column = 0,
+                 .message = "Could not find the primary output module, '" +
+                            return_value.primary_module +
+                            "', in the emitted results."};
+  }
+
   return return_value;
 }

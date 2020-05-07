@@ -14,11 +14,15 @@ export type TranspilationOutput = {
   primary_module: string;
 };
 
+export type TranspileError = {
+  path: string; line: number; column: number; message: string;
+};
+
 export type TranspileResults = {
   // True if there were no errors.
   success: boolean;
   // Contains the error message if |success| is false, otherwise it is invalid.
-  error_msg: string;
+  error: TranspileError;
   // Contains the transpilation results if |success| is true, otherwise it is
   // invalid.
   output: TranspilationOutput;
@@ -29,32 +33,45 @@ function GetDiagnosticsMessage(diagnostic: string|ts.DiagnosticMessageChain|
   if (typeof diagnostic === 'string') {
     return diagnostic;
   } else if (diagnostic === undefined) {
-    return '';
+    return ''
   } else {
     return diagnostic.messageText;
   }
 }
 
+function GetDiagnosticsError(diagnostic: ts.Diagnostic): TranspileError {
+  let transpile_error: TranspileError = {
+    path: '',
+    line: 0,
+    column: 0,
+    message: GetDiagnosticsMessage(diagnostic.messageText),
+  };
+  if (diagnostic.file) {
+    let {line, character} =
+        diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
+    transpile_error.line = line;
+    transpile_error.column = character;
+    transpile_error.path = diagnostic.file.fileName;
+  }
+  return transpile_error;
+}
 
 export function TranspileModule(
-    text: string, systemModules: {[key: string]: string;}): TranspileResults {
-  const dummyFilePath = 'dummy_input_file_path.ts';
+    path: string, text: string,
+    systemModules: {[key: string]: string;}): TranspileResults {
   let results: TranspilationOutput = {
     js_modules: {},
-    primary_module: 'dummy_input_file_path.js'
+    primary_module: path.split('.').slice(0, -1).join('.') + '.js'
   };
 
   let sourceMap: {[key: string]: ts.SourceFile} = {
-    [dummyFilePath]:
-        ts.createSourceFile(dummyFilePath, text, ts.ScriptTarget.Latest),
+    [path]: ts.createSourceFile(path, text, ts.ScriptTarget.Latest),
     [defaultLibFilename]: defaultLibSourceFile,
   };
   for (var key in systemModules) {
     sourceMap[key] =
         ts.createSourceFile(key, systemModules[key], ts.ScriptTarget.Latest);
   }
-  console.log('sourceMap:');
-  console.log('/lib.d.ts' in sourceMap);
   const options: ts.CompilerOptions = {
     module: ts.ModuleKind.ES2015,
   };
@@ -93,14 +110,15 @@ export function TranspileModule(
       results.js_modules[name] = text;
     }
   };
-  const program = ts.createProgram({options, rootNames: [dummyFilePath], host});
+  const program = ts.createProgram({options, rootNames: [path], host});
 
   let diagnostics = ts.getPreEmitDiagnostics(program);
   if (diagnostics.length > 0) {
+    console.log(diagnostics[0]);
     let message = '';
     return {
       success: false,
-      error_msg: GetDiagnosticsMessage(diagnostics[0].messageText),
+      error: GetDiagnosticsError(diagnostics[0]),
       output: results
     };
   } else {
@@ -108,11 +126,15 @@ export function TranspileModule(
     if (Object.keys(results.js_modules).length == 0) {
       return {
         success: false,
-        error_msg: 'No output generated.',
+        error: {message: 'No output generated.', line: 0, column: 0, path: ''},
         output: results
       };
     } else {
-      return {success: true, error_msg: '', output: results};
+      return {
+        success: true,
+        error: {message: '', line: 0, column: 0, path: ''},
+        output: results
+      };
     }
   }
 }
