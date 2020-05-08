@@ -7,6 +7,7 @@ where
 import           Data.Aeson
 import           Data.FileEmbed
 import           Data.List
+import           Data.Maybe
 import           Text.Megaparsec
 import qualified Data.Text                     as DT
 import qualified Data.Text.Lazy                as DTL
@@ -16,21 +17,21 @@ import           Panic
 import           Idt
 import           IdtProcessing
 
--- brittany @ enumTemplate --exactprint-only
-enumTemplate =
+-- brittany @ enumHTemplate --exactprint-only
+enumHTemplate =
   case
       compileMustacheText
-        "enumTemplate"
+        "enumHTemplate"
         (DT.pack  $(embedStringFile "src/CppV8Enum.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
 
--- brittany @ structTemplate --exactprint-only
-structTemplate =
+-- brittany @ structHTemplate --exactprint-only
+structHTemplate =
   case
       compileMustacheText
-        "structTemplate"
+        "structHTemplate"
         (DT.pack $(embedStringFile "src/CppV8Struct.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
@@ -42,6 +43,26 @@ topLevelHTemplate =
       compileMustacheText
         "topLevelHTemplate"
         (DT.pack $(embedStringFile "src/CppV8.stache.h"))
+    of
+      Left  bundle   -> panic (errorBundlePretty bundle)
+      Right template -> template
+
+-- brittany @ enumCCTemplate --exactprint-only
+enumCCTemplate =
+  case
+      compileMustacheText
+        "enumCCTemplate"
+        (DT.pack  $(embedStringFile "src/CppV8Enum.stache.cc"))
+    of
+      Left  bundle   -> panic (errorBundlePretty bundle)
+      Right template -> template
+
+-- brittany @ structCCTemplate --exactprint-only
+structCCTemplate =
+  case
+      compileMustacheText
+        "structCCTemplate"
+        (DT.pack $(embedStringFile "src/CppV8Struct.stache.cc"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -58,17 +79,17 @@ topLevelCCTemplate =
 
 typeString :: Type -> String
 typeString (Concrete       (NamedType n _)) = n
-typeString (Reference      (NamedType n _)) = n
+typeString (Reference      (NamedType n _)) = "Ref<" ++ n ++ ">"
 typeString (NamedPrimitive n              ) = case n of
   "string" -> "v8::String"
-  "f32"    -> "v8::Number"
-  "i32"    -> "v8::Number"
+  "f32"    -> "F32"
+  "i32"    -> "I32"
   _        -> panic $ "Unsupported primitive type: " ++ n
 typeString (List t) = "List<" ++ typeString t ++ ">"
 typeString (Tuple l) =
   "Tuple<" ++ intercalate ", " [ typeString x | x <- l ] ++ ">"
-typeString (FixedSizeArray t s) | s <= 32   = typeString (Tuple $ replicate s t)
-                                | otherwise = typeString (List t)
+typeString (FixedSizeArray t s) =
+  "FixedSizeArray<" ++ typeString t ++ ", " ++ show s ++ ">"
 typeString (Struct l) = panic "Structs may only be referenced as named types."
 typeString (Enum   l) = panic "Enums may only be referenced as named types."
 typeString (TaggedUnion l) =
@@ -106,37 +127,63 @@ member (n, t) = object ["name" .= DT.pack n, "type" .= DT.pack (typeString t)]
 members :: [(String, Type)] -> [Value]
 members = map member
 
-namedTypeDefinition :: Declaration -> String
-namedTypeDefinition t = case t of
+templateObjectForDecl :: String -> String -> NamedType -> Value
+templateObjectForDecl namespace immRefCntNamespace (NamedType n t) =
+  object
+    $  [ "name" .= n
+       , "namespace" .= namespace
+       , "immRefCntNamespace" .= immRefCntNamespace
+       ]
+    ++ case t of
+         Struct      l -> ["members" .= members l]
+         Enum        l -> ["unionMembers" .= enumMembers l]
+         TaggedUnion l -> ["unionMembers" .= taggedUnionMembers l]
+         _             -> panic "Unexpected object in templateObjectForDecl."
+
+namedTypeDefinition :: String -> String -> Declaration -> String
+namedTypeDefinition namespace immRefCntNamespace t = case t of
   ForwardDeclaration (NamedType n (Struct      _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration (NamedType n (Enum        _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration (NamedType n (TaggedUnion _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration _ ->
     panic
       "Only forward declarations of Enum, Structs and TaggedUnions are supported."
-  TypeDeclaration (NamedType n t@(Struct l)) ->
-    DTL.unpack $ renderMustache structTemplate $ object
-      ["name" .= n, "members" .= members l]
-  TypeDeclaration (NamedType n t@(Enum l)) ->
-    DTL.unpack $ renderMustache enumTemplate $ object
-      ["name" .= n, "unionMembers" .= enumMembers l]
-  TypeDeclaration (NamedType n t@(TaggedUnion l)) ->
-    DTL.unpack $ renderMustache enumTemplate $ object
-      ["name" .= n, "unionMembers" .= taggedUnionMembers l]
+  TypeDeclaration nt@(NamedType _ (Struct _)) ->
+    DTL.unpack $ renderMustache structHTemplate $ templateObject nt
+  TypeDeclaration nt@(NamedType _ (Enum _)) ->
+    DTL.unpack $ renderMustache enumHTemplate $ templateObject nt
+  TypeDeclaration nt@(NamedType _ (TaggedUnion _)) ->
+    DTL.unpack $ renderMustache enumHTemplate $ templateObject nt
   TypeDeclaration (NamedType n t) ->
     "using " ++ n ++ " = " ++ typeString t ++ ";\n"
+  where templateObject = templateObjectForDecl namespace immRefCntNamespace
 
-toCppV8SourceCodeH :: String -> DeclarationSequence -> String
-toCppV8SourceCodeH namespace decls =
-  DTL.unpack $ renderMustache topLevelHTemplate $ object
+toCppV8SourceCodeH
+  :: String -> String -> String -> DeclarationSequence -> String
+toCppV8SourceCodeH namespace immutableRefCountedHeaderFile immRefCntNamespace decls
+  = DTL.unpack $ renderMustache topLevelHTemplate $ object
     [ "namespace" .= namespace
-    , "declarationSequence" .= [ namedTypeDefinition x | x <- decls ]
+    , "immutableRefCountedHeaderFile" .= immutableRefCountedHeaderFile
+    , "immRefCntNamespace" .= immRefCntNamespace
+    , "declarationSequence"
+      .= [ namedTypeDefinition namespace immRefCntNamespace x | x <- decls ]
     ]
 
-constructorDefinition :: Declaration -> [Value]
-constructorDefinition (TypeDeclaration (NamedType n t@(Struct l))) =
-  [object ["name" .= DT.pack n]]
-constructorDefinition _ = []
+constructorDefinition :: Declaration -> Maybe Value
+constructorDefinition (TypeDeclaration nt@(NamedType n t@(Struct l))) =
+  Just $ object ["name" .= DT.pack n]
+constructorDefinition _ = Nothing
+
+convertToImmRefCntFunctions :: String -> String -> Declaration -> Maybe String
+convertToImmRefCntFunctions namespace immRefCntNamespace decl = case decl of
+  (TypeDeclaration nt@(NamedType _ (Struct _))) ->
+    Just $ DTL.unpack $ renderMustache structCCTemplate $ templateObject nt
+  (TypeDeclaration nt@(NamedType _ (Enum _))) ->
+    Just $ DTL.unpack $ renderMustache enumCCTemplate $ templateObject nt
+  (TypeDeclaration nt@(NamedType _ (TaggedUnion _))) ->
+    Just $ DTL.unpack $ renderMustache enumCCTemplate $ templateObject nt
+  _ -> Nothing
+  where templateObject = templateObjectForDecl namespace immRefCntNamespace
 
 toCppV8SourceCodeCC
   :: String -> String -> String -> String -> DeclarationSequence -> String
@@ -146,5 +193,8 @@ toCppV8SourceCodeCC namespace v8HeaderFile immutableRefCountedHeaderFile immRefC
     , "v8HeaderFile" .= v8HeaderFile
     , "immutableRefCountedHeaderFile" .= immutableRefCountedHeaderFile
     , "immRefCntNamespace" .= immRefCntNamespace
-    , "constructorDefinitions" .= concatMap constructorDefinition decls
+    , "constructorDefinitions" .= mapMaybe constructorDefinition decls
+    , "convertToImmRefCntFunctions"
+      .= mapMaybe (convertToImmRefCntFunctions namespace immRefCntNamespace)
+                  decls
     ]

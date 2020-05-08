@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <variant>
 
 #include "src_gen/reify_interface/reify_cpp_immut_ref_counted_interface.h"
 #include "src_gen/reify_interface/reify_cpp_v8_interface.h"
@@ -117,36 +118,30 @@ std::variant<v8::Local<v8::Module>, std::string> EvaluateModules(
   return module;
 }
 
-void ProcessResult(v8::Isolate* isolate, const v8::Local<v8::Value> result) {
-  auto mesh3 = v8::Local<reify_v8::Mesh3>::Cast(result);
-
-  std::cout << "Kind: " << mesh3->kind() << std::endl;
-
-  switch (mesh3->kind()) {
-    case reify_v8::Mesh3::Kind_ExtrudeMesh2:
-      std::cout << "ExtrudeMesh2AsMesh" << std::endl;
-      break;
-    case reify_v8::Mesh3::Kind_TransformMesh3:
-      std::cout << "TransformMesh3AsMesh" << std::endl;
-      break;
-    case reify_v8::Mesh3::Kind_Mesh3Union:
-      std::cout << "MeshUnion" << std::endl;
-      auto mesh_union = mesh3->AsMesh3Union().ToLocalChecked();
-      std::cout << "  Number of meshes: " << mesh_union->meshes()->Length()
-                << std::endl;
-      std::cout << "  [" << std::endl;
-      for (int i = 0; i < mesh_union->meshes()->Length(); ++i) {
-        ProcessResult(isolate, mesh_union->meshes()->Get(i).ToLocalChecked());
-      }
-      std::cout << "  ]" << std::endl;
+void ProcessResult(const reify::Mesh3& mesh3) {
+  if (auto extrude =
+          std::get_if<std::shared_ptr<reify::ExtrudeMesh2>>(&mesh3)) {
+    std::cout << "ExtrudeMesh2AsMesh" << std::endl;
+  } else if (auto transform =
+                 std::get_if<std::shared_ptr<reify::TransformMesh3>>(&mesh3)) {
+    std::cout << "TransformMesh3AsMesh" << std::endl;
+  } else if (auto mesh_union =
+                 std::get_if<std::shared_ptr<reify::Mesh3Union>>(&mesh3)) {
+    std::cout << "MeshUnion" << std::endl;
+    std::cout << "  Number of meshes: " << (*mesh_union)->meshes.size()
+              << std::endl;
+    std::cout << "  [" << std::endl;
+    for (const auto& mesh : (*mesh_union)->meshes) {
+      ProcessResult(mesh);
+    }
+    std::cout << "  ]" << std::endl;
   }
 }
 
 // Just a quick little test function to make sure that this is all working.
 reify::Mesh3 Cylinder(float radius, float thickness) {
-  return reify::ExtrudeMesh2::make_shared(
-      {.source =
-           reify::Circle::make_shared({.radius = radius, .center = {0, 0}}),
+  return reify::NewExtrudeMesh2(
+      {.source = reify::NewCircle({.radius = radius, .center = {0, 0}}),
        .path = {{0, 0, -thickness * 0.5f}, {0, 0, thickness * 0.5f}}});
 }
 }  // namespace
@@ -264,7 +259,9 @@ int main(int argc, char* argv[]) {
         return 1;
       }
 
-      ProcessResult(isolate, result);
+      auto mesh3 = v8::Local<reify_v8::Mesh3>::Cast(result);
+
+      ProcessResult(reify_v8::Value(isolate, mesh3));
     }
 
     // Dispose the isolate and tear down V8.

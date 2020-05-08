@@ -28,7 +28,12 @@ main = do
             (joinPath [outputDirectory, filename])
             ReifyIdt.reifyIdt
       in  do
-            buildTargetToFile cppV8HFileName (toCppV8SourceCodeH cppV8Namespace)
+            buildTargetToFile
+              cppV8HFileName
+              (toCppV8SourceCodeH cppV8Namespace
+                                  cppImmutableRefCountedFileName
+                                  ReifyIdt.namespace
+              )
             buildTargetToFile
               cppV8CCFileName
               (toCppV8SourceCodeCC cppV8Namespace

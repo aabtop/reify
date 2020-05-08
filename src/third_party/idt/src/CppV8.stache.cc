@@ -1,10 +1,18 @@
+// {{!
 // clang-format off
+// }}
 #include "{{v8HeaderFile}}"
-#include "{{immutableRefCountedHeaderFile}}"
 
+#include <cassert>
 #include <v8.h>
 
+#include "{{immutableRefCountedHeaderFile}}"
+
 namespace {{namespace}} {
+
+{{#convertToImmRefCntFunctions}}
+{{{.}}}
+{{/convertToImmRefCntFunctions}}
 
 namespace {
 
@@ -24,14 +32,11 @@ void New{{name}}(const v8::FunctionCallbackInfo<v8::Value>& args) {
   }
 
   v8::Local<v8::Object> return_value = args[0].As<v8::Object>()->Clone();
-
-  {{immRefCntNamespace}}::{{name}}::Data data_object;
-  // Populate the data_object with the values from V8.
+  v8::Local<{{{name}}}> typed_return_value = v8::Local<{{{name}}}>::Cast(return_value);
 
   auto internal_object_ptr =
       new std::shared_ptr<{{immRefCntNamespace}}::{{name}}>(
-          {{immRefCntNamespace}}::{{name}}::make_shared(
-              std::move(data_object)));
+          New{{name}}(Value(isolate, typed_return_value)));
 
   return_value->SetInternalField(
       0, v8::External::New(isolate, internal_object_ptr));
