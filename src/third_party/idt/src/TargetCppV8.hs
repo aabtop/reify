@@ -1,5 +1,6 @@
 module TargetCppV8
-  ( toCppV8SourceCode
+  ( toCppV8SourceCodeH
+  , toCppV8SourceCodeCC
   )
 where
 
@@ -35,12 +36,22 @@ structTemplate =
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
 
--- brittany @ topLevelTemplate --exactprint-only
-topLevelTemplate =
+-- brittany @ topLevelHTemplate --exactprint-only
+topLevelHTemplate =
   case
       compileMustacheText
-        "topLevelTemplate"
+        "topLevelHTemplate"
         (DT.pack $(embedStringFile "src/CppV8.stache.h"))
+    of
+      Left  bundle   -> panic (errorBundlePretty bundle)
+      Right template -> template
+
+-- brittany @ topLevelCCTemplate --exactprint-only
+topLevelCCTemplate =
+  case
+      compileMustacheText
+        "topLevelCCTemplate"
+        (DT.pack $(embedStringFile "src/CppV8.stache.cc"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -115,9 +126,25 @@ namedTypeDefinition t = case t of
   TypeDeclaration (NamedType n t) ->
     "using " ++ n ++ " = " ++ typeString t ++ ";\n"
 
-toCppV8SourceCode :: String -> DeclarationSequence -> String
-toCppV8SourceCode namespace decls =
-  DTL.unpack $ renderMustache topLevelTemplate $ object
+toCppV8SourceCodeH :: String -> DeclarationSequence -> String
+toCppV8SourceCodeH namespace decls =
+  DTL.unpack $ renderMustache topLevelHTemplate $ object
     [ "namespace" .= namespace
     , "declarationSequence" .= [ namedTypeDefinition x | x <- decls ]
+    ]
+
+constructorDefinition :: Declaration -> [Value]
+constructorDefinition (TypeDeclaration (NamedType n t@(Struct l))) =
+  [object ["name" .= DT.pack n]]
+constructorDefinition _ = []
+
+toCppV8SourceCodeCC
+  :: String -> String -> String -> String -> DeclarationSequence -> String
+toCppV8SourceCodeCC namespace v8HeaderFile immutableRefCountedHeaderFile immRefCntNamespace decls
+  = DTL.unpack $ renderMustache topLevelCCTemplate $ object
+    [ "namespace" .= namespace
+    , "v8HeaderFile" .= v8HeaderFile
+    , "immutableRefCountedHeaderFile" .= immutableRefCountedHeaderFile
+    , "immRefCntNamespace" .= immRefCntNamespace
+    , "constructorDefinitions" .= concatMap constructorDefinition decls
     ]

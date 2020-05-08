@@ -37,6 +37,7 @@ dependencies:
 - aeson >= 1.4.0.0
 - megaparsec >= 7.0.0
 - ghc >= 8.0.0
+- filepath >= 1.4.0.0
 
 library:
   exposed-modules:

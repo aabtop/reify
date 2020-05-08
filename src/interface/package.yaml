@@ -2,18 +2,11 @@ name:                reify-interface-builder
 
 dependencies:
 - base >= 4.7 && < 5
+- filepath >= 1.4.0.0
 - idt
 
 executables:
-  reify-interface-builder-ts:
-    main: TypeScriptMain.hs
-    other-modules:
-      - ReifyIdt
-  reify-interface-builder-cpp-v8:
-    main: CppV8Main.hs
-    other-modules:
-      - ReifyIdt
-  reify-interface-builder-cpp-immut-ref-counted:
-    main: CppImmutableRefCountedMain.hs
+  reify-interface-builder:
+    main: Main.hs
     other-modules:
       - ReifyIdt

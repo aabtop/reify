@@ -208,8 +208,16 @@ int main(int argc, char* argv[]) {
       v8::Isolate::Scope isolate_scope(isolate);
       // Create a stack-allocated handle scope.
       v8::HandleScope handle_scope(isolate);
+
+      // Create a template for the global object that contains functions
+      // from the generated interface.
+      v8::Local<v8::ObjectTemplate> global_template =
+          v8::ObjectTemplate::New(isolate);
+      reify_v8::InstallInterfaceToGlobalObject(isolate, global_template);
+
       // Create a new context.
-      v8::Local<v8::Context> context = v8::Context::New(isolate);
+      v8::Local<v8::Context> context =
+          v8::Context::New(isolate, nullptr, global_template);
 
       // Enter the context for compiling and running the hello world script.
       v8::Context::Scope context_scope(context);

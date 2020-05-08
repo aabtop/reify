@@ -1,5 +1,6 @@
 module ReifyIdt
   ( reifyIdt
+  , namespace
   )
 where
 
@@ -32,3 +33,6 @@ reifyIdt =
       [Reference extrudeMesh2, Reference transformMesh3, Reference mesh3Union]
   in
     [vec 2, vec 3, mat 4 4, mesh2, mesh3]
+
+namespace :: String
+namespace = "reify"

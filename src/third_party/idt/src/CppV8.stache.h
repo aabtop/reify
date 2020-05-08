@@ -1,12 +1,19 @@
 // clang-format off
+#ifndef _{{namespace}}_CPP_V8_IST_GENERATED_H_
+#define _{{namespace}}_CPP_V8_IST_GENERATED_H_
+
+#include <cassert>
 #include <tuple>
 
 #include <v8.h>
 
 namespace {{namespace}} {
 
+void InstallInterfaceToGlobalObject(
+    v8::Isolate* isolate, v8::Local<v8::ObjectTemplate> global_template);
+
 namespace internal {
-  std::string GetPropertyAsString(
+  inline std::string GetPropertyAsString(
       v8::Object* object, const char* key) {
     v8::Local<v8::String> key_name =
         v8::String::NewFromUtf8(object->GetIsolate(), key);
@@ -71,3 +78,4 @@ class Tuple : public v8::Array {
 
 }  // {{namespace}}
 
+#endif  // _{{namespace}}_CPP_V8_IST_GENERATED_H_

@@ -1,8 +1,6 @@
 // {{!
 // clang-format off
 // }}
-
-
 {{#constructors}}
 struct {{cname}} {
 {{#params}}
