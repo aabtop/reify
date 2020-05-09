@@ -31,11 +31,13 @@ v8::MaybeLocal<{{{firstParam.type}}}> {{name}}::As{{__kind}}() {
 {{immRefCntNamespace}}::{{name}} Value(
     v8::Isolate* isolate, v8::Local<{{name}}> x) {
   switch (x->kind()) {
+    default:
+      {{! // This lets us not only assert an impossibility, but fall through
+          // to validly return something and avoid a compiler warning. }}
+      assert(false);
 {{#unionMembers}}
     case {{name}}::Kind_{{__kind}}:
       return Value(isolate, x->As{{__kind}}().ToLocalChecked());
 {{/unionMembers}}
-    default:
-      assert(false);
   }
 }
