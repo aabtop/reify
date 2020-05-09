@@ -16,30 +16,10 @@ class {{name}} : public v8::Object {
 {{/unionMembers}}
   };
 
-  Kind kind() {
-    std::string kind_value = internal::GetPropertyAsString(this, "__kind");
-    if (false) {
-  {{#unionMembers}}
-    } else if (kind_value == "{{__kind}}") {
-      return Kind_{{__kind}};
-  {{/unionMembers}}
-    } else {
-      assert(false);
-      return static_cast<Kind>(-1);
-    }
-  }
+  Kind kind();
 
 {{#unionMembers}}
-  v8::MaybeLocal<{{{firstParam.type}}}> As{{__kind}}() {
-    if (kind() != Kind_{{__kind}}) {
-      return v8::MaybeLocal<{{{firstParam.type}}}>();
-    }
-
-    v8::Local<v8::String> key_name =
-        v8::String::NewFromUtf8(GetIsolate(), "{{firstParam.name}}");
-
-    return Get(key_name).template As<{{{firstParam.type}}}>();
-  }
+  v8::MaybeLocal<{{{firstParam.type}}}> As{{__kind}}();
 {{/unionMembers}}
 
 

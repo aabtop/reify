@@ -122,7 +122,8 @@ taggedUnionMembers ts =
   [ unionMemberToStacheObject (taggedUnionTypeName t, [("p0", t)]) | t <- ts ]
 
 member :: (String, Type) -> Value
-member (n, t) = object ["name" .= DT.pack n, "type" .= DT.pack (typeString t)]
+member (n, t) =
+  object ["memberName" .= DT.pack n, "type" .= DT.pack (typeString t)]
 
 members :: [(String, Type)] -> [Value]
 members = map member

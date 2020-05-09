@@ -128,7 +128,7 @@ class FixedSizeArray : public v8::Array {
   }
 
   v8::Local<T> Get(uint32_t index) {
-    assert(index < S && index > 0);
+    assert(index < S && index >= 0);
     return v8::Array::Get(index).template As<T>();
   }
 

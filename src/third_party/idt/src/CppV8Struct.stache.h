@@ -11,12 +11,7 @@ class {{name}} : public v8::Object {
   }
 
 {{#members}}
-  v8::Local<{{{type}}}> {{name}}() {
-    v8::Local<v8::String> key_name =
-        v8::String::NewFromUtf8(GetIsolate(), "{{name}}");
-
-    return Get(key_name).template As<{{{type}}}>();
-  }
+  v8::Local<{{{type}}}> {{memberName}}();
 {{/members}}
 
  private:
