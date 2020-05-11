@@ -89,16 +89,16 @@ namedTypeDefinition t = case t of
     ]
   TypeDeclaration (NamedType n t@(Struct l)) ->
     ("export type " ++ n ++ "Params = " ++ typeString t ++ ";\n")
-      ++ ("export type " ++ n ++ " = " ++ typeString t ++ ";\n")
-      ++ (  "export function New"
+      ++ ("export type " ++ n ++ " = Readonly<" ++ n ++ "Params>;\n")
+      ++ (  "export function "
          ++ n
          ++ "(x: "
          ++ n
          ++ "Params): "
          ++ n
-         ++ "{ return withInternalField(x) as "
-         ++ n
-         ++ "; };\n"
+         ++ " {\n"
+         ++ ("  return withInternalField(x) as " ++ n ++ ";\n")
+         ++ "};\n"
          )
   TypeDeclaration (NamedType n t) ->
     "export type " ++ n ++ " = " ++ typeString t ++ ";\n"
