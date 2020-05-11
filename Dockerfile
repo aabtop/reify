@@ -44,10 +44,6 @@ ENV \
     NIX_PROFILES="/nix/var/nix/profiles/default $HOME/.nix-profile" \
     NIX_SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
 
-RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
-    && mkdir -p /commandhistory
-    && echo $SNIPPET >> "/root/.bashrc"
-
 # Set our channel to the nixos-20.03 channel as opposed to the unstable channel.
 # In particular, I was having trouble getting the brittany tool installed in
 # the unstable channel.
@@ -60,3 +56,8 @@ RUN nix-env -f "<nixpkgs>" -iA \
     haskellPackages.brittany \
     hlint \
     gdb
+
+# Remember our console history between sessions.
+RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+    && mkdir -p /commandhistory \
+    && echo $SNIPPET >> "/root/.bashrc"
