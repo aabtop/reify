@@ -8,7 +8,7 @@
 #include <string>
 
 namespace {
-#include "src_gen/typescript_compiler_js.h"
+#include "src_gen/tsc_wrapper.h"
 }  // namespace
 
 namespace {
@@ -62,9 +62,9 @@ TypeScriptCompiler::TypeScriptCompiler() {
 
   // Create a string containing the JavaScript source code.
   v8::Local<v8::String> source_tsc;
-  if (!v8::String::NewFromUtf8(
-           isolate_, reinterpret_cast<const char*>(typescript_compiler_js),
-           v8::NewStringType::kNormal, sizeof(typescript_compiler_js))
+  if (!v8::String::NewFromUtf8(isolate_,
+                               reinterpret_cast<const char*>(tsc_wrapper_js),
+                               v8::NewStringType::kNormal, tsc_wrapper_js_len)
            .ToLocal(&source_tsc)) {
     v8::String::Utf8Value error(isolate_, try_catch.Exception());
     std::cerr << "Error: " << *error << std::endl;

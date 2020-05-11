@@ -11,9 +11,9 @@ import           TargetCppV8
 import           TargetTypeScript
 import           TargetCppImmutableRefCounted
 
-import           ReifyIdt
+import           ReifyInputInterface
 
-cppV8Namespace = ReifyIdt.namespace ++ "_v8"
+cppV8Namespace = ReifyInputInterface.namespace ++ "_v8"
 
 cppImmutableRefCountedFileName = "reify_cpp_immut_ref_counted_interface.h"
 typescriptFileName = "reify_ts_interface.ts"
@@ -26,24 +26,24 @@ main = do
     [outputDirectory] ->
       let buildTargetToFile filename = buildTargetToFilePath
             (joinPath [outputDirectory, filename])
-            ReifyIdt.reifyIdt
+            ReifyInputInterface.idt
       in  do
             buildTargetToFile
               cppV8HFileName
               (toCppV8SourceCodeH cppV8Namespace
                                   cppImmutableRefCountedFileName
-                                  ReifyIdt.namespace
+                                  ReifyInputInterface.namespace
               )
             buildTargetToFile
               cppV8CCFileName
               (toCppV8SourceCodeCC cppV8Namespace
                                    cppV8HFileName
                                    cppImmutableRefCountedFileName
-                                   ReifyIdt.namespace
+                                   ReifyInputInterface.namespace
               )
             buildTargetToFile
               cppImmutableRefCountedFileName
-              (toCppImmutableRefCountedSourceCode ReifyIdt.namespace)
+              (toCppImmutableRefCountedSourceCode ReifyInputInterface.namespace)
             buildTargetToFile typescriptFileName toTypeScriptSourceCode
     _ -> do
       hPutStrLn stderr "Usage: Expected a single output directory parameter."

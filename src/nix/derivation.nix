@@ -1,17 +1,14 @@
-{stdenv, cmake, memdesc, v8, reify-interface, clang-tools, closurecompiler, nodejs}:
+# While reifyProject describes how to setup a CMake project that presents
+# a custom interface, this derivation will actually build that CMake project.
+{stdenv, lib, cmake, v8, reifyProject, clang-tools}:
  
 stdenv.mkDerivation {
-  name = "reify";
-  
-  nativeBuildInputs = [cmake memdesc reify-interface clang-tools closurecompiler nodejs];
+  name = lib.strings.removeSuffix "-project" reifyProject.name;
+
+  nativeBuildInputs = [cmake reifyProject clang-tools];
   buildInputs = [ v8 ];
 
-  src = ../.;
+  src = reifyProject;
 
   enableParallelBuilding = true;
-
-  cmakeFlags = [
-    ("-DREIFY_INTERFACE_GENERATOR_DIRECTORY:PATH=" +
-      (reify-interface.outPath + "/bin"))
-  ];
 }

@@ -11,13 +11,13 @@
 #include <variant>
 
 #include "context_environment.h"
-#include "src_gen/reify_interface/reify_cpp_immut_ref_counted_interface.h"
-#include "src_gen/reify_interface/reify_cpp_v8_interface.h"
+#include "src_gen/interface/cpp/reify_cpp_immut_ref_counted_interface.h"
+#include "src_gen/interface/cpp/reify_cpp_v8_interface.h"
 #include "typescript_compiler.h"
 
 namespace {
-#include "src_gen/reify_interface/reify_ts_interface.ts.h"
-#include "src_gen/ts_lib_reify.ts.h"
+#include "src_gen/reify_generated_interface_ts.h"
+#include "src_gen/reify_interface_ts.h"
 }  // namespace
 
 namespace {
@@ -63,7 +63,7 @@ v8::MaybeLocal<v8::Module> InstantiateModule(
 
   if (v8_module->InstantiateModule(context, &ResolveModuleCallback)
           .IsNothing()) {
-    return v8::MaybeLocal<v8::Module>();
+    return v8::MaybeLocal<v8::Module>();  //
   }
 
   return v8_module;
@@ -122,15 +122,14 @@ std::variant<v8::Local<v8::Module>, std::string> EvaluateModules(
   return module;
 }
 
-void ProcessResult(const reify::Mesh3& mesh3) {
-  if (auto extrude =
-          std::get_if<std::shared_ptr<reify::ExtrudeMesh2>>(&mesh3)) {
+void ProcessResult(const hypo::Mesh3& mesh3) {
+  if (auto extrude = std::get_if<std::shared_ptr<hypo::ExtrudeMesh2>>(&mesh3)) {
     std::cout << "ExtrudeMesh2AsMesh" << std::endl;
   } else if (auto transform =
-                 std::get_if<std::shared_ptr<reify::TransformMesh3>>(&mesh3)) {
+                 std::get_if<std::shared_ptr<hypo::TransformMesh3>>(&mesh3)) {
     std::cout << "TransformMesh3AsMesh" << std::endl;
   } else if (auto mesh_union =
-                 std::get_if<std::shared_ptr<reify::Mesh3Union>>(&mesh3)) {
+                 std::get_if<std::shared_ptr<hypo::Mesh3Union>>(&mesh3)) {
     std::cout << "MeshUnion" << std::endl;
     std::cout << "  Number of meshes: " << (*mesh_union)->meshes.size()
               << std::endl;
@@ -194,10 +193,10 @@ int main(int argc, char* argv[]) {
   }
 
   std::string reify_ts_interface_src_str(
-      reinterpret_cast<const char*>(reify_ts_interface_src),
-      sizeof(reify_ts_interface_src));
-  std::string ts_lib_reify_str(reinterpret_cast<const char*>(ts_lib_reify_src),
-                               sizeof(ts_lib_reify_src));
+      reinterpret_cast<const char*>(ts_reify_ts_interface_ts),
+      ts_reify_ts_interface_ts_len);
+  std::string ts_lib_reify_str(reinterpret_cast<const char*>(ts_lib_ts),
+                               ts_lib_ts_len);
 
   // Initialize V8.
   v8::V8::InitializeICUDefaultLocation(argv[0]);
@@ -210,8 +209,8 @@ int main(int argc, char* argv[]) {
     auto transpile_results_or_error = tsc.TranspileToJavaScript(
         argv[1], LoadFile(argv[1]).c_str(),
         {.system_modules = {
-             {"/reify_core_interface.ts", reify_ts_interface_src_str},
-             {"/reify.ts", ts_lib_reify_str}}});
+             {"/reify_generated_interface.ts", reify_ts_interface_src_str},
+             {"/" REIFY_INTERFACE_NAMESPACE ".ts", ts_lib_reify_str}}});
     if (auto error = std::get_if<TypeScriptCompiler::Error>(
             &transpile_results_or_error)) {
       std::cerr << "Error compiling TypeScript:" << std::endl;
@@ -310,9 +309,9 @@ int main(int argc, char* argv[]) {
         return 1;
       }
 
-      auto mesh3 = v8::Local<reify_v8::Mesh3>::Cast(result);
+      auto mesh3 = v8::Local<hypo_v8::Mesh3>::Cast(result);
 
-      ProcessResult(reify_v8::Value(isolate, mesh3));
+      ProcessResult(hypo_v8::Value(isolate, mesh3));
 
       if (!entrypoint->Call(context, context->Global(), 0, nullptr)
                .ToLocal(&result)) {
@@ -320,8 +319,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "Error: " << *error << std::endl;
         return 1;
       }
-      mesh3 = v8::Local<reify_v8::Mesh3>::Cast(result);
-      ProcessResult(reify_v8::Value(isolate, mesh3));
+      mesh3 = v8::Local<hypo_v8::Mesh3>::Cast(result);
+      ProcessResult(hypo_v8::Value(isolate, mesh3));
     }
 
     // Dispose the isolate and tear down V8.

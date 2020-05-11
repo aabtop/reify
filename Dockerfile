@@ -55,7 +55,8 @@ RUN nix-channel --remove nixpkgs && \
 RUN nix-env -f "<nixpkgs>" -iA \
     haskellPackages.brittany \
     hlint \
-    gdb
+    gdb \
+    rsync
 
 # Remember our console history between sessions.
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \

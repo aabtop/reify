@@ -1,13 +1,16 @@
-module ReifyIdt
-  ( reifyIdt
+module ReifyInputInterface
+  ( idt
   , namespace
+  , typescriptLibDir
   )
 where
 
 import           Idt
 
-reifyIdt :: NamedTypeList
-reifyIdt =
+-- Defines the types that are to form the language of communication between
+-- C++, V8, and the TypeScript compiler.
+idt :: NamedTypeList
+idt =
   let
     float = NamedPrimitive "f32"
     vec n = NamedType ("Vec" ++ show n) $ FixedSizeArray float n
@@ -34,5 +37,12 @@ reifyIdt =
   in
     [vec 2, vec 3, mat 4 4, mesh2, mesh3]
 
+-- The namespace applied to all interfaces generated from |idt| above.
 namespace :: String
-namespace = "reify"
+namespace = "hypo"
+
+-- The directory containing a "lib.ts" file which defines the interface.
+-- Within this file one may import reify_generated_interface to access the
+-- TypeScript types generated from the definition of |idt| above.
+typescriptLibDir :: String
+typescriptLibDir = "./typescript"
