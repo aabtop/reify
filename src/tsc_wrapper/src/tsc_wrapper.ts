@@ -1,10 +1,12 @@
 import lib_es2015_core from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.d.ts'
 import lib_es5 from 'raw-loader!./../node_modules/typescript/lib/lib.es5.d.ts'
+import reify_root_d_ts from 'raw-loader!./../resources/reify_root.asset.d.ts'
 import * as ts from 'typescript';
 
 const defaultLibFilename = '/lib.d.ts';
 const defaultLibSourceFile = ts.createSourceFile(
-    defaultLibFilename, lib_es5 + lib_es2015_core, ts.ScriptTarget.Latest);
+    defaultLibFilename, lib_es5 + lib_es2015_core + reify_root_d_ts,
+    ts.ScriptTarget.Latest);
 
 export type TranspilationOutput = {
   // Mapping from a JS file path to file contents.

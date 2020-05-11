@@ -10,6 +10,7 @@
 #include <sstream>
 #include <variant>
 
+#include "context_environment.h"
 #include "src_gen/reify_interface/reify_cpp_immut_ref_counted_interface.h"
 #include "src_gen/reify_interface/reify_cpp_v8_interface.h"
 #include "typescript_compiler.h"
@@ -75,8 +76,9 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
             << ToStdString(context->GetIsolate(), specifier) << ")"
             << std::endl;
   const auto transpile_results =
-      reinterpret_cast<TypeScriptCompiler::TranspileResults*>(
-          context->GetAlignedPointerFromEmbedderData(1));
+      reinterpret_cast<ContextEnvironment*>(
+          context->GetAlignedPointerFromEmbedderData(1))
+          ->transpile_results;
 
   std::string specifier_as_str = ToStdString(context->GetIsolate(), specifier);
 
@@ -94,16 +96,18 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
 }
 
 std::variant<v8::Local<v8::Module>, std::string> EvaluateModules(
-    v8::Local<v8::Context> context,
-    const TypeScriptCompiler::TranspileResults& transpile_results) {
-  context->SetAlignedPointerInEmbedderData(
-      1, const_cast<TypeScriptCompiler::TranspileResults*>(&transpile_results));
+    v8::Local<v8::Context> context) {
   auto isolate = context->GetIsolate();
   v8::Context::Scope context_scope(context);
   v8::TryCatch try_catch(isolate);
 
+  const auto transpile_results =
+      reinterpret_cast<ContextEnvironment*>(
+          context->GetAlignedPointerFromEmbedderData(1))
+          ->transpile_results;
+
   v8::Local<v8::Module> module;
-  if (!InstantiateModule(context, transpile_results.GetPrimaryModule())
+  if (!InstantiateModule(context, transpile_results->GetPrimaryModule())
            .ToLocal(&module)) {
     v8::String::Utf8Value error(isolate, try_catch.Exception());
     return *error;
@@ -138,11 +142,48 @@ void ProcessResult(const reify::Mesh3& mesh3) {
   }
 }
 
-// Just a quick little test function to make sure that this is all working.
-reify::Mesh3 Cylinder(float radius, float thickness) {
-  return reify::NewExtrudeMesh2(
-      {.source = reify::NewCircle({.radius = radius, .center = {0, 0}}),
-       .path = {{0, 0, -thickness * 0.5f}, {0, 0, thickness * 0.5f}}});
+void WithInternalField(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate* isolate = args.GetIsolate();
+  v8::HandleScope handle_scope(isolate);
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+  auto blank_object_with_internal_field =
+      reinterpret_cast<ContextEnvironment*>(
+          context->GetAlignedPointerFromEmbedderData(1))
+          ->blank_object_with_internal_field.Get(isolate);
+
+  if (args.Length() < 1 || !args[0]->IsObject()) {
+    isolate->ThrowException(v8::String::NewFromUtf8(
+        isolate, "Expected an object for the first argument."));
+    return;
+  }
+  v8::Local<v8::Object> source_object = args[0].As<v8::Object>();
+
+  v8::Local<v8::Object> return_value =
+      blank_object_with_internal_field->NewInstance(context).ToLocalChecked();
+
+  // Copy over the properties from the source object to the return object under
+  // construction.
+  v8::Local<v8::Array> source_property_names =
+      source_object->GetOwnPropertyNames(context).ToLocalChecked();
+  for (int i = 0; i < source_property_names->Length(); ++i) {
+    auto property_name = source_property_names->Get(context, i)
+                             .ToLocalChecked()
+                             .As<v8::String>();
+    return_value
+        ->Set(context, property_name,
+              source_object->Get(context, property_name).ToLocalChecked())
+        .Check();
+  }
+
+  return_value->SetAlignedPointerInInternalField(0, nullptr);
+  args.GetReturnValue().Set(return_value);
+}
+
+void InstallRootFunctions(v8::Isolate* isolate,
+                          v8::Local<v8::ObjectTemplate> global_template) {
+  global_template->Set(isolate, "withInternalField",
+                       v8::FunctionTemplate::New(isolate, WithInternalField));
 }
 }  // namespace
 
@@ -160,7 +201,6 @@ int main(int argc, char* argv[]) {
 
   // Initialize V8.
   v8::V8::InitializeICUDefaultLocation(argv[0]);
-  v8::V8::InitializeExternalStartupData(argv[0]);
   std::unique_ptr<v8::Platform> platform = v8::platform::NewDefaultPlatform();
   v8::V8::InitializePlatform(platform.get());
   v8::V8::Initialize();
@@ -204,15 +244,26 @@ int main(int argc, char* argv[]) {
       // Create a stack-allocated handle scope.
       v8::HandleScope handle_scope(isolate);
 
+      auto blank_object_with_internal_field = v8::ObjectTemplate::New(isolate);
+      blank_object_with_internal_field->SetInternalFieldCount(1);
+
       // Create a template for the global object that contains functions
       // from the generated interface.
       v8::Local<v8::ObjectTemplate> global_template =
           v8::ObjectTemplate::New(isolate);
-      reify_v8::InstallInterfaceToGlobalObject(isolate, global_template);
+      InstallRootFunctions(isolate, global_template);
+
+      ContextEnvironment context_environment{
+          .transpile_results = &transpile_results,
+          .blank_object_with_internal_field =
+              v8::Persistent<v8::ObjectTemplate>(
+                  isolate, blank_object_with_internal_field),
+      };
 
       // Create a new context.
       v8::Local<v8::Context> context =
           v8::Context::New(isolate, nullptr, global_template);
+      context->SetAlignedPointerInEmbedderData(1, &context_environment);
 
       // Enter the context for compiling and running the hello world script.
       v8::Context::Scope context_scope(context);
@@ -221,7 +272,7 @@ int main(int argc, char* argv[]) {
       // catch any exceptions the script might throw.
       v8::TryCatch try_catch(isolate);
 
-      auto evaluate_module_result = EvaluateModules(context, transpile_results);
+      auto evaluate_module_result = EvaluateModules(context);
       if (auto error = std::get_if<std::string>(&evaluate_module_result)) {
         std::cerr << "Error evaluating: " << *error << std::endl;
         return 1;
@@ -262,9 +313,19 @@ int main(int argc, char* argv[]) {
       auto mesh3 = v8::Local<reify_v8::Mesh3>::Cast(result);
 
       ProcessResult(reify_v8::Value(isolate, mesh3));
+
+      if (!entrypoint->Call(context, context->Global(), 0, nullptr)
+               .ToLocal(&result)) {
+        v8::String::Utf8Value error(isolate, try_catch.Exception());
+        std::cerr << "Error: " << *error << std::endl;
+        return 1;
+      }
+      mesh3 = v8::Local<reify_v8::Mesh3>::Cast(result);
+      ProcessResult(reify_v8::Value(isolate, mesh3));
     }
 
     // Dispose the isolate and tear down V8.
+    isolate->LowMemoryNotification();
     isolate->Dispose();
     delete create_params.array_buffer_allocator;
   }

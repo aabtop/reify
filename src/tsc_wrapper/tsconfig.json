@@ -58,4 +58,9 @@
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true, /* Disallow inconsistently-cased references to the same file. */
   },
+  "exclude": [],
+  "files": [
+    "./src/tsc_wrapper.ts",
+    "./src/raw_loader.d.ts"
+  ]
 }

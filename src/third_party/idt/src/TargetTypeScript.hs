@@ -87,6 +87,19 @@ namedTypeDefinition t = case t of
     [ (taggedUnionTypeName tut ++ "As" ++ n, taggedUnionTypeName tut, [tut])
     | tut <- tuts
     ]
+  TypeDeclaration (NamedType n t@(Struct l)) ->
+    ("export type " ++ n ++ "Params = " ++ typeString t ++ ";\n")
+      ++ ("export type " ++ n ++ " = " ++ typeString t ++ ";\n")
+      ++ (  "export function New"
+         ++ n
+         ++ "(x: "
+         ++ n
+         ++ "Params): "
+         ++ n
+         ++ "{ return withInternalField(x) as "
+         ++ n
+         ++ "; };\n"
+         )
   TypeDeclaration (NamedType n t) ->
     "export type " ++ n ++ " = " ++ typeString t ++ ";\n"
 

@@ -70,7 +70,7 @@ add_custom_command(
     COMMENT "Building Reify pure C++ immutable ref-counted interface."
 )
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR})
 
 
 # Build our TypeScript Compiler wrapper script.
