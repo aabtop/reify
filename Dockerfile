@@ -45,6 +45,7 @@ ENV \
     NIX_SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
 
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+    && mkdir -p /commandhistory
     && echo $SNIPPET >> "/root/.bashrc"
 
 # Set our channel to the nixos-20.03 channel as opposed to the unstable channel.
