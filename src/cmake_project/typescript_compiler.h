@@ -4,8 +4,15 @@
 #include <v8.h>
 
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
+
+#include "global_initialization.h"
+#include "public_include/reify.h"
+
+namespace REIFY_GENERATED_PROJECT_NAMESPACE {
+namespace reify {
 
 class TypeScriptCompiler {
  public:
@@ -18,8 +25,14 @@ class TypeScriptCompiler {
     std::string path;
     std::string content;
   };
+
+  struct InputModule {
+    std::string_view path;
+    std::string_view content;
+  };
+
   struct CompileOptions {
-    std::vector<Module> system_modules;
+    std::vector<InputModule> system_modules;
   };
 
   struct TranspileResults {
@@ -30,22 +43,24 @@ class TypeScriptCompiler {
       return *LookupPath(primary_module);
     }
   };
-  struct Error {
-    std::string path;
-    int line;
-    int column;
-    std::string message;
-  };
+
+  using Error = CompileError;
+
   std::variant<TranspileResults, Error> TranspileToJavaScript(
-      const char* input_path, const char* input_typescript,
+      std::string_view input_path, std::string_view input_typescript,
       const CompileOptions& options = CompileOptions());
 
  private:
+  GlobalV8InitializationEnsurer global_v8_initialization_ensurer_;
+
   v8::Isolate::CreateParams isolate_create_params_;
   v8::Isolate* isolate_;
   v8::Persistent<v8::Context> context_;
 
   v8::Persistent<v8::Function> transpile_function_;
 };
+
+}  // namespace reify
+}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE
 
 #endif  // TYPESCRIPT_COMPILER_TYPESCRIPT_COMPILER_H_

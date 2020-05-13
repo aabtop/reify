@@ -14,6 +14,9 @@
 
 namespace {{namespace}} {
 
+template <typename T>
+struct FromImmRefCnt {};
+
 void InstallInterfaceToGlobalObject(
     v8::Isolate* isolate, v8::Local<v8::ObjectTemplate> global_template);
 
@@ -44,6 +47,10 @@ V8_INLINE std::string Value(v8::Isolate* isolate, v8::Local<v8::String> x) {
   v8::String::Utf8Value utf8_value(isolate, x);
   return std::string(*utf8_value, utf8_value.length());
 }
+template <>
+struct FromImmRefCnt<std::string> {
+  using type = v8::String;
+};
 
 class I32 : public v8::Number {
  public:
@@ -64,6 +71,10 @@ class I32 : public v8::Number {
 V8_INLINE int32_t Value(v8::Isolate* isolate, v8::Local<I32> x) {
   return x->Value();
 }
+template <>
+struct FromImmRefCnt<int32_t> {
+  using type = I32;
+};
 
 class F32 : public v8::Number {
  public:
@@ -84,6 +95,10 @@ class F32 : public v8::Number {
 V8_INLINE float Value(v8::Isolate* isolate, v8::Local<F32> x) {
   return x->Value();
 }
+template <>
+struct FromImmRefCnt<float> {
+  using type = F32;
+};
 
 template <typename T>
 class List : public v8::Array {
@@ -116,6 +131,10 @@ auto Value(v8::Isolate* isolate, v8::Local<List<T>> x) {
   }
   return ret;
 }
+template <typename T>
+struct FromImmRefCnt<std::vector<T>> {
+  using type = List<typename FromImmRefCnt<T>::type>;
+};
 
 template <typename T, int S>
 class FixedSizeArray : public v8::Array {
@@ -149,6 +168,10 @@ template <typename T, int S>
 auto Value(v8::Isolate* isolate, v8::Local<FixedSizeArray<T, S>> x) {
   return internal::Value(isolate, x, internal::build_indices<S>{});
 }
+template <typename T, int S>
+struct FromImmRefCnt<std::array<T, S>> {
+  using type = FixedSizeArray<typename FromImmRefCnt<T>::type, S>;
+};
 
 namespace internal {
 // From https://stackoverflow.com/questions/20162903/template-parameter-packs-access-nth-type-and-nth-element
@@ -188,6 +211,10 @@ template <typename... Ts>
 auto Value(v8::Isolate* isolate, v8::Local<Tuple<Ts...>> x) {
   return internal::Value(isolate, x, internal::build_indices<sizeof...(Ts)>{});
 }
+template <typename... Ts>
+struct FromImmRefCnt<std::tuple<Ts...>> {
+  using type = Tuple<typename FromImmRefCnt<Ts>::type...>;
+};
 
 template <typename T>
 class Ref : public T {
@@ -253,6 +280,11 @@ auto Value(v8::Isolate* isolate, v8::Local<Ref<T>> x) {
     return ConstructRefValue(isolate, x);
   }
 }
+
+template <typename T>
+struct FromImmRefCnt<std::shared_ptr<T>> {
+  using type = Ref<typename FromImmRefCnt<T>::type>;
+};
 
 {{#declarationSequence}}
 {{{.}}}

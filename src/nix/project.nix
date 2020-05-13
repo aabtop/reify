@@ -6,12 +6,21 @@
 let
   reifyInterface = pkgs.callPackage ../interface { inherit inputInterfacePath; };
   reifyTscWrapper = pkgs.callPackage ../tsc_wrapper {};
+  reifyNamespace = reifyInterface.config.namespace;
+  namespaceHeaderContents = ''
+    #ifndef _REIFY_GENERATED_PROJECT_NAMESPACE_H_
+    #define _REIFY_GENERATED_PROJECT_NAMESPACE_H_
+
+    #define REIFY_GENERATED_PROJECT_NAMESPACE ${reifyNamespace}
+
+    #endif  // _REIFY_GENERATED_PROJECT_NAMESPACE_H_
+  '';
 in
   runCommand
     "reify-${reifyInterface.config.namespace}-project"
     {
       buildInputs = [xxd];
-      reifyNamespace = reifyInterface.config.namespace;
+      inherit reifyNamespace;
       cmake_project = ../cmake_project;
       ts_lib_dir =
           reifyInterface.inputInterfacePath + ("/" + reifyInterface.config.typescriptLibDir);
@@ -24,10 +33,12 @@ in
       cp -r $cmake_project/* $out/
 
       # Add the generated interface files to the generated source folder.
+      mkdir -p $out/src_gen/public_include
+      cp $reifyInterfaceDefinitionFiles/$reifyNamespace.h $out/src_gen/public_include
+      cp $reifyInterfaceDefinitionFiles/reify_cpp_v8_interface.h $out/src_gen/public_include
       mkdir -p $out/src_gen/interface/cpp
-      cp $reifyInterfaceDefinitionFiles/*.h \
-        $reifyInterfaceDefinitionFiles/*.cc \
-        $out/src_gen/interface/cpp
+      cp $reifyInterfaceDefinitionFiles/reify_cpp_v8_interface.cc \
+         $out/src_gen/interface/cpp
 
       # Add the TypeScript interface files to the generated source folder.
       # This is just for reference, they aren't referenced by the build system,
@@ -35,6 +46,10 @@ in
       mkdir -p $out/src_gen/interface/ts
       cp $reifyInterfaceDefinitionFiles/*.ts $out/src_gen/interface/ts
       cp $ts_lib_dir/lib.ts $out/src_gen/interface/ts
+
+      # Setup a header file that defines the customized C++ namespace for this
+      # project.
+      echo "${namespaceHeaderContents}" > $out/src_gen/public_include/reify_generated_project_namespace.h
 
       # Convert the TypeScript interface files to header files for inclusion
       # in the C++ binary.
@@ -48,5 +63,5 @@ in
 
       # Finally generate a CMake include file providing a set of baked in
       # configuration options.
-      echo "set(REIFY_INTERFACE_NAMESPACE \"$reifyNamespace\")" > $out/src_gen/generated_reify_options.cmake
+      echo "set(REIFY_GENERATED_PROJECT_NAMESPACE \"$reifyNamespace\")" > $out/src_gen/generated_reify_options.cmake
     ''

@@ -7,6 +7,9 @@
 #include <sstream>
 #include <string>
 
+namespace REIFY_GENERATED_PROJECT_NAMESPACE {
+namespace reify {
+
 namespace {
 #include "src_gen/tsc_wrapper.h"
 }  // namespace
@@ -118,12 +121,17 @@ TypeScriptCompiler::~TypeScriptCompiler() {
 namespace {
 v8::Local<v8::Object> CreateSystemModuleMap(
     v8::Isolate* isolate, v8::Local<v8::Context> context,
-    const std::vector<TypeScriptCompiler::Module>& system_modules) {
+    const std::vector<TypeScriptCompiler::InputModule>& system_modules) {
   v8::Local<v8::Object> system_module_map = v8::Object::New(isolate);
   for (const auto& module : system_modules) {
-    auto path_value = v8::String::NewFromUtf8(isolate, module.path.c_str());
-    auto content_value =
-        v8::String::NewFromUtf8(isolate, module.content.c_str());
+    auto path_value =
+        v8::String::NewFromUtf8(isolate, module.path.data(),
+                                v8::NewStringType::kNormal, module.path.size())
+            .ToLocalChecked();
+    auto content_value = v8::String::NewFromUtf8(isolate, module.content.data(),
+                                                 v8::NewStringType::kNormal,
+                                                 module.content.size())
+                             .ToLocalChecked();
 
     system_module_map->Set(context, path_value, content_value).Check();
   }
@@ -132,10 +140,9 @@ v8::Local<v8::Object> CreateSystemModuleMap(
 }
 }  // namespace
 
-auto TypeScriptCompiler::TranspileToJavaScript(const char* input_path,
-                                               const char* input_typescript,
-                                               const CompileOptions& options)
-    -> std::variant<TranspileResults, Error> {
+auto TypeScriptCompiler::TranspileToJavaScript(
+    std::string_view input_path, std::string_view input_typescript,
+    const CompileOptions& options) -> std::variant<TranspileResults, Error> {
   v8::Isolate::Scope isolate_scope(isolate_);
   v8::HandleScope handle_scope(isolate_);
   auto context = v8::Local<v8::Context>::New(isolate_, context_);
@@ -148,9 +155,15 @@ auto TypeScriptCompiler::TranspileToJavaScript(const char* input_path,
   auto transpile_function =
       v8::Local<v8::Function>::New(isolate_, transpile_function_);
 
-  auto input_path_v8_str = v8::String::NewFromUtf8(isolate_, input_path);
+  auto input_path_v8_str =
+      v8::String::NewFromUtf8(isolate_, input_path.data(),
+                              v8::NewStringType::kNormal, input_path.size())
+          .ToLocalChecked();
   auto input_typescript_v8_str =
-      v8::String::NewFromUtf8(isolate_, input_typescript);
+      v8::String::NewFromUtf8(isolate_, input_typescript.data(),
+                              v8::NewStringType::kNormal,
+                              input_typescript.size())
+          .ToLocalChecked();
 
   v8::Local<v8::Value> parameters[] = {
       input_path_v8_str, input_typescript_v8_str, system_module_map};
@@ -232,7 +245,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(const char* input_path,
   }
 
   if (!return_value.LookupPath(return_value.primary_module)) {
-    return Error{.path = input_path,
+    return Error{.path = std::string(input_path),
                  .line = 0,
                  .column = 0,
                  .message = "Could not find the primary output module, '" +
@@ -242,3 +255,6 @@ auto TypeScriptCompiler::TranspileToJavaScript(const char* input_path,
 
   return return_value;
 }
+
+}  // namespace reify
+}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE

@@ -15,7 +15,7 @@ import           ReifyInputInterface
 
 cppV8Namespace = ReifyInputInterface.namespace ++ "_v8"
 
-cppImmutableRefCountedFileName = "reify_cpp_immut_ref_counted_interface.h"
+cppImmutableRefCountedFileName = ReifyInputInterface.namespace ++ ".h"
 typescriptFileName = "reify_ts_interface.ts"
 cppV8HFileName = "reify_cpp_v8_interface.h"
 cppV8CCFileName = "reify_cpp_v8_interface.cc"

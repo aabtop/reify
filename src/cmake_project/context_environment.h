@@ -3,11 +3,18 @@
 
 #include <v8.h>
 
-#include "typescript_compiler.h"
+#include "reify.h"
+
+namespace REIFY_GENERATED_PROJECT_NAMESPACE {
+namespace reify {
 
 struct ContextEnvironment {
-  TypeScriptCompiler::TranspileResults* transpile_results;
-  v8::Persistent<v8::ObjectTemplate> blank_object_with_internal_field;
+  std::shared_ptr<CompiledModule> compiled_module;
+  v8::CopyablePersistentTraits<v8::ObjectTemplate>::CopyablePersistent
+      blank_object_with_internal_field;
 };
+
+}  // namespace reify
+}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE
 
 #endif  // REIFY_CONTEXT_ENVIRONMENT_H_

@@ -1,8 +1,8 @@
 with import <nixpkgs> {};
 
 let
+  inputInterfacePath = ./test_data/hypo/interface;
   pkgs = rec {
-    inputInterfacePath = ./test_data/hypo/interface;
     reifyProject = callPackage ./nix/project.nix { inherit inputInterfacePath; };
     reify = callPackage ./nix/derivation.nix { inherit reifyProject; };
   };

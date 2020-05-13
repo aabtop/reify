@@ -6,7 +6,7 @@ stdenv.mkDerivation {
   name = lib.strings.removeSuffix "-project" reifyProject.name;
 
   nativeBuildInputs = [cmake reifyProject clang-tools];
-  buildInputs = [ v8 ];
+  propagatedBuildInputs = [ v8 ];
 
   src = reifyProject;
 

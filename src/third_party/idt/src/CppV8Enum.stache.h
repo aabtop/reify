@@ -28,3 +28,7 @@ class {{name}} : public v8::Object {
 };
 {{immRefCntNamespace}}::{{name}} Value(
     v8::Isolate* isolate, v8::Local<{{name}}> x);
+template <>
+struct FromImmRefCnt<{{immRefCntNamespace}}::{{name}}> {
+  using type = {{name}};
+};
