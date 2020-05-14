@@ -11,7 +11,7 @@
       // preserving timestamps (because nix store files have no time stamps)
       // into a known directory (/src) from which we then setup a standard cmake
       // out folder at /cmake_out where we do the build.
-      "command": "nix-shell --run \"rsync -crlpgoD --delete \\${reifyProject}/ /src && mkdir -p /cmake_out && cd /cmake_out && cmake -DCMAKE_BUILD_TYPE=Debug -DREIFY_HYPO_PATH=/src ${workspaceFolder}/src/test_data/hypo && cmake --build . -j12\" ${workspaceFolder}/src/test_data/hypo",
+      "command": "nix-shell --run \"${workspaceFolder}/.vscode/build.sh \\${reifyProject}/ ${workspaceFolder}/src/test_data/hypo\" ${workspaceFolder}/src/test_data/hypo",
       "problemMatcher": [
         "$gcc"
       ],

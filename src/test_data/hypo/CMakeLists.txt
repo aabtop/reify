@@ -27,6 +27,12 @@ add_executable(hypo
   main.cc
 )
 
-target_link_libraries(hypo PUBLIC ${OUT_REIFY_TARGETS})
+find_package(CGAL REQUIRED)
+
+#required to use basic_viewer
+add_definitions(-DCGAL_USE_BASIC_VIEWER -DQT_NO_KEYWORDS)
+
+#link it with the required CGAL libraries
+target_link_libraries(hypo CGAL::CGAL ${OUT_REIFY_TARGETS})
 
 install(TARGETS hypo)
