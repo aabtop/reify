@@ -22,6 +22,17 @@ Polygon_set_2 Make(const hypo::CircleAsPolygon& circle_as_polygon) {
 
   return Polygon_set_2(polygon);
 }
+
+Polygon_set_2 Make(const hypo::Rectangle& rectangle) {
+  Polygon_2 polygon;
+  polygon.container().reserve(3);
+  polygon.push_back(Point_2(rectangle.left, rectangle.bottom));
+  polygon.push_back(Point_2(rectangle.right, rectangle.bottom));
+  polygon.push_back(Point_2(rectangle.right, rectangle.top));
+  polygon.push_back(Point_2(rectangle.left, rectangle.top));
+
+  return Polygon_set_2(polygon);
+}
 }  // namespace
 
 std::shared_ptr<Polygon_set_2> ConstructMesh2(const hypo::Mesh2& mesh2) {
@@ -32,6 +43,7 @@ std::shared_ptr<Polygon_set_2> ConstructMesh2(const hypo::Mesh2& mesh2) {
   } else if (auto rectangle_ptr =
                  std::get_if<std::shared_ptr<hypo::Rectangle>>(&mesh2)) {
     auto rectangle = *rectangle_ptr;
+    return std::make_shared<Polygon_set_2>(Make(*rectangle));
   }
   return std::shared_ptr<Polygon_set_2>();
 }

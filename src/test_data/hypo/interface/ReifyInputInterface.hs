@@ -24,8 +24,8 @@ idt =
       NamedType "Circle" $ Struct [("radius", float), ("center", cvec 2)]
     circleAsPolygon = NamedType "CircleAsPolygon"
       $ Struct [("circle", Concrete circle), ("num_points", int)]
-    rectangle = NamedType "Rectangle"
-      $ Struct [("width", float), ("height", float), ("top_left", cvec 2)]
+    rectangle = NamedType "Rectangle" $ Struct
+      [("left", float), ("bottom", float), ("right", float), ("top", float)]
     mesh2 = NamedType "Mesh2"
       $ TaggedUnion [Reference circleAsPolygon, Reference rectangle]
 
