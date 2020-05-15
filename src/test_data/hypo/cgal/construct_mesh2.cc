@@ -11,9 +11,9 @@ Polygon_set_2 Make(const hypo::CircleAsPolygon& circle_as_polygon) {
   Polygon_2 polygon;
   polygon.container().reserve(circle_as_polygon.num_points);
 
-  const float one_over_num_points = 1.0f / circle_as_polygon.num_points;
+  const float two_pi_over_num_points = (2 * kPi) / circle_as_polygon.num_points;
   for (int i = 0; i < circle_as_polygon.num_points; ++i) {
-    const float angle = i * one_over_num_points;
+    const float angle = i * two_pi_over_num_points;
     polygon.push_back(Point_2(circle_as_polygon.circle.center[0],
                               circle_as_polygon.circle.center[1]) +
                       circle_as_polygon.circle.radius *

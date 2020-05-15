@@ -33,6 +33,8 @@ add_executable(hypo
   cgal/embed_2d_in_3d.h
   cgal/export_to_stl.cc
   cgal/export_to_stl.h
+  cgal/export_to_svg.cc
+  cgal/export_to_svg.h
   cgal/types.h
 )
 

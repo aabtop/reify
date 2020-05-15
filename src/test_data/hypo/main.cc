@@ -4,8 +4,8 @@
 
 #include "cgal/construct_mesh2.h"
 #include "cgal/construct_mesh3.h"
-#include "cgal/embed_2d_in_3d.h"
 #include "cgal/export_to_stl.h"
+#include "cgal/export_to_svg.h"
 #include "hypo.h"
 #include "reify.h"
 
@@ -38,7 +38,7 @@ void ProcessResult(const hypo::Mesh3& mesh3) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
-  if (argc < 2) {
+  if (argc < 3) {
     std::cerr << "USAGE: " << argv[0] << " INPUT_FILE" << std::endl;
     return 1;
   }
@@ -76,8 +76,13 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  hypo::cgal::ExportToSTL(hypo::cgal::EmbedPolygonSetIn3DXYPlane(
-      *hypo::cgal::ConstructMesh2(std::get<1>(result_or_error))));
+  hypo::cgal::ExportToSVG(
+      *hypo::cgal::ConstructMesh2(std::get<1>(result_or_error)), argv[2]);
+
+  /*
+  hypo::cgal::ExportToSTL(
+      *hypo::cgal::ConstructMesh3(std::get<1>(result_or_error)), argv[2]);
+  */
 
   return 0;
 }

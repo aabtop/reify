@@ -1,15 +1,15 @@
-#ifndef _HYPO_EXPORT_TO_STL_H_
-#define _HYPO_EXPORT_TO_STL_H_
+#ifndef _HYPO_EXPORT_TO_SVG_H_
+#define _HYPO_EXPORT_TO_SVG_H_
 
 #include "cgal/types.h"
 
 namespace hypo {
 namespace cgal {
 
-bool ExportToSTL(const Nef_polyhedron_3& polyhedron,
+bool ExportToSVG(const Polygon_set_2& polygon_set,
                  const std::string& output_filepath);
 
 }  // namespace cgal
 }  // namespace hypo
 
-#endif  // _HYPO_EXPORT_TO_STL_H_
+#endif  // _HYPO_EXPORT_TO_SVG_H_
