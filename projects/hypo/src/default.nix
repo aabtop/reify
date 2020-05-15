@@ -1,9 +1,10 @@
 with import <nixpkgs> {};
 
 let
+  reifySrc = ../../../src;
   inputInterfacePath = ./interface;
-  reifyProject = callPackage ../../nix/project.nix { inherit inputInterfacePath; };
-  reify = callPackage ../../nix/derivation.nix { inherit reifyProject; };
+  reifyProject = callPackage (reifySrc + /nix/project.nix) { inherit inputInterfacePath; };
+  reify = callPackage (reifySrc + /nix/derivation.nix) { inherit reifyProject; };
 
 in
   stdenv.mkDerivation {

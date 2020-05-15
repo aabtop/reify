@@ -20,7 +20,7 @@ std::string LoadFile(const char* filename) {
 
 int main(int argc, char* argv[]) {
   if (argc < 3) {
-    std::cerr << "USAGE: " << argv[0] << " INPUT_FILE" << std::endl;
+    std::cerr << "USAGE: " << argv[0] << " INPUT_FILE OUTPUT_FILE" << std::endl;
     return 1;
   }
 
