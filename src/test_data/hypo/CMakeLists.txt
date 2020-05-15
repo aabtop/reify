@@ -21,10 +21,19 @@ endif()
 
 add_subdirectory(${REIFY_HYPO_PATH} reify-hypo)
 
-include_directories(${OUT_REIFY_PUBLIC_INCLUDE_DIRECTORIES})
+include_directories(${CMAKE_CURRENT_LIST_DIR} ${OUT_REIFY_PUBLIC_INCLUDE_DIRECTORIES})
 
 add_executable(hypo
   main.cc
+  cgal/construct_mesh2.cc
+  cgal/construct_mesh2.h
+  cgal/construct_mesh3.cc
+  cgal/construct_mesh3.h
+  cgal/embed_2d_in_3d.cc
+  cgal/embed_2d_in_3d.h
+  cgal/export_to_stl.cc
+  cgal/export_to_stl.h
+  cgal/types.h
 )
 
 find_package(CGAL REQUIRED)

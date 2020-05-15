@@ -14,9 +14,11 @@ export function TranslatedMesh3(
       rgi.TransformMesh3({source: mesh, transform: Translate3D(translation)}));
 }
 
-export function Cylinder(radius: number, thickness: number): rgi.Mesh3 {
+export function Cylinder(
+    radius: number, thickness: number, num_points: number): rgi.Mesh3 {
   return rgi.ExtrudeMesh2AsMesh3(rgi.ExtrudeMesh2({
-    source: rgi.CircleAsMesh2(rgi.Circle({radius: radius, center: [0, 0]})),
+    source: rgi.CircleAsPolygonAsMesh2(rgi.CircleAsPolygon(
+        {circle: {radius: radius, center: [0, 0]}, num_points: num_points})),
     path: [[0, 0, -thickness * 0.5], [0, 0, thickness * 0.5]]
   }));
 }

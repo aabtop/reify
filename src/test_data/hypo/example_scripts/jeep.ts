@@ -1,14 +1,19 @@
-import * as hypo from 'hypo';
+import * as h from 'hypo';
 
-let jeep_wheel = hypo.Cylinder(0.35, 0.15);
+export function Test() {
+  return h.CircleAsPolygonAsMesh2(h.CircleAsPolygon(
+      {circle: {radius: 10, center: [0, 0]}, num_points: 20}));
+}
 
-let my_jeep = hypo.Mesh3UnionAsMesh3(hypo.Mesh3Union({
+let jeep_wheel = h.Cylinder(0.35, 0.15, 20);
+
+let my_jeep = h.Mesh3UnionAsMesh3(h.Mesh3Union({
   meshes: [
-    hypo.TranslatedMesh3(jeep_wheel, [1.0, 0.0, -0.5]),
-    hypo.TranslatedMesh3(jeep_wheel, [1.0, 0.0, -0.5]),
-    hypo.TranslatedMesh3(jeep_wheel, [1.0, 0.0, 0.5]),
-    hypo.TranslatedMesh3(jeep_wheel, [-1.0, 0.0, 0.5]),
-    hypo.TranslatedMesh3(jeep_wheel, [-1.0, 0.0, -0.5]),
+    h.TranslatedMesh3(jeep_wheel, [1.0, 0.0, -0.5]),
+    h.TranslatedMesh3(jeep_wheel, [1.0, 0.0, -0.5]),
+    h.TranslatedMesh3(jeep_wheel, [1.0, 0.0, 0.5]),
+    h.TranslatedMesh3(jeep_wheel, [-1.0, 0.0, 0.5]),
+    h.TranslatedMesh3(jeep_wheel, [-1.0, 0.0, -0.5]),
   ]
 }));
 

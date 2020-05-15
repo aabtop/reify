@@ -13,6 +13,7 @@ idt :: NamedTypeList
 idt =
   let
     float = NamedPrimitive "f32"
+    int   = NamedPrimitive "i32"
     vec n = NamedType ("Vec" ++ show n) $ FixedSizeArray float n
     cvec = Concrete . vec
     mat m n =
@@ -21,10 +22,12 @@ idt =
 
     circle =
       NamedType "Circle" $ Struct [("radius", float), ("center", cvec 2)]
+    circleAsPolygon = NamedType "CircleAsPolygon"
+      $ Struct [("circle", Concrete circle), ("num_points", int)]
     rectangle = NamedType "Rectangle"
       $ Struct [("width", float), ("height", float), ("top_left", cvec 2)]
-    mesh2 =
-      NamedType "Mesh2" $ TaggedUnion [Reference circle, Reference rectangle]
+    mesh2 = NamedType "Mesh2"
+      $ TaggedUnion [Reference circleAsPolygon, Reference rectangle]
 
     extrudeMesh2 = NamedType "ExtrudeMesh2"
       $ Struct [("source", Concrete mesh2), ("path", Tuple [cvec 3, cvec 3])]

@@ -2,6 +2,10 @@
 #include <iostream>
 #include <sstream>
 
+#include "cgal/construct_mesh2.h"
+#include "cgal/construct_mesh3.h"
+#include "cgal/embed_2d_in_3d.h"
+#include "cgal/export_to_stl.h"
 #include "hypo.h"
 #include "reify.h"
 
@@ -59,7 +63,7 @@ int main(int argc, char* argv[]) {
   auto runtime_env = &std::get<1>(runtime_env_or_error);
 
   auto entrypoint_or_error =
-      runtime_env->GetExport<hypo::reify::Function<hypo::Mesh3()>>("Jeep");
+      runtime_env->GetExport<hypo::reify::Function<hypo::Mesh2()>>("Test");
   if (auto error = std::get_if<0>(&entrypoint_or_error)) {
     std::cerr << "Problem finding entrypoint function: " << error << std::endl;
     return 1;
@@ -71,9 +75,9 @@ int main(int argc, char* argv[]) {
     std::cerr << "Error running function: " << error << std::endl;
     return 1;
   }
-  auto result = std::get<1>(result_or_error);
 
-  ProcessResult(result);
+  hypo::cgal::ExportToSTL(hypo::cgal::EmbedPolygonSetIn3DXYPlane(
+      *hypo::cgal::ConstructMesh2(std::get<1>(result_or_error))));
 
   return 0;
 }

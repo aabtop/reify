@@ -10,8 +10,8 @@ in
     name = "hypo";
 
     inherit reifyProject;
-    nativeBuildInputs = [cmake reifyProject cgal_5 gmp mpfr boost];
-    buildInputs = [v8];
+    nativeBuildInputs = [cmake reifyProject];
+    buildInputs = [v8 cgal_5 gmp mpfr boost];
 
     src = ./.;
 
