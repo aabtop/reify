@@ -2,8 +2,8 @@
 #include <iostream>
 #include <sstream>
 
-#include "cgal/construct_mesh2.h"
-#include "cgal/construct_mesh3.h"
+#include "cgal/construct_region2.h"
+#include "cgal/construct_region3.h"
 #include "cgal/export_to_stl.h"
 #include "cgal/export_to_svg.h"
 #include "hypo.h"
@@ -15,25 +15,6 @@ std::string LoadFile(const char* filename) {
   std::stringstream buffer;
   buffer << in.rdbuf();
   return buffer.str();
-}
-
-void ProcessResult(const hypo::Mesh3& mesh3) {
-  if (auto extrude = std::get_if<std::shared_ptr<hypo::ExtrudeMesh2>>(&mesh3)) {
-    std::cout << "ExtrudeMesh2AsMesh" << std::endl;
-  } else if (auto transform =
-                 std::get_if<std::shared_ptr<hypo::TransformMesh3>>(&mesh3)) {
-    std::cout << "TransformMesh3AsMesh" << std::endl;
-  } else if (auto mesh_union =
-                 std::get_if<std::shared_ptr<hypo::Mesh3Union>>(&mesh3)) {
-    std::cout << "MeshUnion" << std::endl;
-    std::cout << "  Number of meshes: " << (*mesh_union)->meshes.size()
-              << std::endl;
-    std::cout << "  [" << std::endl;
-    for (const auto& mesh : (*mesh_union)->meshes) {
-      ProcessResult(mesh);
-    }
-    std::cout << "  ]" << std::endl;
-  }
 }
 }  // namespace
 
@@ -63,7 +44,7 @@ int main(int argc, char* argv[]) {
   auto runtime_env = &std::get<1>(runtime_env_or_error);
 
   auto entrypoint_or_error =
-      runtime_env->GetExport<hypo::reify::Function<hypo::Mesh2()>>("Test");
+      runtime_env->GetExport<hypo::reify::Function<hypo::Region2()>>("Test");
   if (auto error = std::get_if<0>(&entrypoint_or_error)) {
     std::cerr << "Problem finding entrypoint function: " << error << std::endl;
     return 1;
@@ -77,11 +58,11 @@ int main(int argc, char* argv[]) {
   }
 
   hypo::cgal::ExportToSVG(
-      *hypo::cgal::ConstructMesh2(std::get<1>(result_or_error)), argv[2]);
+      *hypo::cgal::ConstructRegion2(std::get<1>(result_or_error)), argv[2]);
 
   /*
   hypo::cgal::ExportToSTL(
-      *hypo::cgal::ConstructMesh3(std::get<1>(result_or_error)), argv[2]);
+      *hypo::cgal::ConstructRegion3(std::get<1>(result_or_error)), argv[2]);
   */
 
   return 0;

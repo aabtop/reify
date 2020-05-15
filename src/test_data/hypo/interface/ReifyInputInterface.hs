@@ -26,19 +26,22 @@ idt =
       $ Struct [("circle", Concrete circle), ("num_points", int)]
     rectangle = NamedType "Rectangle" $ Struct
       [("left", float), ("bottom", float), ("right", float), ("top", float)]
-    mesh2 = NamedType "Mesh2"
+    region2 = NamedType "Region2"
       $ TaggedUnion [Reference circleAsPolygon, Reference rectangle]
 
-    extrudeMesh2 = NamedType "ExtrudeMesh2"
-      $ Struct [("source", Concrete mesh2), ("path", Tuple [cvec 3, cvec 3])]
-    transformMesh3 = NamedType "TransformMesh3"
-      $ Struct [("source", Concrete mesh3), ("transform", cmat 4 4)]
-    mesh3Union =
-      NamedType "Mesh3Union" $ Struct [("meshes", List $ Concrete mesh3)]
-    mesh3 = NamedType "Mesh3" $ TaggedUnion
-      [Reference extrudeMesh2, Reference transformMesh3, Reference mesh3Union]
+    extrudeRegion2 = NamedType "ExtrudeRegion2" $ Struct
+      [("source", Concrete region2), ("path", Tuple [cvec 3, cvec 3])]
+    transformRegion3 = NamedType "TransformRegion3"
+      $ Struct [("source", Concrete region3), ("transform", cmat 4 4)]
+    region3Union =
+      NamedType "Region3Union" $ Struct [("regions", List $ Concrete region3)]
+    region3 = NamedType "Region3" $ TaggedUnion
+      [ Reference extrudeRegion2
+      , Reference transformRegion3
+      , Reference region3Union
+      ]
   in
-    [vec 2, vec 3, mat 4 4, mesh2, mesh3]
+    [vec 2, vec 3, mat 4 4, region2, region3]
 
 -- The namespace applied to all interfaces generated from |idt| above.
 namespace :: String

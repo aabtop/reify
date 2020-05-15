@@ -25,10 +25,10 @@ include_directories(${CMAKE_CURRENT_LIST_DIR} ${OUT_REIFY_PUBLIC_INCLUDE_DIRECTO
 
 add_executable(hypo
   main.cc
-  cgal/construct_mesh2.cc
-  cgal/construct_mesh2.h
-  cgal/construct_mesh3.cc
-  cgal/construct_mesh3.h
+  cgal/construct_region2.cc
+  cgal/construct_region2.h
+  cgal/construct_region3.cc
+  cgal/construct_region3.h
   cgal/embed_2d_in_3d.cc
   cgal/embed_2d_in_3d.h
   cgal/export_to_stl.cc

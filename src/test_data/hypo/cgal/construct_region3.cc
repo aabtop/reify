@@ -1,4 +1,4 @@
-#include "cgal/construct_mesh3.h"
+#include "cgal/construct_region3.h"
 
 #include <CGAL/Nef_polyhedron_3.h>
 
@@ -8,8 +8,8 @@
 namespace hypo {
 namespace cgal {
 
-std::shared_ptr<CGAL::Nef_polyhedron_3<Kernel>> ConstructMesh3(
-    const hypo::Mesh3& mesh3) {
+std::shared_ptr<CGAL::Nef_polyhedron_3<Kernel>> ConstructRegion3(
+    const hypo::Region3& region3) {
   return std::shared_ptr<CGAL::Nef_polyhedron_3<Kernel>>();
 }
 

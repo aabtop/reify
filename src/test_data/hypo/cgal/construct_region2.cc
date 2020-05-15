@@ -1,4 +1,4 @@
-#include "cgal/construct_mesh2.h"
+#include "cgal/construct_region2.h"
 
 #include "cgal/types.h"
 #include "hypo.h"
@@ -35,13 +35,13 @@ Polygon_set_2 Make(const hypo::Rectangle& rectangle) {
 }
 }  // namespace
 
-std::shared_ptr<Polygon_set_2> ConstructMesh2(const hypo::Mesh2& mesh2) {
+std::shared_ptr<Polygon_set_2> ConstructRegion2(const hypo::Region2& region2) {
   if (auto circle_as_polygon_ptr =
-          std::get_if<std::shared_ptr<hypo::CircleAsPolygon>>(&mesh2)) {
+          std::get_if<std::shared_ptr<hypo::CircleAsPolygon>>(&region2)) {
     auto circle_as_polygon = *circle_as_polygon_ptr;
     return std::make_shared<Polygon_set_2>(Make(*circle_as_polygon));
   } else if (auto rectangle_ptr =
-                 std::get_if<std::shared_ptr<hypo::Rectangle>>(&mesh2)) {
+                 std::get_if<std::shared_ptr<hypo::Rectangle>>(&region2)) {
     auto rectangle = *rectangle_ptr;
     return std::make_shared<Polygon_set_2>(Make(*rectangle));
   }
