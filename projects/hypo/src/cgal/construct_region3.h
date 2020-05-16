@@ -9,8 +9,7 @@
 namespace hypo {
 namespace cgal {
 
-std::shared_ptr<Nef_polyhedron_3> ConstructRegion3(
-    const hypo::Region3& region3);
+Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& region3);
 
 }  // namespace cgal
 }  // namespace hypo

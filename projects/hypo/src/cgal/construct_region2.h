@@ -9,7 +9,7 @@
 namespace hypo {
 namespace cgal {
 
-std::shared_ptr<Polygon_set_2> ConstructRegion2(const hypo::Region2& region2);
+Polygon_set_2 ConstructRegion2(const hypo::Region2& x);
 
 }  // namespace cgal
 }  // namespace hypo

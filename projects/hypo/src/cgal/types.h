@@ -5,6 +5,7 @@
 #include <CGAL/Nef_polyhedron_3.h>
 #include <CGAL/Polygon_set_2.h>
 #include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh/Surface_mesh.h>
 
 namespace hypo {
 namespace cgal {
@@ -23,6 +24,7 @@ using Point_3 = Kernel::Point_3;
 using Vector_3 = Kernel::Vector_3;
 using Nef_polyhedron_3 = CGAL::Nef_polyhedron_3<Kernel>;
 using Bbox_2 = CGAL::Bbox_2;
+using Surface_mesh = CGAL::Surface_mesh<Point_3>;
 
 const float kPi = 3.14159265359f;
 

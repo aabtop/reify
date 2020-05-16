@@ -8,7 +8,7 @@
       "program": "/cmake_out/hypo",
       "args": [
         "${workspaceFolder}/projects/hypo/src/example_scripts/jeep.ts",
-        "/cmake_out/foo.svg"
+        "/cmake_out/foo"
       ],
       "stopAtEntry": false,
       "cwd": "/tmp",

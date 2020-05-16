@@ -3,6 +3,7 @@
 # Enable tasks to be checked in so that we can supply the build task.
 !.vscode/tasks.json
 !.vscode/launch.json
+!.vscode/build.sh
 
 *.code-workspace
 

@@ -8,6 +8,9 @@ namespace cgal {
 
 Nef_polyhedron_3 EmbedPolygonSetIn3DXYPlane(const Polygon_set_2& polygon_set);
 
+Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
+    const Polygon_set_2& polygon_set);
+
 }  // namespace cgal
 }  // namespace hypo
 
