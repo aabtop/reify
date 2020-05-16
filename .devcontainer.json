@@ -3,15 +3,15 @@
 {
 	"name": "Existing Dockerfile",
 	// Sets the run context to one level up instead of the .devcontainer folder.
-	"context": "..",
+	"context": ".",
 	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
 	"dockerFile": "Dockerfile",
 	// Set *default* container specific settings.json values on container create.
 	"settings": {
 		"terminal.integrated.shell.linux": "/bin/bash",
-		"nixEnvSelector.nixShellConfig": "${workspaceRoot}/src",
+		"nixEnvSelector.nixShellConfig": "${workspaceRoot}/projects/hypo/src",
 		"cmake.buildDirectory": "/cmake_out",
-		"cmake.sourceDirectory": "${workspaceRoot}/src",
+		"cmake.sourceDirectory": "${workspaceRoot}/projects/hypo/src",
 		"editor.formatOnSave": true,
 		"files.associations": {
 			"*.hs": "haskell",
