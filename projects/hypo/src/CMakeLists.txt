@@ -31,6 +31,8 @@ add_executable(hypo
   cgal/construct_region3.h
   cgal/embed_2d_in_3d.cc
   cgal/embed_2d_in_3d.h
+  cgal/export_to_file.cc
+  cgal/export_to_file.h
   cgal/export_to_stl.cc
   cgal/export_to_stl.h
   cgal/export_to_svg.cc

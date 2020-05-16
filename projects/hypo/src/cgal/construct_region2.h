@@ -1,5 +1,5 @@
-#ifndef _HYPO_CGAL_CONSTRUCT_REGION3_H_
-#define _HYPO_CGAL_CONSTRUCT_REGION3_H_
+#ifndef _HYPO_CGAL_CONSTRUCT_REGION2_H_
+#define _HYPO_CGAL_CONSTRUCT_REGION2_H_
 
 #include <memory>
 
@@ -14,4 +14,4 @@ std::shared_ptr<Polygon_set_2> ConstructRegion2(const hypo::Region2& region2);
 }  // namespace cgal
 }  // namespace hypo
 
-#endif  // _HYPO_CGAL_CONSTRUCT_REGION3_H_
+#endif  // _HYPO_CGAL_CONSTRUCT_REGION2_H_

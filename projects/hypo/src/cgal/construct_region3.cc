@@ -10,6 +10,7 @@ namespace cgal {
 
 std::shared_ptr<CGAL::Nef_polyhedron_3<Kernel>> ConstructRegion3(
     const hypo::Region3& region3) {
+  std::cerr << "Unhandled Region3 type." << std::endl;
   return std::shared_ptr<CGAL::Nef_polyhedron_3<Kernel>>();
 }
 

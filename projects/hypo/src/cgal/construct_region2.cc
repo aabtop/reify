@@ -7,6 +7,8 @@ namespace hypo {
 namespace cgal {
 
 namespace {
+Polygon_set_2 Make(const hypo::Region2& x);
+
 Polygon_set_2 Make(const hypo::CircleAsPolygon& circle_as_polygon) {
   Polygon_2 polygon;
   polygon.container().reserve(circle_as_polygon.num_points);
@@ -33,19 +35,57 @@ Polygon_set_2 Make(const hypo::Rectangle& rectangle) {
 
   return Polygon_set_2(polygon);
 }
+
+Polygon_set_2 Make(const hypo::Union2& x) {
+  Polygon_set_2 result;
+  for (const auto& region : x.regions) {
+    result.join(Make(region));
+  }
+  return result;
+}
+
+Polygon_set_2 Make(const hypo::Difference2& x) {
+  Polygon_set_2 result;
+  result.difference(Make(x.a), Make(x.b));
+  return result;
+}
+
+Polygon_set_2 Make(const hypo::Intersection2& x) {
+  if (x.regions.empty()) {
+    return Polygon_set_2();
+  }
+
+  Polygon_set_2 result(Make(x.regions[0]));
+  for (auto iter = x.regions.begin() + 1; iter != x.regions.end(); ++iter) {
+    result.intersection(Make(*iter));
+  }
+  return result;
+}
+
+Polygon_set_2 Make(const hypo::Region2& x) {
+  if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::CircleAsPolygon>>(&x)) {
+    return Make(**obj_ptr);
+  } else if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::Rectangle>>(&x)) {
+    return Make(**obj_ptr);
+  } else if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::Union2>>(&x)) {
+    return Make(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<hypo::Difference2>>(&x)) {
+    return Make(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<hypo::Intersection2>>(&x)) {
+    return Make(**obj_ptr);
+  }
+
+  std::cerr << "Unhandled Region2 type." << std::endl;
+  assert(false);
+  return Polygon_set_2();
+}
+
 }  // namespace
 
 std::shared_ptr<Polygon_set_2> ConstructRegion2(const hypo::Region2& region2) {
-  if (auto circle_as_polygon_ptr =
-          std::get_if<std::shared_ptr<hypo::CircleAsPolygon>>(&region2)) {
-    auto circle_as_polygon = *circle_as_polygon_ptr;
-    return std::make_shared<Polygon_set_2>(Make(*circle_as_polygon));
-  } else if (auto rectangle_ptr =
-                 std::get_if<std::shared_ptr<hypo::Rectangle>>(&region2)) {
-    auto rectangle = *rectangle_ptr;
-    return std::make_shared<Polygon_set_2>(Make(*rectangle));
-  }
-  return std::shared_ptr<Polygon_set_2>();
+  return std::make_shared<Polygon_set_2>(Make(region2));
 }
 
 }  // namespace cgal

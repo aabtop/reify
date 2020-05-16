@@ -26,20 +26,26 @@ idt =
       $ Struct [("circle", Concrete circle), ("num_points", int)]
     rectangle = NamedType "Rectangle" $ Struct
       [("left", float), ("bottom", float), ("right", float), ("top", float)]
-    region2 = NamedType "Region2"
-      $ TaggedUnion [Reference circleAsPolygon, Reference rectangle]
-
-    extrudeRegion2 = NamedType "ExtrudeRegion2" $ Struct
-      [("source", Concrete region2), ("path", Tuple [cvec 3, cvec 3])]
-    transformRegion3 = NamedType "TransformRegion3"
-      $ Struct [("source", Concrete region3), ("transform", cmat 4 4)]
-    region3Union =
-      NamedType "Region3Union" $ Struct [("regions", List $ Concrete region3)]
-    region3 = NamedType "Region3" $ TaggedUnion
-      [ Reference extrudeRegion2
-      , Reference transformRegion3
-      , Reference region3Union
+    union2 = NamedType "Union2" $ Struct [("regions", List $ Concrete region2)]
+    intersection2 =
+      NamedType "Intersection2" $ Struct [("regions", List $ Concrete region2)]
+    difference2 = NamedType "Difference2"
+      $ Struct [("a", Concrete region2), ("b", Concrete region2)]
+    region2 = NamedType "Region2" $ TaggedUnion
+      [ Reference circleAsPolygon
+      , Reference rectangle
+      , Reference union2
+      , Reference intersection2
+      , Reference difference2
       ]
+
+    extrudeRegion2 = NamedType "Extrude" $ Struct
+      [("source", Concrete region2), ("path", Tuple [cvec 3, cvec 3])]
+    transform3 = NamedType "Transform3"
+      $ Struct [("source", Concrete region3), ("transform", cmat 4 4)]
+    union3  = NamedType "Union3" $ Struct [("regions", List $ Concrete region3)]
+    region3 = NamedType "Region3" $ TaggedUnion
+      [Reference extrudeRegion2, Reference transform3, Reference union3]
   in
     [vec 2, vec 3, mat 4 4, region2, region3]
 
