@@ -1,4 +1,4 @@
-import lib_es2015_core from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.d.ts'
+import lib_es2015_core from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.core.d.ts'
 import lib_es5 from 'raw-loader!./../node_modules/typescript/lib/lib.es5.d.ts'
 import reify_root_d_ts from 'raw-loader!./../resources/reify_root.asset.d.ts'
 import * as ts from 'typescript';

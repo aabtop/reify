@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
   auto runtime_env_or_error = CreateRuntimeEnvironment(module);
   if (auto error = std::get_if<0>(&runtime_env_or_error)) {
     std::cerr << "Error initializing module: " << std::endl;
-    std::cerr << error << std::endl;
+    std::cerr << *error << std::endl;
     return 1;
   }
   auto runtime_env = &std::get<1>(runtime_env_or_error);
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
 
   auto result_or_error = entrypoint->Call();
   if (auto error = std::get_if<0>(&result_or_error)) {
-    std::cerr << "Error running function: " << error << std::endl;
+    std::cerr << "Error running function: " << *error << std::endl;
     return 1;
   }
 
