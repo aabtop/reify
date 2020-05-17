@@ -1,6 +1,6 @@
 #include "cgal/construct_region2.h"
 
-#include "cgal/types.h"
+#include "cgal/types_polygons.h"
 #include "hypo.h"
 
 namespace hypo {

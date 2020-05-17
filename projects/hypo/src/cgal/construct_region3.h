@@ -1,9 +1,7 @@
 #ifndef _HYPO_CGAL_CONSTRUCT_REGION3_H_
 #define _HYPO_CGAL_CONSTRUCT_REGION3_H_
 
-#include <memory>
-
-#include "cgal/types.h"
+#include "cgal/types_nef_polyhedron_3.h"
 #include "hypo.h"
 
 namespace hypo {

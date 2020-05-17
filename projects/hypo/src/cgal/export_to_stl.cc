@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-#include "cgal/types.h"
+#include "cgal/types_nef_polyhedron_3.h"
 
 namespace hypo {
 namespace cgal {

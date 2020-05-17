@@ -1,7 +1,7 @@
 #ifndef _HYPO_EXPORT_TO_SVG_H_
 #define _HYPO_EXPORT_TO_SVG_H_
 
-#include "cgal/types.h"
+#include "cgal/types_polygons.h"
 
 namespace hypo {
 namespace cgal {

@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-#include "cgal/types.h"
+#include "cgal/types_polygons.h"
 
 namespace hypo {
 namespace cgal {

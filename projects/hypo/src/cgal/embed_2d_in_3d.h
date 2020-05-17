@@ -1,7 +1,8 @@
 #ifndef _HYPO_CGAL_EMBED_2D_IN_3D_H_
 #define _HYPO_CGAL_EMBED_2D_IN_3D_H_
 
-#include "cgal/types.h"
+#include "cgal/types_nef_polyhedron_3.h"
+#include "cgal/types_polygons.h"
 #include "hypo.h"
 
 namespace hypo {

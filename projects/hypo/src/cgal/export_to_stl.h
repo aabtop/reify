@@ -1,7 +1,7 @@
 #ifndef _HYPO_EXPORT_TO_STL_H_
 #define _HYPO_EXPORT_TO_STL_H_
 
-#include "cgal/types.h"
+#include "cgal/types_nef_polyhedron_3.h"
 
 namespace hypo {
 namespace cgal {

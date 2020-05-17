@@ -1,11 +1,9 @@
-#ifndef _HYPO_CGAL_TYPES_H_
-#define _HYPO_CGAL_TYPES_H_
+#ifndef _HYPO_CGAL_TYPES_CORE_H_
+#define _HYPO_CGAL_TYPES_CORE_H_
 
-#include <CGAL/Bbox_2.h>
-#include <CGAL/Nef_polyhedron_3.h>
-#include <CGAL/Polygon_set_2.h>
+#include <CGAL/Aff_transformation_3.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh/Surface_mesh.h>
 
 namespace hypo {
 namespace cgal {
@@ -15,20 +13,15 @@ namespace cgal {
 // circle.
 using Kernel = CGAL::Exact_predicates_exact_constructions_kernel;
 
-using Polygon_2 = CGAL::Polygon_2<Kernel>;
-using Polygon_with_holes_2 = CGAL::Polygon_with_holes_2<Kernel>;
-using Polygon_set_2 = CGAL::Polygon_set_2<Kernel>;
 using Point_2 = Kernel::Point_2;
 using Vector_2 = Kernel::Vector_2;
 using Point_3 = Kernel::Point_3;
 using Vector_3 = Kernel::Vector_3;
-using Nef_polyhedron_3 = CGAL::Nef_polyhedron_3<Kernel>;
-using Bbox_2 = CGAL::Bbox_2;
-using Surface_mesh = CGAL::Surface_mesh<Point_3>;
+using Aff_transformation_3 = CGAL::Aff_transformation_3<Kernel>;
 
 const float kPi = 3.14159265359f;
 
 }  // namespace cgal
 }  // namespace hypo
 
-#endif  // _HYPO_CGAL_TYPES_H_
+#endif  // _HYPO_CGAL_TYPES_CORE_H_

@@ -5,7 +5,9 @@
 #include <CGAL/Triangulation_face_base_with_info_2.h>
 #include <CGAL/boost/graph/Euler_operations.h>
 
-#include "cgal/types.h"
+#include "cgal/types_nef_polyhedron_3.h"
+#include "cgal/types_polygons.h"
+#include "cgal/types_surface_mesh.h"
 
 namespace hypo {
 namespace cgal {

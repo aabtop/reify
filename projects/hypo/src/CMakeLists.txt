@@ -29,6 +29,7 @@ add_executable(hypo
   cgal/construct_region2.h
   cgal/construct_region3.cc
   cgal/construct_region3.h
+  cgal/conversions.h
   cgal/embed_2d_in_3d.cc
   cgal/embed_2d_in_3d.h
   cgal/export_to_file.cc
@@ -37,7 +38,10 @@ add_executable(hypo
   cgal/export_to_stl.h
   cgal/export_to_svg.cc
   cgal/export_to_svg.h
-  cgal/types.h
+  cgal/types_core.h
+  cgal/types_nef_polyhedron_3.h
+  cgal/types_surface_mesh.h
+  cgal/types_polygons.h
 )
 
 find_package(CGAL REQUIRED)

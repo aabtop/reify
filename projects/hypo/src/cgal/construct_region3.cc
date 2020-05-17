@@ -1,9 +1,8 @@
 #include "cgal/construct_region3.h"
 
-#include <CGAL/Nef_polyhedron_3.h>
-
+#include "cgal/conversions.h"
 #include "cgal/embed_2d_in_3d.h"
-#include "cgal/types.h"
+#include "cgal/types_nef_polyhedron_3.h"
 #include "construct_region2.h"
 #include "hypo.h"
 
@@ -11,6 +10,9 @@ namespace hypo {
 namespace cgal {
 
 namespace {
+Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
+  return hypo::cgal::ConstructRegion3(x);
+}
 
 Point_3 ToPoint3(const hypo::Vec3& vec3) {
   return Point_3(vec3[0], vec3[1], vec3[2]);
@@ -22,10 +24,29 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Extrude& x) {
                                         std::get<1>(x.transforms));
 }
 
+Nef_polyhedron_3 ConstructRegion3(const hypo::Union3& x) {
+  Nef_polyhedron_3 result;
+  for (const auto& region : x.regions) {
+    result += ConstructRegion3(region);
+  }
+  return result;
+}
+
+Nef_polyhedron_3 ConstructRegion3(const hypo::Transform3& x) {
+  Nef_polyhedron_3 result(ConstructRegion3(x.source));
+  result.transform(ToAff_transformation_3(x.transform));
+  return result;
+}
+
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
   if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::Extrude>>(&x)) {
+    return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::Union3>>(&x)) {
+    return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<hypo::Transform3>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   }
 

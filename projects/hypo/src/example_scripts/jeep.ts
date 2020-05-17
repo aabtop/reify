@@ -13,5 +13,5 @@ let my_jeep = h.Union3AsRegion3(h.Union3({
 }));
 
 export function Jeep() {
-  return jeep_wheel;
+  return my_jeep;
 }
