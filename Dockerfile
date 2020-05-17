@@ -56,7 +56,8 @@ RUN nix-env -f "<nixpkgs>" -iA \
     haskellPackages.brittany \
     hlint \
     gdb \
-    rsync
+    rsync \
+    clang-tools
 
 # Remember our console history between sessions.
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
