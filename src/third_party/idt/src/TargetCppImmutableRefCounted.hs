@@ -57,9 +57,9 @@ topLevelTemplate =
       Right template -> template
 
 typeString :: Type -> String
-typeString (Concrete       (NamedType n _)) = n
-typeString (Reference      (NamedType n _)) = "std::shared_ptr<" ++ n ++ ">"
-typeString (NamedPrimitive n              ) = case n of
+typeString (Concrete (NamedType n _)) = n
+typeString (Reference (NamedType n _)) = "std::shared_ptr<const " ++ n ++ ">"
+typeString (NamedPrimitive n) = case n of
   "string" -> "std::string"
   "f32"    -> "float"
   "i32"    -> "int"

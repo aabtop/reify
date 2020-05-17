@@ -219,7 +219,7 @@ struct FromImmRefCnt<std::tuple<Ts...>> {
 template <typename T>
 class Ref : public T {
  public:
-  using DerefValueType = decltype(
+  using DerefValueType = const decltype(
       Value(std::declval<v8::Isolate*>(), std::declval<v8::Local<T>>()));
   using RefValueType = std::shared_ptr<DerefValueType>;
 
@@ -282,7 +282,7 @@ auto Value(v8::Isolate* isolate, v8::Local<Ref<T>> x) {
 }
 
 template <typename T>
-struct FromImmRefCnt<std::shared_ptr<T>> {
+struct FromImmRefCnt<std::shared_ptr<const T>> {
   using type = Ref<typename FromImmRefCnt<T>::type>;
 };
 

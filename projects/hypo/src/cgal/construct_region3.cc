@@ -57,18 +57,19 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Difference3& x) {
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
-  if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::Extrude>>(&x)) {
+  if (auto obj_ptr = std::get_if<std::shared_ptr<const hypo::Extrude>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<hypo::Transform3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::Union3>>(&x)) {
+                 std::get_if<std::shared_ptr<const hypo::Transform3>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<hypo::Intersection3>>(&x)) {
+                 std::get_if<std::shared_ptr<const hypo::Union3>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<hypo::Difference3>>(&x)) {
+                 std::get_if<std::shared_ptr<const hypo::Intersection3>>(&x)) {
+    return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::Difference3>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   }
 

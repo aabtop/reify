@@ -67,17 +67,20 @@ Polygon_set_2 ConstructRegion2(const hypo::Difference2& x) {
 }  // namespace
 
 Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
-  if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::CircleAsPolygon>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  } else if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::Rectangle>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  } else if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::Union2>>(&x)) {
+  if (auto obj_ptr =
+          std::get_if<std::shared_ptr<const hypo::CircleAsPolygon>>(&x)) {
     return ConstructRegion2(**obj_ptr);
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<hypo::Difference2>>(&x)) {
+                 std::get_if<std::shared_ptr<const hypo::Rectangle>>(&x)) {
     return ConstructRegion2(**obj_ptr);
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<hypo::Intersection2>>(&x)) {
+                 std::get_if<std::shared_ptr<const hypo::Union2>>(&x)) {
+    return ConstructRegion2(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::Difference2>>(&x)) {
+    return ConstructRegion2(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::Intersection2>>(&x)) {
     return ConstructRegion2(**obj_ptr);
   }
 
