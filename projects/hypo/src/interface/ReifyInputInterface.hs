@@ -43,9 +43,18 @@ idt =
       [("source", Concrete region2), ("transforms", Tuple [cmat 4 3, cmat 4 3])]
     transform3 = NamedType "Transform3"
       $ Struct [("source", Concrete region3), ("transform", cmat 4 4)]
-    union3  = NamedType "Union3" $ Struct [("regions", List $ Concrete region3)]
+    union3 = NamedType "Union3" $ Struct [("regions", List $ Concrete region3)]
+    intersection3 =
+      NamedType "Intersection3" $ Struct [("regions", List $ Concrete region3)]
+    difference3 = NamedType "Difference3"
+      $ Struct [("a", Concrete region3), ("b", Concrete region3)]
     region3 = NamedType "Region3" $ TaggedUnion
-      [Reference extrudeRegion2, Reference transform3, Reference union3]
+      [ Reference extrudeRegion2
+      , Reference transform3
+      , Reference union3
+      , Reference intersection3
+      , Reference difference3
+      ]
   in
     [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3]
 

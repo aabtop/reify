@@ -24,6 +24,12 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Extrude& x) {
                                         std::get<1>(x.transforms));
 }
 
+Nef_polyhedron_3 ConstructRegion3(const hypo::Transform3& x) {
+  Nef_polyhedron_3 result(ConstructRegion3(x.source));
+  result.transform(ToAff_transformation_3(x.transform));
+  return result;
+}
+
 Nef_polyhedron_3 ConstructRegion3(const hypo::Union3& x) {
   Nef_polyhedron_3 result;
   for (const auto& region : x.regions) {
@@ -32,10 +38,20 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Union3& x) {
   return result;
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Transform3& x) {
-  Nef_polyhedron_3 result(ConstructRegion3(x.source));
-  result.transform(ToAff_transformation_3(x.transform));
+Nef_polyhedron_3 ConstructRegion3(const hypo::Intersection3& x) {
+  if (x.regions.empty()) {
+    return Nef_polyhedron_3();
+  }
+
+  Nef_polyhedron_3 result(ConstructRegion3(x.regions[0]));
+  for (auto iter = x.regions.begin() + 1; iter != x.regions.end(); ++iter) {
+    result *= (ConstructRegion3(*iter));
+  }
   return result;
+}
+
+Nef_polyhedron_3 ConstructRegion3(const hypo::Difference3& x) {
+  return ConstructRegion3(x.a) - ConstructRegion3(x.b);
 }
 
 }  // namespace
@@ -43,10 +59,16 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Transform3& x) {
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
   if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::Extrude>>(&x)) {
     return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<hypo::Transform3>>(&x)) {
+    return ConstructRegion3(**obj_ptr);
   } else if (auto obj_ptr = std::get_if<std::shared_ptr<hypo::Union3>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<hypo::Transform3>>(&x)) {
+                 std::get_if<std::shared_ptr<hypo::Intersection3>>(&x)) {
+    return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<hypo::Difference3>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   }
 

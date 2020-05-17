@@ -46,12 +46,6 @@ Polygon_set_2 ConstructRegion2(const hypo::Union2& x) {
   return result;
 }
 
-Polygon_set_2 ConstructRegion2(const hypo::Difference2& x) {
-  Polygon_set_2 result;
-  result.difference(ConstructRegion2(x.a), ConstructRegion2(x.b));
-  return result;
-}
-
 Polygon_set_2 ConstructRegion2(const hypo::Intersection2& x) {
   if (x.regions.empty()) {
     return Polygon_set_2();
@@ -61,6 +55,12 @@ Polygon_set_2 ConstructRegion2(const hypo::Intersection2& x) {
   for (auto iter = x.regions.begin() + 1; iter != x.regions.end(); ++iter) {
     result.intersection(ConstructRegion2(*iter));
   }
+  return result;
+}
+
+Polygon_set_2 ConstructRegion2(const hypo::Difference2& x) {
+  Polygon_set_2 result;
+  result.difference(ConstructRegion2(x.a), ConstructRegion2(x.b));
   return result;
 }
 
