@@ -19,9 +19,10 @@ std::optional<std::string> LoadFile(const char* filename) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
-  if (argc < 3) {
+  if (argc < 4) {
     std::cerr << "USAGE: " << argv[0]
-              << " INPUT_FILE OUTPUT_FILE_WITHOUT_EXTENSION" << std::endl;
+              << " INPUT_FILE FUNCTION_NAME OUTPUT_FILE_WITHOUT_EXTENSION"
+              << std::endl;
     return 1;
   }
 
@@ -51,7 +52,7 @@ int main(int argc, char* argv[]) {
   auto runtime_env = &std::get<1>(runtime_env_or_error);
 
   auto entrypoint_or_error =
-      runtime_env->GetExport<hypo::reify::Function<hypo::Region3()>>("Jeep");
+      runtime_env->GetExport<hypo::reify::Function<hypo::Region3()>>(argv[2]);
   if (auto error = std::get_if<0>(&entrypoint_or_error)) {
     std::cerr << "Problem finding entrypoint function: " << *error << std::endl;
     return 1;
@@ -64,7 +65,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  hypo::cgal::ExportToFile(std::get<1>(result_or_error), argv[2]);
+  hypo::cgal::ExportToFile(std::get<1>(result_or_error), argv[3]);
 
   return 0;
 }

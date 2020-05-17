@@ -25,7 +25,7 @@ idt =
     circleAsPolygon = NamedType "CircleAsPolygon"
       $ Struct [("circle", Concrete circle), ("num_points", int)]
     rectangle = NamedType "Rectangle" $ Struct
-      [("left", float), ("bottom", float), ("right", float), ("top", float)]
+      [("left", float), ("top", float), ("right", float), ("bottom", float)]
     union2 = NamedType "Union2" $ Struct [("regions", List $ Concrete region2)]
     intersection2 =
       NamedType "Intersection2" $ Struct [("regions", List $ Concrete region2)]
