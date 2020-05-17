@@ -20,13 +20,21 @@ bool ExportToSTL(const Nef_polyhedron_3& polyhedron,
 
   out << "solid " << output_filepath << std::endl;
   for (const auto& face : faces) {
-    out << "  facet normal " << 0.0f << " " << 0.0f << " " << 0.0f << std::endl;
+    const Point_3& point1 = vertices[face[0]];
+    const Point_3& point2 = vertices[face[1]];
+    const Point_3& point3 = vertices[face[2]];
+    Vector_3 normal = CGAL::normal(point1, point2, point3);
+
+    out << "  facet normal " << normal.x() << " " << normal.y() << " "
+        << normal.z() << std::endl;
     out << "    outer loop" << std::endl;
-    for (const auto& index : face) {
-      const Point_3& point = vertices[index];
-      out << "      vertex " << point.x() << " " << point.y() << " "
-          << point.z() << std::endl;
-    }
+    auto output_vertex = [&out](const Point_3& v) {
+      out << "      vertex " << v.x() << " " << v.y() << " " << v.z()
+          << std::endl;
+    };
+    output_vertex(point1);
+    output_vertex(point2);
+    output_vertex(point3);
     out << "    endloop" << std::endl;
     out << "  endfacet" << std::endl;
   }
