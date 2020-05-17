@@ -107,15 +107,15 @@ std::variant<v8::Local<v8::Module>, std::string> EvaluateModules(
   return module;
 }
 
+// Returns a clone of the object, except the clone has a V8 internal field
+// added to it which we can later use to cache an associated C++ object.
+// Additionally, in order to ensure the C++ object (if created) stays in sync
+// with the data in the struct, we take this opportunity to freeze the object
+// as well.
 void WithInternalField(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::Isolate* isolate = args.GetIsolate();
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
-
-  auto blank_object_with_internal_field =
-      reinterpret_cast<ContextEnvironment*>(
-          context->GetAlignedPointerFromEmbedderData(1))
-          ->blank_object_with_internal_field.Get(isolate);
 
   if (args.Length() < 1 || !args[0]->IsObject()) {
     isolate->ThrowException(v8::String::NewFromUtf8(
@@ -123,7 +123,17 @@ void WithInternalField(const v8::FunctionCallbackInfo<v8::Value>& args) {
     return;
   }
   v8::Local<v8::Object> source_object = args[0].As<v8::Object>();
+  if (source_object->InternalFieldCount() > 0) {
+    // The source object already has an internal field, so do nothing and
+    // just return it.
+    args.GetReturnValue().Set(source_object);
+    return;
+  }
 
+  auto blank_object_with_internal_field =
+      reinterpret_cast<ContextEnvironment*>(
+          context->GetAlignedPointerFromEmbedderData(1))
+          ->blank_object_with_internal_field.Get(isolate);
   v8::Local<v8::Object> return_value =
       blank_object_with_internal_field->NewInstance(context).ToLocalChecked();
 
@@ -142,6 +152,14 @@ void WithInternalField(const v8::FunctionCallbackInfo<v8::Value>& args) {
   }
 
   return_value->SetAlignedPointerInInternalField(0, nullptr);
+
+  // Freeze all objects that might have an associated C++ object cached inside
+  // of them.
+  bool result =
+      return_value->SetIntegrityLevel(context, v8::IntegrityLevel::kFrozen)
+          .ToChecked();
+  assert(result);
+
   args.GetReturnValue().Set(return_value);
 }
 

@@ -1,14 +1,14 @@
 import * as rgi from 'reify_generated_interface'
 export * from 'reify_generated_interface'
 
+const DEGREES_TO_RADIANS = (2 * Math.PI) / 360;
+
 export function Translate3(translation: rgi.Vec3): rgi.Matrix44 {
   return [
     1.0, 0.0, 0.0, translation[0], 0.0, 1.0, 0.0, translation[1], 0.0, 0.0, 1.0,
     translation[2], 0.0, 0.0, 0.0, 1.0
   ];
 }
-
-const DEGREES_TO_RADIANS = (2 * Math.PI) / 360;
 
 // Rotation around the X axis.
 export function Rotate3X(angle_in_degrees: number): rgi.Matrix44 {
