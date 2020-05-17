@@ -55,9 +55,6 @@ v8::MaybeLocal<v8::Module> InstantiateModule(
 v8::MaybeLocal<v8::Module> ResolveModuleCallback(
     v8::Local<v8::Context> context, v8::Local<v8::String> specifier,
     v8::Local<v8::Module> referrer) {
-  std::cerr << "ResolveModuleCallback("
-            << ToStdString(context->GetIsolate(), specifier) << ")"
-            << std::endl;
   const auto transpile_results =
       reinterpret_cast<ContextEnvironment*>(
           context->GetAlignedPointerFromEmbedderData(1))
