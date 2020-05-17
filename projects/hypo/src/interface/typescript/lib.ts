@@ -10,19 +10,15 @@ export function Translate3(translation: rgi.Vec3): rgi.Matrix44 {
 
 export let Identity3: rgi.Matrix33 =
     [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
-export let Identity4: rgi.Matrix44 =
-    [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-     1.0];
-
-// A matrix that transforms a 2D point (x, y) to the 3D point (x, y, 0).
-export let EmbedOnZPlane: rgi.Matrix43 = [
-  1.0, 0.0, 0.0,
-  0.0, 1.0, 0.0,
-  0.0, 0.0, 0.0,
-  0.0, 0.0, 1.0
+export let Identity4: rgi.Matrix44 = [
+  1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0
 ];
 
-export function MMul4(a: rgi.Matrix44, b: rgi.Matrix44) : rgi.Matrix44 {
+// A matrix that transforms a 2D point (x, y) to the 3D point (x, y, 0).
+export let EmbedOnZPlane: rgi.Matrix43 =
+    [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0];
+
+export function MMul4(a: rgi.Matrix44, b: rgi.Matrix44): rgi.Matrix44 {
   return [
     a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12],
     a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13],
@@ -46,7 +42,7 @@ export function MMul4(a: rgi.Matrix44, b: rgi.Matrix44) : rgi.Matrix44 {
   ];
 }
 
-export function MMul3(a: rgi.Matrix33, b: rgi.Matrix33) : rgi.Matrix33 {
+export function MMul3(a: rgi.Matrix33, b: rgi.Matrix33): rgi.Matrix33 {
   return [
     a[0] * b[0] + a[1] * b[3] + a[2] * b[6],
     a[0] * b[1] + a[1] * b[4] + a[2] * b[7],
@@ -62,7 +58,7 @@ export function MMul3(a: rgi.Matrix33, b: rgi.Matrix33) : rgi.Matrix33 {
   ];
 }
 
-export function MMul443(a: rgi.Matrix44, b: rgi.Matrix43) : rgi.Matrix43 {
+export function MMul443(a: rgi.Matrix44, b: rgi.Matrix43): rgi.Matrix43 {
   return [
     a[0] * b[0] + a[1] * b[3] + a[2] * b[6] + a[3] * b[9],
     a[0] * b[1] + a[1] * b[4] + a[2] * b[7] + a[3] * b[10],
@@ -82,7 +78,7 @@ export function MMul443(a: rgi.Matrix44, b: rgi.Matrix43) : rgi.Matrix43 {
   ];
 }
 
-export function MMul433(a: rgi.Matrix43, b: rgi.Matrix33) : rgi.Matrix43 {
+export function MMul433(a: rgi.Matrix43, b: rgi.Matrix33): rgi.Matrix43 {
   return [
     a[0] * b[0] + a[1] * b[3] + a[2] * b[6],
     a[0] * b[1] + a[1] * b[4] + a[2] * b[7],
@@ -110,16 +106,17 @@ export function TranslatedRegion3(
 
 export function ExtrudeFromZPlane(
     source: rgi.Region2, height: number): rgi.Region3 {
-      return rgi.ExtrudeAsRegion3(rgi.Extrude({
-        source: source,
-        transforms: [EmbedOnZPlane,
-                     MMul443(Translate3([0, 0, height]), EmbedOnZPlane)]
-      }));
+  return rgi.ExtrudeAsRegion3(rgi.Extrude({
+    source: source,
+    transforms:
+        [EmbedOnZPlane, MMul443(Translate3([0, 0, height]), EmbedOnZPlane)]
+  }));
 }
 
 export function Cylinder(
     radius: number, height: number, num_points: number): rgi.Region3 {
-  return ExtrudeFromZPlane(rgi.CircleAsPolygonAsRegion2(rgi.CircleAsPolygon(
-        {circle: {radius: radius, center: [0, 0]}, num_points: num_points})),
-        height);
+  return ExtrudeFromZPlane(
+      rgi.CircleAsPolygonAsRegion2(rgi.CircleAsPolygon(
+          {circle: {radius: radius, center: [0, 0]}, num_points: num_points})),
+      height);
 }
