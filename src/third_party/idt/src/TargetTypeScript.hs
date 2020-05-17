@@ -46,14 +46,19 @@ enumEntryString (n, ts) =
 
 taggedUnionTypeName :: Type -> String
 taggedUnionTypeName t = case t of
-  Concrete (NamedType n _) -> n
-  Reference (NamedType n _) -> n
-  _ -> panic "TaggedUnions may only be passed named types."
+  Concrete  (NamedType n (Struct      _)) -> n
+  Concrete  (NamedType n (TaggedUnion _)) -> n
+  Reference (NamedType n (Struct      _)) -> n
+  Reference (NamedType n (TaggedUnion _)) -> n
+  _ ->
+    panic
+      "TaggedUnions may only be passed named types of Structs and other TaggedUnions."
 
 typeString :: Type -> String
-typeString (Concrete       (NamedType n _)) = n
-typeString (Reference      (NamedType n _)) = n
-typeString (NamedPrimitive n              ) = case n of
+typeString (Concrete       (NamedType n (Struct _))) = n ++ "Params"
+typeString (Concrete       (NamedType n _         )) = n
+typeString (Reference      (NamedType n _         )) = n
+typeString (NamedPrimitive n                       ) = case n of
   "string" -> "string"
   "f32"    -> "number"
   "i32"    -> "number"
@@ -82,14 +87,23 @@ namedTypeDefinition t = case t of
   ForwardDeclaration _ -> ""
   TypeDeclaration (NamedType n t@(Enum l)) ->
     enumString n [ (cn, cn, cts) | (cn, cts) <- l ]
-  TypeDeclaration (NamedType n t@(TaggedUnion tuts)) -> enumString
-    n
-    [ (taggedUnionTypeName tut ++ "As" ++ n, taggedUnionTypeName tut, [tut])
-    | tut <- tuts
-    ]
+  TypeDeclaration (NamedType n t@(TaggedUnion tuts)) ->
+    "export type "
+      ++ n
+      ++ " = "
+      ++ intercalate " | " (map taggedUnionTypeName tuts)
+      ++ ";\n"
   TypeDeclaration (NamedType n t@(Struct l)) ->
     ("export type " ++ n ++ "Params = " ++ typeString t ++ ";\n")
-      ++ ("export type " ++ n ++ " = Readonly<" ++ n ++ "Params>;\n")
+      ++ (  "interface "
+         ++ n
+         ++ "WithKind extends "
+         ++ n
+         ++ "Params { __kind: '"
+         ++ n
+         ++ "'; }\n"
+         )
+      ++ ("export type " ++ n ++ " = Readonly<" ++ n ++ "WithKind>;\n")
       ++ (  "export function "
          ++ n
          ++ "(x: "
@@ -97,11 +111,31 @@ namedTypeDefinition t = case t of
          ++ "Params): "
          ++ n
          ++ " {\n"
-         ++ ("  return withInternalField(x) as " ++ n ++ ";\n")
+         ++ (  "  return withInternalField(withKind(x, '"
+            ++ n
+            ++ "')) as "
+            ++ n
+            ++ ";\n"
+            )
          ++ "};\n"
          )
   TypeDeclaration (NamedType n t) ->
     "export type " ++ n ++ " = " ++ typeString t ++ ";\n"
 
+preamble =
+  "\
+\interface __KindObject {\
+\  __kind: string;\
+\}\
+\\
+\function withKind<T>(x: T, kind: string): T & __KindObject {\
+\  if (x.hasOwnProperty('__kind')) {\
+\    return x as T & __KindObject;\
+\  } else {\
+\    return Object.assign({__kind: kind}, x);\
+\  }\
+\}"
+
 toTypeScriptSourceCode :: DeclarationSequence -> String
-toTypeScriptSourceCode decls = intercalate "\n" (map namedTypeDefinition decls)
+toTypeScriptSourceCode decls =
+  preamble ++ intercalate "\n" (map namedTypeDefinition decls)

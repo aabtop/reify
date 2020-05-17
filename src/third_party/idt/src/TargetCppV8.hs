@@ -27,26 +27,6 @@ enumHTemplate =
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
 
--- brittany @ structHTemplate --exactprint-only
-structHTemplate =
-  case
-      compileMustacheText
-        "structHTemplate"
-        (DT.pack $(embedStringFile "src/CppV8Struct.stache.h"))
-    of
-      Left  bundle   -> panic (errorBundlePretty bundle)
-      Right template -> template
-
--- brittany @ topLevelHTemplate --exactprint-only
-topLevelHTemplate =
-  case
-      compileMustacheText
-        "topLevelHTemplate"
-        (DT.pack $(embedStringFile "src/CppV8.stache.h"))
-    of
-      Left  bundle   -> panic (errorBundlePretty bundle)
-      Right template -> template
-
 -- brittany @ enumCCTemplate --exactprint-only
 enumCCTemplate =
   case
@@ -57,12 +37,52 @@ enumCCTemplate =
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
 
+-- brittany @ taggedUnionHTemplate --exactprint-only
+taggedUnionHTemplate =
+  case
+      compileMustacheText
+        "taggedUnionHTemplate"
+        (DT.pack  $(embedStringFile "src/CppV8TaggedUnion.stache.h"))
+    of
+      Left  bundle   -> panic (errorBundlePretty bundle)
+      Right template -> template
+
+-- brittany @ taggedUnionCCTemplate --exactprint-only
+taggedUnionCCTemplate =
+  case
+      compileMustacheText
+        "taggedUnionCCTemplate"
+        (DT.pack  $(embedStringFile "src/CppV8TaggedUnion.stache.cc"))
+    of
+      Left  bundle   -> panic (errorBundlePretty bundle)
+      Right template -> template
+
+-- brittany @ structHTemplate --exactprint-only
+structHTemplate =
+  case
+      compileMustacheText
+        "structHTemplate"
+        (DT.pack $(embedStringFile "src/CppV8Struct.stache.h"))
+    of
+      Left  bundle   -> panic (errorBundlePretty bundle)
+      Right template -> template
+
 -- brittany @ structCCTemplate --exactprint-only
 structCCTemplate =
   case
       compileMustacheText
         "structCCTemplate"
         (DT.pack $(embedStringFile "src/CppV8Struct.stache.cc"))
+    of
+      Left  bundle   -> panic (errorBundlePretty bundle)
+      Right template -> template
+
+-- brittany @ topLevelHTemplate --exactprint-only
+topLevelHTemplate =
+  case
+      compileMustacheText
+        "topLevelHTemplate"
+        (DT.pack $(embedStringFile "src/CppV8.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -154,7 +174,7 @@ namedTypeDefinition namespace immRefCntNamespace t = case t of
   TypeDeclaration nt@(NamedType _ (Enum _)) ->
     DTL.unpack $ renderMustache enumHTemplate $ templateObject nt
   TypeDeclaration nt@(NamedType _ (TaggedUnion _)) ->
-    DTL.unpack $ renderMustache enumHTemplate $ templateObject nt
+    DTL.unpack $ renderMustache taggedUnionHTemplate $ templateObject nt
   TypeDeclaration (NamedType n t) ->
     "using " ++ n ++ " = " ++ typeString t ++ ";\n"
   where templateObject = templateObjectForDecl namespace immRefCntNamespace
@@ -182,7 +202,7 @@ convertToImmRefCntFunctions namespace immRefCntNamespace decl = case decl of
   (TypeDeclaration nt@(NamedType _ (Enum _))) ->
     Just $ DTL.unpack $ renderMustache enumCCTemplate $ templateObject nt
   (TypeDeclaration nt@(NamedType _ (TaggedUnion _))) ->
-    Just $ DTL.unpack $ renderMustache enumCCTemplate $ templateObject nt
+    Just $ DTL.unpack $ renderMustache taggedUnionCCTemplate $ templateObject nt
   _ -> Nothing
   where templateObject = templateObjectForDecl namespace immRefCntNamespace
 

@@ -132,23 +132,22 @@ export function MMul433(a: rgi.Matrix43, b: rgi.Matrix33): rgi.Matrix43 {
 
 export function TranslatedRegion3(
     region: rgi.Region3, translation: rgi.Vec3): rgi.Region3 {
-  return rgi.Transform3AsRegion3(
-      rgi.Transform3({source: region, transform: Translate3(translation)}));
+  return rgi.Transform3({source: region, transform: Translate3(translation)});
 }
 
 export function ExtrudeFromZPlane(
     source: rgi.Region2, height: number): rgi.Region3 {
-  return rgi.ExtrudeAsRegion3(rgi.Extrude({
+  return rgi.Extrude({
     source: source,
     transforms:
         [EmbedOnZPlane, MMul443(Translate3([0, 0, height]), EmbedOnZPlane)]
-  }));
+  });
 }
 
 export function Cylinder(
     radius: number, height: number, num_points: number): rgi.Region3 {
   return ExtrudeFromZPlane(
-      rgi.CircleAsPolygonAsRegion2(rgi.CircleAsPolygon(
-          {circle: {radius: radius, center: [0, 0]}, num_points: num_points})),
+      rgi.CircleAsPolygon(
+          {circle: {radius: radius, center: [0, 0]}, num_points: num_points}),
       height);
 }

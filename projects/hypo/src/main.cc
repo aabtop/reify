@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
   auto runtime_env = &std::get<1>(runtime_env_or_error);
 
   auto entrypoint_or_error =
-      runtime_env->GetExport<hypo::reify::Function<hypo::Region3()>>(argv[2]);
+      runtime_env->GetExport<hypo::reify::Function<hypo::Region2()>>(argv[2]);
   if (auto error = std::get_if<0>(&entrypoint_or_error)) {
     std::cerr << "Problem finding entrypoint function: " << *error << std::endl;
     return 1;
