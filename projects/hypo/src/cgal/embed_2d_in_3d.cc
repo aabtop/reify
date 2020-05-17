@@ -190,17 +190,44 @@ Surface_mesh ConvertTriangulationToSurfaceMesh(
 
   return mesh;
 }
+
+struct ApplyMatrix43Functor {
+  ApplyMatrix43Functor(const hypo::Matrix43& mat,
+                       const Surface_mesh& input_mesh,
+                       Surface_mesh* output_mesh)
+      : mat_(mat), input_mesh_(input_mesh), output_mesh_(output_mesh) {}
+
+  void operator()(const Surface_mesh_vertex_descriptor& in,
+                  const Surface_mesh_vertex_descriptor& out) const {
+    // Perform the affine transformation converting from 2D to 3D point.
+    Point_3 p = input_mesh_.point(in);
+    output_mesh_->point(out) =
+        Point_3(mat_[0] * p.x() + mat_[1] * p.y() + mat_[2],
+                mat_[3] * p.x() + mat_[4] * p.y() + mat_[5],
+                mat_[6] * p.x() + mat_[7] * p.y() + mat_[8]);
+  }
+
+  hypo::Matrix43 mat_;
+  const Surface_mesh& input_mesh_;
+  Surface_mesh* output_mesh_;
+};
 }  // namespace
 
 Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
-    const Polygon_set_2& polygon_set) {
+    const Polygon_set_2& polygon_set, const hypo::Matrix43& bottom_transform,
+    const hypo::Matrix43& top_transform) {
   Constrained_Delaunay_triangulation_2 cdt = TriangulatePolygonSet(polygon_set);
 
   Surface_mesh input_as_mesh = ConvertTriangulationToSurfaceMesh(cdt);
 
   Surface_mesh extruded_mesh;
+
+  ApplyMatrix43Functor bottom_functor(bottom_transform, input_as_mesh,
+                                      &extruded_mesh);
+  ApplyMatrix43Functor top_functor(top_transform, input_as_mesh,
+                                   &extruded_mesh);
   CGAL::Polygon_mesh_processing::extrude_mesh(input_as_mesh, extruded_mesh,
-                                              Vector_3(0, 0, 1.0));
+                                              bottom_functor, top_functor);
 
   return Nef_polyhedron_3(extruded_mesh);
 }

@@ -2,6 +2,7 @@
 #define _HYPO_CGAL_EMBED_2D_IN_3D_H_
 
 #include "cgal/types.h"
+#include "hypo.h"
 
 namespace hypo {
 namespace cgal {
@@ -9,7 +10,8 @@ namespace cgal {
 Nef_polyhedron_3 EmbedPolygonSetIn3DXYPlane(const Polygon_set_2& polygon_set);
 
 Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
-    const Polygon_set_2& polygon_set);
+    const Polygon_set_2& polygon_set, const hypo::Matrix43& bottom_transform,
+    const hypo::Matrix43& top_transform);
 
 }  // namespace cgal
 }  // namespace hypo

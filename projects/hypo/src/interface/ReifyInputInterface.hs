@@ -40,14 +40,14 @@ idt =
       ]
 
     extrudeRegion2 = NamedType "Extrude" $ Struct
-      [("source", Concrete region2), ("path", Tuple [cvec 3, cvec 3])]
+      [("source", Concrete region2), ("transforms", Tuple [cmat 4 3, cmat 4 3])]
     transform3 = NamedType "Transform3"
       $ Struct [("source", Concrete region3), ("transform", cmat 4 4)]
     union3  = NamedType "Union3" $ Struct [("regions", List $ Concrete region3)]
     region3 = NamedType "Region3" $ TaggedUnion
       [Reference extrudeRegion2, Reference transform3, Reference union3]
   in
-    [vec 2, vec 3, mat 4 4, region2, region3]
+    [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3]
 
 -- The namespace applied to all interfaces generated from |idt| above.
 namespace :: String
