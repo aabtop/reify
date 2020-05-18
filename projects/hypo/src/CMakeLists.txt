@@ -23,6 +23,10 @@ add_subdirectory(${REIFY_HYPO_PATH} reify-hypo)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${OUT_REIFY_PUBLIC_INCLUDE_DIRECTORIES})
 
+# Some of the boost includes used by CGAL result in spammy messages during
+# compilation.  This flag disables them.
+add_compile_definitions(BOOST_ALLOW_DEPRECATED_HEADERS)
+
 add_executable(hypo
   main.cc
   cgal/construct_region2.cc
