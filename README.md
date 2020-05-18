@@ -81,6 +81,16 @@ nix-build
 
 after which the output binary `projects/hypo/src/result/bin/hypo` will have been produced.
 
+#### Build with Docker
+
+If you have Docker installed, you can build entirely within a container without installing anything else (e.g. you don't need to install Nix).  To do this, enter this repository's root directory and type:
+
+```
+./build.sh
+```
+
+The scripts are configured to build the Hypo project, so the resulting binary will have the path `docker_out/hypo` from the repository root directory.
+
 ### Visual Studio Code
 
 A [.devcontainer.json](.devcontainer.json) file exists to let you open the project folder in Visual Studio Code and instantly start [developing inside a container](https://code.visualstudio.com/docs/remote/containers), without any environment setup.  The only pre-requisites for this are that you have Docker and VS Code installed.  This will not only enable you to instantly hit `CTRL+SHIFT+B` to build the project (it's currently configured to build Hypo), but GDB is configured within that environment so you can also set breakpoints and hit `F5` to start the debugger and step through the code.

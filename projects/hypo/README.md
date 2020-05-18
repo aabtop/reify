@@ -129,6 +129,17 @@ nix-build projects/hypo/src
 
 The resulting hypo executable will be located at the path `projects/hypo/src/result/bin/hypo` .
 
+
+### Build with Docker
+
+If you have Docker installed, you can build entirely within a container without installing anything else (e.g. you don't need to install Nix).  To do this, enter the Reify repository's (e.g. the git repository that contains Hypo) root directory and type:
+
+```
+./build.sh
+```
+
+The resulting binary will have the path `docker_out/hypo` from the Reify repository's root.
+
 ### Building for Windows
 
 While currently building only Linux binaries is supported, there are future
