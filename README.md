@@ -83,7 +83,7 @@ after which the output binary `projects/hypo/src/result/bin/hypo` will have been
 
 ### Visual Studio Code
 
-A [.devcontainer.json](.devcontainer.json) file exists to have Visual Studio Code automatically connect to a development container defined by the Dockerfile mentioned above.  This will not only enable you to instantly hit `CTRL+SHIFT+B` to build the project (it's currently configured to build Hypo), but GDB is configured within that environment so you can also set breakpoints and hit `F5` to start the debugger and step through the code.
+A [.devcontainer.json](.devcontainer.json) file exists to let you open the project folder in Visual Studio Code and instantly start [developing inside a container](https://code.visualstudio.com/docs/remote/containers), without any environment setup.  The only pre-requisites for this are that you have Docker and VS Code installed.  This will not only enable you to instantly hit `CTRL+SHIFT+B` to build the project (it's currently configured to build Hypo), but GDB is configured within that environment so you can also set breakpoints and hit `F5` to start the debugger and step through the code.
 
 Additionally, it is verified to work well with [Visual Studio Codespaces](https://visualstudio.microsoft.com/services/visual-studio-codespaces/) (and presumably [GitHub Codespaces](https://github.com/features/codespaces/)), so you can develop Reify in the cloud!
 
