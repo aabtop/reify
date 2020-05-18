@@ -48,6 +48,7 @@ add_executable(hypo
   cgal/types_polygons.h
 )
 
+set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
 find_package(CGAL REQUIRED)
 
 #required to use basic_viewer
