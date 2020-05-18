@@ -1,6 +1,6 @@
 # Reify
 
-Reify lets you embed a customizable [TypeScript](https://www.typescriptlang.org/) runtime within a C++ application.
+Reify lets you embed a customized [TypeScript](https://www.typescriptlang.org/) runtime within a C++ application.
 
 Reify is a C++ library generator. The input to Reify is a set of types which define the language in which the C++ host code will communicate with the embedded TypeScript code. The output from Reify is a statically linkable C++ library with the following components:
 
@@ -40,9 +40,19 @@ subproject is called "IDT" which refers to "Interface Description Tree", express
 While only used by Reify at the time of this writing, IDT is meant to be
 independent from Reify, though I don't think that's currently reflected in the codebase :(. The folder [src/interface](src/interface) contains the Reify-specific code that interacts with IDT.
 
+The source IDT file (e.g. [from hypo](./projects/hypo/src/interface/ReifyInputInterface.hs)) is used to generate three target interfaces:
+
+1. The TypeScript interface, defined by [TargetTypeScript.hs](src/third_party/idt/src/TargetTypeScript.hs).
+1. The C++ V8 bindings layer, defined by [TargetCppV8.hs](src/third_party/idt/src/TargetCppV8.hs).
+1. The pure C++ interface, defined by [TargetCppImmutableRefCounted.hs](src/third_party/idt/src/TargetCppImmutableRefCounted.hs).
+
+Note that the interfaces described by the IDT are very abstract.  They can be used to generate C++ and TypeScript interfaces, but they may also be used to generate other backend targets, such as JSON and binary representations.
+
+As a bonus, a description of the IDT types themselves can be defined by IDT, as is done in [IdtIdt.hs](src/third_party/idt/src/IdtIdt.hs).
+
 ## Development environment
 
-The root [Dockerfile](Dockerfile) in this repository defines the basic Linux development environment setup, and so the project can always be built from within that container.  Outside of that though, all you need to have installed is Nix.  From [Getting Nix](https://nixos.org/download.html):
+The root [Dockerfile](Dockerfile) in this repository defines the basic Linux development environment setup, and so the project can always be built from within that container.  Outside of that though, all you need to have installed is [Nix](https://nixos.org/nix/).  From [Getting Nix](https://nixos.org/download.html):
 
 ``` 
 curl -L https://nixos.org/nix/install | sh
