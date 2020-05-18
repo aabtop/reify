@@ -21,8 +21,5 @@ export function Eye(center: h.Vec2) {
 }
 
 export function Eyes() {
-  let rect = h.Rectangle({left: 0, top: 20, right: 40, bottom: 0});
-
-  let eyes = h.Union2({regions: [Eye([10, 10]), Eye([30, 10])]});
-  return h.Difference2({a: rect, b: eyes});
+  return h.Union2({regions: [Eye([10, 10]), Eye([30, 10])]});
 }

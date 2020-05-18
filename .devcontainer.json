@@ -40,6 +40,7 @@
 		"hoovercj.haskell-linter",
 		"bbenoist.nix",
 		"ms-vscode.vscode-typescript-next",
+		"mervin.markdown-formatter"
 	],
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
