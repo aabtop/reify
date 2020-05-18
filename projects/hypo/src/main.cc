@@ -8,6 +8,7 @@
 #include "reify.h"
 
 namespace {
+// Load an entire file's contents into memory.
 std::optional<std::string> LoadFile(const char* filename) {
   std::ifstream in(filename);
   if (in.fail()) return std::nullopt;
@@ -17,6 +18,14 @@ std::optional<std::string> LoadFile(const char* filename) {
   return buffer.str();
 }
 
+// Call the TypeScript function named by |function_name| within the given
+// |runtime_env|.  Output the results into the file named by
+// |output_base_file_path|.  Note that the file should not have an extension,
+// one will be chosen automatically depending on the output type.
+// If the function's return value is of type hypo::Region2, we will output a
+// SVG file that can be opened and viewed by any web browser.  If the function's
+// return value is of type hypo::Region3, a STL file will be output which can
+// be opened by an STL file viewer.
 template <typename T>
 int CallFunctionAndExportOutput(hypo::reify::RuntimeEnvironment* runtime_env,
                                 const char* function_name,
@@ -50,13 +59,18 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  // Setup a TypeScript compiler environment.
+  hypo::reify::CompilerEnvironment compile_env;
+
+  // Load the contents of the referenced input file into memory.
   auto input_file = LoadFile(argv[1]);
   if (!input_file) {
     std::cerr << "Error loading file '" << argv[1] << "'." << std::endl;
     return 1;
   }
 
-  hypo::reify::CompilerEnvironment compile_env;
+  // Compile the contents of the user's script in memory and check if there were
+  // any errors.
   auto module_or_error = compile_env.Compile(argv[1], *input_file);
   if (auto error = std::get_if<0>(&module_or_error)) {
     std::cerr << "Error compiling TypeScript:" << std::endl;
@@ -67,6 +81,9 @@ int main(int argc, char* argv[]) {
   }
   auto module = std::get<1>(module_or_error);
 
+  // Setup a V8 runtime environment around the CompiledModule.  This will
+  // enable us to call exported functions and query exported values from the
+  // module.
   auto runtime_env_or_error = CreateRuntimeEnvironment(module);
   if (auto error = std::get_if<0>(&runtime_env_or_error)) {
     std::cerr << "Error initializing module: " << std::endl;
@@ -78,6 +95,8 @@ int main(int argc, char* argv[]) {
   const char* function_name = argv[2];
   const char* output_base_file_path = argv[3];
 
+  // Search for a symbol within the compiled module a name specified by the
+  // user's command line parameters.
   auto entry_point_function = module->GetExportedSymbol(function_name);
   if (!entry_point_function) {
     std::cerr << "Error could not find an exported symbol named '"
@@ -85,6 +104,9 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  // Check if the user-specified symbol has either a hypo::Region2 or a
+  // hypo::Region3 type, these are the only types that we support.  If we do
+  // find a supported type, run the function and export the output to a file.
   if (entry_point_function->HasType<hypo::reify::Function<hypo::Region2()>>()) {
     return CallFunctionAndExportOutput<hypo::Region2>(
         runtime_env, function_name, output_base_file_path);
