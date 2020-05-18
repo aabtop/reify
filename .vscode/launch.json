@@ -8,6 +8,7 @@
       "program": "/cmake_out/hypo",
       "args": [
         "${workspaceFolder}/projects/hypo/src/example_scripts/jeep.ts",
+        "Jeep",
         "/cmake_out/foo"
       ],
       "stopAtEntry": false,

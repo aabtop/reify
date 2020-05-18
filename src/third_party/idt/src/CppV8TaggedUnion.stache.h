@@ -27,3 +27,13 @@ template <>
 struct FromImmRefCnt<{{immRefCntNamespace}}::{{name}}> {
   using type = {{name}};
 };
+template <>
+struct TypeMatchesTypeScriptString<{{immRefCntNamespace}}::{{name}}> {
+  static bool Result(std::string_view ts) {
+    return ts == "{{name}}"
+{{#unionMembers}}
+           || ts == "{{__kind}}"
+{{/unionMembers}}
+    ;
+  }
+};

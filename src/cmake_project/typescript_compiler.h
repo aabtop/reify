@@ -19,6 +19,8 @@ class TypeScriptCompiler {
   TypeScriptCompiler();
   ~TypeScriptCompiler();
 
+  using ExportedSymbol = CompiledModule::ExportedSymbol;
+
   // Used to represent both input TypeScript modules and output JavaScript
   // ES2015 modules.
   struct Module {
@@ -38,6 +40,9 @@ class TypeScriptCompiler {
   struct TranspileResults {
     std::string primary_module;
     std::vector<Module> modules;
+
+    // Symbols exported from the primary module.
+    std::vector<ExportedSymbol> exported_symbols;
     const Module* LookupPath(const std::string& path) const;
     const Module& GetPrimaryModule() const {
       return *LookupPath(primary_module);

@@ -16,6 +16,30 @@ std::optional<std::string> LoadFile(const char* filename) {
   buffer << in.rdbuf();
   return buffer.str();
 }
+
+template <typename T>
+int CallFunctionAndExportOutput(hypo::reify::RuntimeEnvironment* runtime_env,
+                                const char* function_name,
+                                const char* output_base_file_path) {
+  auto entrypoint_or_error =
+      runtime_env->GetExport<hypo::reify::Function<T()>>(function_name);
+  if (auto error = std::get_if<0>(&entrypoint_or_error)) {
+    std::cerr << "Problem finding entrypoint function: " << *error << std::endl;
+    return 1;
+  }
+  auto entrypoint = &std::get<1>(entrypoint_or_error);
+
+  auto result_or_error = entrypoint->Call();
+  if (auto error = std::get_if<0>(&result_or_error)) {
+    std::cerr << "Error running function: " << *error << std::endl;
+    return 1;
+  }
+
+  bool results = hypo::cgal::ExportToFile(std::get<1>(result_or_error),
+                                          output_base_file_path);
+
+  return results ? 0 : 1;
+}
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -51,21 +75,30 @@ int main(int argc, char* argv[]) {
   }
   auto runtime_env = &std::get<1>(runtime_env_or_error);
 
-  auto entrypoint_or_error =
-      runtime_env->GetExport<hypo::reify::Function<hypo::Region2()>>(argv[2]);
-  if (auto error = std::get_if<0>(&entrypoint_or_error)) {
-    std::cerr << "Problem finding entrypoint function: " << *error << std::endl;
-    return 1;
-  }
-  auto entrypoint = &std::get<1>(entrypoint_or_error);
+  const char* function_name = argv[2];
+  const char* output_base_file_path = argv[3];
 
-  auto result_or_error = entrypoint->Call();
-  if (auto error = std::get_if<0>(&result_or_error)) {
-    std::cerr << "Error running function: " << *error << std::endl;
+  auto entry_point_function = module->GetExportedSymbol(function_name);
+  if (!entry_point_function) {
+    std::cerr << "Error could not find an exported symbol named '"
+              << function_name << "'." << std::endl;
     return 1;
   }
 
-  hypo::cgal::ExportToFile(std::get<1>(result_or_error), argv[3]);
-
-  return 0;
+  if (entry_point_function->HasType<hypo::reify::Function<hypo::Region2()>>()) {
+    return CallFunctionAndExportOutput<hypo::Region2>(
+        runtime_env, function_name, output_base_file_path);
+  } else if (entry_point_function
+                 ->HasType<hypo::reify::Function<hypo::Region3()>>()) {
+    return CallFunctionAndExportOutput<hypo::Region3>(
+        runtime_env, function_name, output_base_file_path);
+  } else {
+    std::cerr << "Exported symbol '" << entry_point_function->name
+              << "' has type '" << entry_point_function->typescript_type_string
+              << "', which is not a supported type.  Currently only "
+                 "parameter-less functions that return Region2 or Region3 "
+                 "types are supported."
+              << std::endl;
+    return 1;
+  }
 }

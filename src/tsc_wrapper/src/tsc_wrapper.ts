@@ -8,12 +8,19 @@ const defaultLibSourceFile = ts.createSourceFile(
     defaultLibFilename, lib_es5 + lib_es2015_core + reify_root_d_ts,
     ts.ScriptTarget.Latest);
 
+export type ModuleExport = {
+  symbol_name: string; type_string: string;
+  location: {path: string; line: number; column: number;};
+};
+
 export type TranspilationOutput = {
   // Mapping from a JS file path to file contents.
   js_modules: {[key: string]: string};
   // The file path of the primary module, e.g. the transpiled input source
   // module.  This can be used to index into |js_modules| above.
   primary_module: string;
+
+  module_exports: ModuleExport[];
 };
 
 export type TranspileError = {
@@ -24,10 +31,10 @@ export type TranspileResults = {
   // True if there were no errors.
   success: boolean;
   // Contains the error message if |success| is false, otherwise it is invalid.
-  error: TranspileError;
+  error?: TranspileError;
   // Contains the transpilation results if |success| is true, otherwise it is
   // invalid.
-  output: TranspilationOutput;
+  output?: TranspilationOutput;
 };
 
 function GetDiagnosticsMessage(diagnostic: string|ts.DiagnosticMessageChain|
@@ -63,7 +70,8 @@ export function TranspileModule(
     systemModules: {[key: string]: string;}): TranspileResults {
   let results: TranspilationOutput = {
     js_modules: {},
-    primary_module: path.split('.').slice(0, -1).join('.') + '.js'
+    primary_module: path.split('.').slice(0, -1).join('.') + '.js',
+    module_exports: [],
   };
 
   let sourceMap: {[key: string]: ts.SourceFile} = {
@@ -121,7 +129,6 @@ export function TranspileModule(
     return {
       success: false,
       error: GetDiagnosticsError(diagnostics[0]),
-      output: results
     };
   } else {
     program.emit();
@@ -129,13 +136,34 @@ export function TranspileModule(
       return {
         success: false,
         error: {message: 'No output generated.', line: 0, column: 0, path: ''},
-        output: results
       };
     } else {
+      let sourceFile = program.getSourceFile(path)!;
+
+      let checker = program.getTypeChecker();
+      let module_symbol = checker.getSymbolAtLocation(sourceFile)!;
+      const moduleExports = checker.getExportsOfModule(module_symbol);
+      results.module_exports = moduleExports.map(exportedSymbol => {
+        const symbol = exportedSymbol;
+
+        const declaration = exportedSymbol.declarations![0];
+        const sourceFile = declaration.getSourceFile();
+        const {fileName} = sourceFile;
+        const {line, character} =
+            sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
+        const type_string = checker.typeToString(
+            checker.getTypeOfSymbolAtLocation(exportedSymbol, declaration));
+
+        return {
+          symbol_name: exportedSymbol.getName(),
+          type_string: type_string,
+          location: {path: fileName, line: line, column: character}
+        };
+      });
+
       return {
         success: true,
-        error: {message: '', line: 0, column: 0, path: ''},
-        output: results
+        output: results,
       };
     }
   }

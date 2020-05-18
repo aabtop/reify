@@ -253,8 +253,36 @@ auto TypeScriptCompiler::TranspileToJavaScript(
                             "', in the emitted results."};
   }
 
+  // Record the exported symbols from the module.
+  auto primary_module_exports =
+      output->Get(context, v8::String::NewFromUtf8(isolate_, "module_exports"))
+          .ToLocalChecked()
+          .As<v8::Array>();
+  assert(primary_module_exports->IsArray());
+  for (int i = 0; i < primary_module_exports->Length(); ++i) {
+    auto module_export = primary_module_exports->Get(context, i)
+                             .ToLocalChecked()
+                             .As<v8::Object>();
+    assert(module_export->IsObject());
+
+    auto symbol_name =
+        module_export
+            ->Get(context, v8::String::NewFromUtf8(isolate_, "symbol_name"))
+            .ToLocalChecked()
+            .As<v8::String>();
+    auto symbol_name_str = ToStdString(isolate_, symbol_name);
+
+    auto type_string =
+        module_export
+            ->Get(context, v8::String::NewFromUtf8(isolate_, "type_string"))
+            .ToLocalChecked()
+            .As<v8::String>();
+    auto type_string_str = ToStdString(isolate_, type_string);
+
+    return_value.exported_symbols.push_back(
+        {.name = symbol_name_str, .typescript_type_string = type_string_str});
+  }
   return return_value;
 }
-
 }  // namespace reify
 }  // namespace REIFY_GENERATED_PROJECT_NAMESPACE

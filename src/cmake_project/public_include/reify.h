@@ -117,6 +117,24 @@ class CompiledModule {
   CompiledModule(CompiledModule&&) = delete;
   ~CompiledModule();
 
+  struct ExportedSymbol {
+    // The name of the exported symbol.
+    std::string name;
+
+    // A string returned by the TypeScript compiler which represents the
+    // exported symbol's type.
+    std::string typescript_type_string;
+
+    template <typename T>
+    bool HasType() const {
+      return hypo_v8::TypeMatchesTypeScriptString<T>::Result(
+          typescript_type_string);
+    }
+  };
+  const std::vector<ExportedSymbol>& exported_symbols() const;
+  const ExportedSymbol* GetExportedSymbol(
+      std::string_view export_symbol_name) const;
+
   class Impl;
   Impl* impl() { return impl_.get(); }
 
@@ -155,5 +173,25 @@ class CompilerEnvironment {
 
 }  // namespace reify
 }  // namespace REIFY_GENERATED_PROJECT_NAMESPACE
+
+#define WITH_V8_(x) x##_v8
+#define WITH_V8(x) WITH_V8_(x)
+
+namespace WITH_V8(REIFY_GENERATED_PROJECT_NAMESPACE) {
+  template <typename R>
+  struct TypeMatchesTypeScriptString<
+      REIFY_GENERATED_PROJECT_NAMESPACE::reify::Function<R()>> {
+    static bool Result(std::string_view ts) {
+      const std::string_view kParameterlessSignature("() => ");
+      if (ts.substr(0, kParameterlessSignature.size()) !=
+          kParameterlessSignature) {
+        return false;
+      }
+      std::string_view return_value(ts);
+      return_value.remove_prefix(kParameterlessSignature.size());
+      return hypo_v8::TypeMatchesTypeScriptString<R>::Result(return_value);
+    }
+  };
+}  // namespace WITH_V8(REIFY_GENERATED_PROJECT_NAMESPACE)
 
 #endif  // _REIFY_REIFY_H_

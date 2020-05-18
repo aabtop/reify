@@ -103,7 +103,7 @@ namedTypeDefinition t = case t of
          ++ n
          ++ "'; }\n"
          )
-      ++ ("export type " ++ n ++ " = Readonly<" ++ n ++ "WithKind>;\n")
+      ++ ("interface " ++ n ++ " extends Readonly<" ++ n ++ "WithKind> {}\n")
       ++ (  "export function "
          ++ n
          ++ "(x: "

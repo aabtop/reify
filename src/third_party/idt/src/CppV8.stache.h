@@ -17,6 +17,11 @@ namespace {{namespace}} {
 template <typename T>
 struct FromImmRefCnt {};
 
+// Parses a TypeScript string and returns true if it matches the passed in
+// C++ string.
+template <typename T>
+struct TypeMatchesTypeScriptString {};
+
 void InstallInterfaceToGlobalObject(
     v8::Isolate* isolate, v8::Local<v8::ObjectTemplate> global_template);
 
@@ -51,6 +56,10 @@ template <>
 struct FromImmRefCnt<std::string> {
   using type = v8::String;
 };
+template <>
+struct TypeMatchesTypeScriptString<std::string> {
+  static bool Result(std::string_view ts) { return ts == "string"; }
+};
 
 class I32 : public v8::Number {
  public:
@@ -75,6 +84,10 @@ template <>
 struct FromImmRefCnt<int32_t> {
   using type = I32;
 };
+template <>
+struct TypeMatchesTypeScriptString<int32_t> {
+  static bool Result(std::string_view ts) { return ts == "number"; }
+};
 
 class F32 : public v8::Number {
  public:
@@ -98,6 +111,10 @@ V8_INLINE float Value(v8::Isolate* isolate, v8::Local<F32> x) {
 template <>
 struct FromImmRefCnt<float> {
   using type = F32;
+};
+template <>
+struct TypeMatchesTypeScriptString<float> {
+  static bool Result(std::string_view ts) { return ts == "number"; }
 };
 
 template <typename T>
@@ -135,6 +152,13 @@ template <typename T>
 struct FromImmRefCnt<std::vector<T>> {
   using type = List<typename FromImmRefCnt<T>::type>;
 };
+template <typename T>
+struct TypeMatchesTypeScriptString<std::vector<T>> {
+  static bool Result(std::string_view ts) {
+    assert(false);  // Not implemented.
+    return false;
+  }
+};
 
 template <typename T, int S>
 class FixedSizeArray : public v8::Array {
@@ -171,6 +195,13 @@ auto Value(v8::Isolate* isolate, v8::Local<FixedSizeArray<T, S>> x) {
 template <typename T, int S>
 struct FromImmRefCnt<std::array<T, S>> {
   using type = FixedSizeArray<typename FromImmRefCnt<T>::type, S>;
+};
+template <typename T, int S>
+struct TypeMatchesTypeScriptString<std::array<T, S>> {
+  static bool Result(std::string_view ts) {
+    assert(false);  // Not implemented.
+    return false;
+  }
 };
 
 namespace internal {
@@ -214,6 +245,13 @@ auto Value(v8::Isolate* isolate, v8::Local<Tuple<Ts...>> x) {
 template <typename... Ts>
 struct FromImmRefCnt<std::tuple<Ts...>> {
   using type = Tuple<typename FromImmRefCnt<Ts>::type...>;
+};
+template <typename... Ts>
+struct TypeMatchesTypeScriptString<std::tuple<Ts...>> {
+  static bool Result(std::string_view ts) {
+    assert(false);  // Not implemented.
+    return false;
+  }
 };
 
 template <typename T>
@@ -284,6 +322,13 @@ auto Value(v8::Isolate* isolate, v8::Local<Ref<T>> x) {
 template <typename T>
 struct FromImmRefCnt<std::shared_ptr<const T>> {
   using type = Ref<typename FromImmRefCnt<T>::type>;
+};
+
+template <typename T>
+struct TypeMatchesTypeScriptString<std::shared_ptr<const T>> {
+  static bool Result(std::string_view ts) {
+    return TypeMatchesTypeScriptString<T>::Result(ts);
+  }
 };
 
 {{#declarationSequence}}
