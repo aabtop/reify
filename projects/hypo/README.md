@@ -121,10 +121,10 @@ To build Reify, [Nix](https://nixos.org/nix/) is required.  From [Getting Nix](h
 curl -L https://nixos.org/nix/install | sh
 ```
 
-After Nix is installed, you can build Hypo with:
+After Nix is installed, you can build Hypo with (assuming you are at the root of the Reify repository, of which Hypo is a subdirectory of):
 
 ``` 
-nix-build src
+nix-build projects/hypo/src
 ```
 
 The resulting hypo executable will be located at the path `src/result/bin/hypo` .
