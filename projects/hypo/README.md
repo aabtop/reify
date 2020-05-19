@@ -12,7 +12,7 @@ While not currently packaged as such, Hypo may also be used as a library, where 
 Reify types, enabling one to write an application that analyzes the returned
 geometry descriptions.
 
-Hypo is of course heavily inspired by [OpenSCAD](https://www.openscad.org/), however the primary difference between the two is the choice of input language.  Where OpenSCAD offers a custom language, Hypo offers TypeScript.
+Hypo is heavily inspired by [OpenSCAD](https://www.openscad.org/).  The primary difference between the two is the choice of input language.  Where OpenSCAD offers a custom language, Hypo offers TypeScript.
 
 ## Example Usage
 
@@ -115,11 +115,33 @@ The core interface types for Hypo are defined in [ReifyInputInterface.hs](./src/
 
 ## Building
 
-To build Reify, [Nix](https://nixos.org/nix/) is required.  From [Getting Nix](https://nixos.org/download.html):
+### Nix
+
+To build Reify, [Nix](https://nixos.org/nix/) is required.
+
+#### Installing Nix
+
+From [Getting Nix](https://nixos.org/download.html):
 
 ``` 
 curl -L https://nixos.org/nix/install | sh
 ```
+
+In order to get a properly configured `PATH`, you may need to restart your shell or, as is suggested by the installer above, run:
+
+```
+. /home/${USER}/.nix-profile/etc/profile.
+```
+
+If you get an error about `nixpkgs` not being installed when you run `nix-build`, run:
+
+```
+nix-channel --update nixpkgs
+```
+
+and try running `nix-build` again.
+
+#### Building with Nix
 
 After Nix is installed, you can build Hypo with (assuming you are at the root of the Reify repository, of which Hypo is a subdirectory of):
 
