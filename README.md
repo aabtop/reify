@@ -64,6 +64,14 @@ In order to get a properly configured `PATH`, you may need to restart or, as is 
 . /home/${USER}/.nix-profile/etc/profile.
 ```
 
+If you get an error about `nixpkgs` not being installed when you run `nix-build`, run:
+
+```
+nix-channel --update nixpkgs
+```
+
+and try running `nix-build` again.
+
 ### Building the project
 
 Reify heavily depends on [Nix](https://nixos.org/nix/) for its high-level build
