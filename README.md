@@ -58,6 +58,12 @@ The root [Dockerfile](Dockerfile) in this repository defines the basic Linux dev
 curl -L https://nixos.org/nix/install | sh
 ```
 
+In order to get a properly configured `PATH`, you may need to restart or, as is suggested by the installer above, run:
+
+```
+. /home/${USER}/.nix-profile/etc/profile.
+```
+
 ### Building the project
 
 Reify heavily depends on [Nix](https://nixos.org/nix/) for its high-level build
