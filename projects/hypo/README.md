@@ -149,7 +149,7 @@ After Nix is installed, you can build Hypo with (assuming you are at the root of
 nix-build projects/hypo/src
 ```
 
-The resulting hypo executable will be located at the path `result/bin/hypo` .
+The resulting hypo executable will be located at the path `result/bin/hypo`, in the Reify repository's root where you ran `nix-build`.
 
 
 ### Build with Docker
