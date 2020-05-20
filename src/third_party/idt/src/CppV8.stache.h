@@ -183,7 +183,7 @@ template <typename T, int S, std::size_t... Indices>
 auto Value(v8::Isolate* isolate, v8::Local<FixedSizeArray<T, S>> x,
            indices<Indices...>) {
   return std::array<decltype(Value(isolate, std::declval<v8::Local<T>>())), S>{
-      {{namespace}}::Value(isolate, x->template Get(Indices))...};
+      {{namespace}}::Value(isolate, x->Get(Indices))...};
 }
 
 }  // namespace internal
@@ -292,9 +292,9 @@ auto Value(v8::Isolate* isolate, v8::Local<Ref<T>> x) {
           x->GetAlignedPointerFromInternalField(0));
       if (!internal_field) {
         internal_field =
-            new WeakCallbackData<T>(
+            new WeakCallbackData<T>
                 {.persistent = v8::Persistent<Ref<T>>(isolate, x),
-                  .ptr_data = RefValueType(ConstructRefValue(isolate, x))});
+                  .ptr_data = RefValueType(ConstructRefValue(isolate, x))};
 
         x->SetAlignedPointerInInternalField(0, internal_field);
 
