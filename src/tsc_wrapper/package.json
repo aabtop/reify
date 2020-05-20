@@ -4,18 +4,18 @@
   "description": "TypeScript compiler API wrapper for Reify.",
   "main": "./tsc_out/tsc_wrapper.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "webpack": "webpack"
   },
   "author": "Andrew Top",
   "license": "ISC",
   "dependencies": {
     "@types/node": "^13.13.4",
-    "typescript": "^3.8.3"
-  },
-  "devDependencies": {
+    "typescript": "^3.8.3",
     "ts-loader": "^7.0.2",
     "webpack": "^4.43.0",
     "webpack-cli": "^3.3.11",
     "raw-loader": "^0.5.1"
-  }
+  },
+  "devDependencies": {}
 }
