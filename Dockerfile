@@ -57,7 +57,8 @@ RUN nix-env -f "<nixpkgs>" -iA \
     hlint \
     gdb \
     rsync \
-    clang-tools
+    clang-tools \
+    nodePackages.node2nix
 
 # Remember our console history between sessions.
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
