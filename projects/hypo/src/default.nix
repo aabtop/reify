@@ -12,7 +12,14 @@ in
 
     inherit reifyProject;
     nativeBuildInputs = [cmake reifyProject];
-    buildInputs = [v8 cgal_5 gmp mpfr boost];
+    buildInputs = [
+      v8
+      pkgsStatic.cgal_5
+      pkgsStatic.gmp
+      pkgsStatic.mpfr
+      pkgsStatic.boost
+      glibc.static
+    ];
 
     src = ./.;
 

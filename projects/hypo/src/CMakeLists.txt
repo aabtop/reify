@@ -19,6 +19,10 @@ if (REIFY_HYPO_PATH STREQUAL "")
   message(FATAL_ERROR "REIFY_HYPO_PATH is not defined.")
 endif()
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(CMAKE_EXE_LINKER_FLAGS "-static -static-libstdc++ -static-libgcc")
+endif()
+
 add_subdirectory(${REIFY_HYPO_PATH} reify-hypo)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${OUT_REIFY_PUBLIC_INCLUDE_DIRECTORIES})
