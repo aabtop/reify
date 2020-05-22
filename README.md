@@ -29,11 +29,11 @@ Reify internally uses the [V8 engine](https://v8.dev/) (the JavaScript engine wh
 
 ### Data Representation
 
-The implementation enables efficient communication between V8 and C++ by making heavy use of the concept of immutable reference counted objects.  Whenever a V8 object is returned to C++, we create a reference counted pure C++ object with the same information contained in the V8 object, cache a reference to the C++ object inside of the V8 object, and then freeze the V8 object.  At this point both the C++ and V8 objects may no longer be mutated, and thus we achieve consistency without any subsequent interactions with the bindings layer on either side.  This system enables V8 object references to be paralleled by C++ object references, so that the object reference network structure is preserved.
+The implementation enables efficient communication between V8 and C++ by making heavy use of the concept of immutable reference counted objects.  Whenever a V8 object is returned to C++, we create a reference counted pure C++ object with the same information contained in the V8 object, cache a reference to the C++ object inside of the V8 object, and then freeze the V8 object.  At this point both the C++ and V8 objects may no longer be mutated, and thus we achieve consistency without any subsequent interactions with the bindings layer on either side.  This system enables V8 object reference graph to be paralleled by a C++ object reference graph without subsequent communication between the systems after object construction.
 
 ### Type Definitions
 
-The interface types are defined by Haskell, and the system for performing this
+The interface types are defined in Haskell, and the system for performing this
 generation can be found at [src/third_party/idt](src/third_party/idt). The
 subproject is called "IDT" which refers to "Interface Description Tree", expressing the preference to describe the interface's abstract syntax tree directly as opposed to using a specialized [IDL](https://en.wikipedia.org/wiki/Interface_description_language) language.  By describing the types directly in a first-class programming language, we are able to be more expressive, for example we can leverage Haskell's existing module system to create a modular definition of the interface types.
 
