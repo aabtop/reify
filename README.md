@@ -29,7 +29,7 @@ Reify internally uses the [V8 engine](https://v8.dev/) (the JavaScript engine wh
 
 ### Data Representation
 
-The implementation enables efficient communication between V8 and C++ by making heavy use of the concept of immutable reference counted objects.  Whenever a V8 object is returned to C++, we create a reference counted pure C++ object with the same information contained in the V8 object, cache a reference to the C++ object inside of the V8 object, and then freeze the V8 object.  At this point both the C++ and V8 objects may no longer be mutated, and thus we achieve consistency without any subsequent interactions with the bindings layer on either side.  This system enables V8 object reference graph to be paralleled by a C++ object reference graph without subsequent communication between the systems after object construction.
+The implementation enables efficient communication between V8 and C++ by making heavy use of the concept of immutable reference counted objects.  Whenever a V8 object is returned to C++, we create a reference counted pure C++ object with the same information contained in the V8 object, cache a reference to the C++ object inside of the V8 object, and then freeze the V8 object.  At this point both the C++ and V8 objects may no longer be mutated, and thus we achieve consistency without any subsequent interactions with the bindings layer on either side.  By requiring interface types to be immutable, we enable the V8 object reference graph to be paralleled by a C++ object reference graph, and the C++ object references may be effortlessly passed to other threads and systems.
 
 ### Type Definitions
 
