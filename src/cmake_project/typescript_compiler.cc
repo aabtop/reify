@@ -1,6 +1,9 @@
 #include "typescript_compiler.h"
 
+#include <stdlib.h>
+
 #include <cassert>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -12,15 +15,6 @@ namespace reify {
 
 namespace {
 #include "src_gen/tsc_wrapper.h"
-}  // namespace
-
-namespace {
-std::string LoadFile(const char* filename) {
-  std::ifstream in(filename);
-  std::stringstream buffer;
-  buffer << in.rdbuf();
-  return buffer.str();
-}
 }  // namespace
 
 auto TypeScriptCompiler::TranspileResults::LookupPath(
@@ -40,44 +34,120 @@ std::string ToStdString(v8::Isolate* isolate, const v8::Local<v8::Value> str) {
   return std::string(*utf8_kind_value, utf8_kind_value.length());
 }
 
-TypeScriptCompiler::TypeScriptCompiler() {
+namespace {
+std::filesystem::path GetCacheFilePath() {
+  std::filesystem::path home_dir(getenv("HOME"));
+  std::filesystem::path hypo_cache_dir(home_dir / ".cache/hypo");
+  return hypo_cache_dir / "typescript_compiler_v8_snapshot";
+}
+}  // namespace
+
+bool TypeScriptCompiler::LoadIsolateFromSnapshot() {
+  std::filesystem::path cache_filepath = GetCacheFilePath();
+  std::ifstream fin(cache_filepath, std::ios::binary | std::ios::ate);
+  if (fin.fail()) {
+    return false;
+  }
+
+  auto startup_data = std::make_unique<v8::StartupData>();
+
+  startup_data->raw_size = fin.tellg();
+  fin.seekg(0, std::ios::beg);
+
+  auto data = std::unique_ptr<char[]>(new char[startup_data->raw_size]);
+  if (!fin.read(data.get(), startup_data->raw_size)) {
+    std::cerr << "Error reading snapshot file data from cache." << std::endl;
+    return false;
+  }
+
+  startup_data->data = data.release();
+  isolate_create_params_.snapshot_blob = startup_data.release();
+
   // Create a new Isolate and make it the current one.
   isolate_create_params_.array_buffer_allocator =
       v8::ArrayBuffer::Allocator::NewDefaultAllocator();
   isolate_ = v8::Isolate::New(isolate_create_params_);
 
   v8::Isolate::Scope isolate_scope(isolate_);
-
-  // Create a stack-allocated handle scope.
   v8::HandleScope handle_scope(isolate_);
 
-  // Create a new context.
   context_.Reset(isolate_, v8::Context::New(isolate_));
 
-  auto context = v8::Local<v8::Context>::New(isolate_, context_);
+  return true;
+}
+
+bool TypeScriptCompiler::CreateAndSaveIsolateToSnapshot() {
+  std::filesystem::path cache_filepath = GetCacheFilePath();
+  std::filesystem::create_directories(cache_filepath.parent_path());
+  std::ofstream fout(cache_filepath, std::ios::binary | std::ios::ate);
+  if (fout.fail()) {
+    std::cerr << "Error writing to V8 snapshot cache file '" << cache_filepath
+              << "'." << std::endl;
+    return false;
+  }
+
+  v8::SnapshotCreator snapshot_creator;
+  v8::Isolate* isolate = snapshot_creator.GetIsolate();
+  {
+    v8::Isolate::Scope isolate_scope(isolate);
+    v8::HandleScope handle_scope(isolate);
+    InitializeIsolate(isolate, &snapshot_creator);
+  }
+  isolate->LowMemoryNotification();
+
+  v8::StartupData startup_data = snapshot_creator.CreateBlob(
+      v8::SnapshotCreator::FunctionCodeHandling::kKeep);
+
+  fout.write(startup_data.data, startup_data.raw_size);
+
+  return true;
+}
+
+void TypeScriptCompiler::InitializeIsolateWithoutSnapshot() {
+  isolate_create_params_.array_buffer_allocator =
+      v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+  isolate_ = v8::Isolate::New(isolate_create_params_);
+
+  v8::Isolate::Scope isolate_scope(isolate_);
+  v8::HandleScope handle_scope(isolate_);
+  context_.Reset(isolate_, InitializeIsolate(isolate_, nullptr));
+}
+
+v8::Local<v8::Context> TypeScriptCompiler::InitializeIsolate(
+    v8::Isolate* isolate, v8::SnapshotCreator* snapshot_creator) {
+  // Create a new context.
+  v8::Local<v8::Context> context = v8::Context::New(isolate);
 
   // Enter the context for compiling and running the hello world script.
   v8::Context::Scope context_scope(context);
 
   // We're just about to compile the script; set up an error handler to
   // catch any exceptions the script might throw.
-  v8::TryCatch try_catch(isolate_);
+  v8::TryCatch try_catch(isolate);
 
   // Create a string containing the JavaScript source code.
   v8::Local<v8::String> source_tsc;
-  if (!v8::String::NewFromUtf8(isolate_,
+  if (!v8::String::NewFromUtf8(isolate,
                                reinterpret_cast<const char*>(tsc_wrapper_js),
                                v8::NewStringType::kNormal, tsc_wrapper_js_len)
            .ToLocal(&source_tsc)) {
-    v8::String::Utf8Value error(isolate_, try_catch.Exception());
+    v8::String::Utf8Value error(isolate, try_catch.Exception());
     std::cerr << "Error: " << *error << std::endl;
     assert(false);
   }
 
+  v8::Local<v8::String> resource_name =
+      v8::String::NewFromUtf8(isolate, "<tsc_wrapper>",
+                              v8::NewStringType::kNormal)
+          .ToLocalChecked();
+  v8::ScriptOrigin origin(resource_name);
+
+  v8::ScriptCompiler::Source source(source_tsc, origin);
+
   // Compile the source code.
   v8::Local<v8::Script> script_tsc;
-  if (!v8::Script::Compile(context, source_tsc).ToLocal(&script_tsc)) {
-    v8::String::Utf8Value error(isolate_, try_catch.Exception());
+  if (!v8::Script::Compile(context, source_tsc, &origin).ToLocal(&script_tsc)) {
+    v8::String::Utf8Value error(isolate, try_catch.Exception());
     std::cerr << "Error: " << *error << std::endl;
     assert(false);
   }
@@ -85,10 +155,24 @@ TypeScriptCompiler::TypeScriptCompiler() {
   // Run the script to get the result.
   v8::Local<v8::Value> global_result_tsc;
   if (!script_tsc->Run(context).ToLocal(&global_result_tsc)) {
-    v8::String::Utf8Value error(isolate_, try_catch.Exception());
+    v8::String::Utf8Value error(isolate, try_catch.Exception());
     std::cerr << "Error: " << *error << std::endl;
     assert(false);
   }
+
+  if (snapshot_creator) {
+    snapshot_creator->SetDefaultContext(context);
+  }
+
+  return context;
+}
+
+void TypeScriptCompiler::LocateTranspileFunction() {
+  v8::Isolate::Scope isolate_scope(isolate_);
+  v8::HandleScope handle_scope(isolate_);
+  auto context = v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Context::Scope context_scope(context);
+  v8::TryCatch try_catch(isolate_);
 
   auto namespace_name = v8::String::NewFromUtf8(isolate_, "tsc_wrapper");
   auto tsc_wrapper_object = context->Global()
@@ -109,6 +193,34 @@ TypeScriptCompiler::TypeScriptCompiler() {
   assert(transpile_function->IsFunction());
   // It is a function; cast it to a Function
   transpile_function_.Reset(isolate_, transpile_function);
+}
+
+TypeScriptCompiler::TypeScriptCompiler(SnapshotOptions snapshot_options) {
+  switch (snapshot_options) {
+    case SnapshotOptions_CachedSnapshot: {
+      if (!LoadIsolateFromSnapshot()) {
+        std::cerr << "No TypeScript Compiler V8 snapshot found, creating..."
+                  << std::endl;
+        if (CreateAndSaveIsolateToSnapshot()) {
+          std::cerr << "Done, cached in file '" << GetCacheFilePath() << "'."
+                    << std::endl;
+          if (!LoadIsolateFromSnapshot()) {
+            std::cerr << "Failed to load isolate from snapshot after creating "
+                         "snapshot."
+                      << std::endl;
+            assert(false);
+            return;
+          }
+        } else {
+          InitializeIsolateWithoutSnapshot();
+        }
+      }
+    } break;
+    case SnapshotOptions_NoSnapshot: {
+      InitializeIsolateWithoutSnapshot();
+    } break;
+  }
+  LocateTranspileFunction();
 }
 
 TypeScriptCompiler::~TypeScriptCompiler() {

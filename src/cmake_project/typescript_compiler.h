@@ -16,7 +16,12 @@ namespace reify {
 
 class TypeScriptCompiler {
  public:
-  TypeScriptCompiler();
+  enum SnapshotOptions {
+    SnapshotOptions_CachedSnapshot,
+    SnapshotOptions_NoSnapshot,
+  };
+  TypeScriptCompiler(
+      SnapshotOptions snapshot_options = SnapshotOptions_NoSnapshot);
   ~TypeScriptCompiler();
 
   using ExportedSymbol = CompiledModule::ExportedSymbol;
@@ -57,6 +62,13 @@ class TypeScriptCompiler {
 
  private:
   GlobalV8InitializationEnsurer global_v8_initialization_ensurer_;
+
+  bool LoadIsolateFromSnapshot();
+  bool CreateAndSaveIsolateToSnapshot();
+  v8::Local<v8::Context> InitializeIsolate(
+      v8::Isolate* isolate, v8::SnapshotCreator* snapshot_creator);
+  void LocateTranspileFunction();
+  void InitializeIsolateWithoutSnapshot();
 
   v8::Isolate::CreateParams isolate_create_params_;
   v8::Isolate* isolate_;
