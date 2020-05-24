@@ -16,12 +16,12 @@ namespace reify {
 
 class TypeScriptCompiler {
  public:
-  enum SnapshotOptions {
-    SnapshotOptions_CachedSnapshot,
-    SnapshotOptions_NoSnapshot,
+  enum class SnapshotOptions {
+    kCacheSnapshot,
+    kNoSnapshot,
   };
   TypeScriptCompiler(
-      SnapshotOptions snapshot_options = SnapshotOptions_NoSnapshot);
+      SnapshotOptions snapshot_options = SnapshotOptions::kNoSnapshot);
   ~TypeScriptCompiler();
 
   using ExportedSymbol = CompiledModule::ExportedSymbol;

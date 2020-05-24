@@ -158,7 +158,17 @@ struct CompileError {
 
 class CompilerEnvironment {
  public:
-  CompilerEnvironment();
+  enum class SnapshotOptions {
+    // Do we create and cache a snapshot of the TypeScript
+    // compiler to improve efficiency of startup time?
+    kCacheSnapshot,
+    // Never create or load snapshots of the TypeScript
+    // compiler.
+    kNoSnapshot,
+  };
+
+  CompilerEnvironment(
+      SnapshotOptions snapshot_options = SnapshotOptions::kNoSnapshot);
   CompilerEnvironment(const CompilerEnvironment&) = delete;
   CompilerEnvironment(CompilerEnvironment&&) = delete;
   ~CompilerEnvironment();

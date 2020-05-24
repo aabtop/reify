@@ -17,7 +17,10 @@ namespace reify {
 
 class CompilerEnvironment::Impl {
  public:
-  Impl(){};
+  Impl(SnapshotOptions snapshot_cache_options)
+      : tsc_(snapshot_cache_options == SnapshotOptions::kNoSnapshot
+                 ? TypeScriptCompiler::SnapshotOptions::kNoSnapshot
+                 : TypeScriptCompiler::SnapshotOptions::kCacheSnapshot) {}
 
   std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
   Compile(std::string_view path, std::string_view source);
@@ -26,8 +29,8 @@ class CompilerEnvironment::Impl {
   TypeScriptCompiler tsc_;
 };
 
-CompilerEnvironment::CompilerEnvironment()
-    : impl_(new CompilerEnvironment::Impl()) {}
+CompilerEnvironment::CompilerEnvironment(SnapshotOptions snapshot_options)
+    : impl_(new CompilerEnvironment::Impl(snapshot_options)) {}
 CompilerEnvironment::~CompilerEnvironment() {}
 
 std::variant<CompileError, std::shared_ptr<CompiledModule>>

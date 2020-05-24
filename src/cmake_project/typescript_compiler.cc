@@ -197,7 +197,7 @@ void TypeScriptCompiler::LocateTranspileFunction() {
 
 TypeScriptCompiler::TypeScriptCompiler(SnapshotOptions snapshot_options) {
   switch (snapshot_options) {
-    case SnapshotOptions_CachedSnapshot: {
+    case SnapshotOptions::kCacheSnapshot: {
       if (!LoadIsolateFromSnapshot()) {
         std::cerr << "No TypeScript Compiler V8 snapshot found, creating..."
                   << std::endl;
@@ -216,7 +216,7 @@ TypeScriptCompiler::TypeScriptCompiler(SnapshotOptions snapshot_options) {
         }
       }
     } break;
-    case SnapshotOptions_NoSnapshot: {
+    case SnapshotOptions::kNoSnapshot: {
       InitializeIsolateWithoutSnapshot();
     } break;
   }
