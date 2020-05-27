@@ -46,6 +46,8 @@ add_executable(hypo
   cgal/export_to_stl.h
   cgal/export_to_svg.cc
   cgal/export_to_svg.h
+  cgal/icosahedron.cc
+  cgal/icosahedron.h
   cgal/types_core.h
   cgal/types_nef_polyhedron_3.h
   cgal/types_surface_mesh.h
