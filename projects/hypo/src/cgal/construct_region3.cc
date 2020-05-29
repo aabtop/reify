@@ -4,7 +4,7 @@
 
 #include "cgal/conversions.h"
 #include "cgal/embed_2d_in_3d.h"
-#include "cgal/icosahedron.h"
+#include "cgal/primitives_3d.h"
 #include "cgal/types_nef_polyhedron_3.h"
 #include "construct_region2.h"
 #include "hypo.h"
@@ -67,6 +67,16 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Icosahedron& x) {
   return result;
 }
 
+Nef_polyhedron_3 ConstructRegion3(const hypo::Octahedron& x) {
+  Nef_polyhedron_3 result(MakeUnitOctahedronMesh());
+  Aff_transformation_3 radius_scale(CGAL::Scaling(), x.sphere.radius);
+  Aff_transformation_3 center_translate(
+      CGAL::Translation(),
+      Vector_3(x.sphere.center[0], x.sphere.center[1], x.sphere.center[2]));
+  result.transform(center_translate * radius_scale);
+  return result;
+}
+
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
@@ -86,6 +96,9 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
     return ConstructRegion3(**obj_ptr);
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::Icosahedron>>(&x)) {
+    return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::Octahedron>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   }
 

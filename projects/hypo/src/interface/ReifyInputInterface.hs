@@ -43,6 +43,7 @@ idt =
       NamedType "Sphere" $ Struct [("radius", float), ("center", cvec 3)]
     icosahedron =
       NamedType "Icosahedron" $ Struct [("sphere", Concrete sphere)]
+    octahedron = NamedType "Octahedron" $ Struct [("sphere", Concrete sphere)]
     extrudeRegion2 = NamedType "Extrude" $ Struct
       [("source", Concrete region2), ("transforms", Tuple [cmat 4 3, cmat 4 3])]
     transform3 = NamedType "Transform3"
@@ -59,6 +60,7 @@ idt =
       , Reference intersection3
       , Reference difference3
       , Reference icosahedron
+      , Reference octahedron
       ]
   in
     [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3]
