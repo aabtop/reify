@@ -4,6 +4,8 @@
   "name": "Hypo Playground",
   "context": ".",
   "dockerFile": "Dockerfile",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
   // Set *default* container specific settings.json values on container create.
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash",
@@ -23,7 +25,7 @@
     "svgviewer.enableautopreview": true,
     "svgviewer.previewcolumn": "Active",
     "svgviewer.showzoominout": true,
-    "browser-preview.startUrl": "http://127.0.0.1:8080/viewer/index.html"
+    "browser-preview.startUrl": "http://127.0.0.1:8080/viewer/index.html",
   },
   // Add the IDs of extensions you want installed when the container is created.
   "extensions": [
@@ -46,5 +48,5 @@
     "source=hypo-pg-vscode-extensions,target=/root/.vscode-server/extensions,type=volume",
     "source=hypo-pg-bashhistory,target=/commandhistory,type=volume",
   ],
-  "postCreateCommand": "nohup http-server -a 127.0.0.1 &",
+  "postCreateCommand": "nohup http-server -c-1 -a 127.0.0.1 &",
 }

@@ -21,5 +21,5 @@ export function Eye(center: h.Vec2) {
 }
 
 export function Eyes() {
-  return h.Union2({ regions: [Eye([10, 10]), Eye([140, 10])] });
+  return h.Union2({ regions: [Eye([10, 10]), Eye([30, 10])] });
 }
