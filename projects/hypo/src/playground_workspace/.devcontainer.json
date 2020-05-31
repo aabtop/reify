@@ -1,0 +1,49 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.112.0/containers/docker-existing-dockerfile
+{
+  "name": "Hypo Playground",
+  "context": ".",
+  "dockerFile": "Dockerfile",
+  // Set *default* container specific settings.json values on container create.
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "editor.formatOnSave": true,
+    "files.associations": {
+      "*.ts": "typescript",
+    },
+    "editor.tabSize": 2,
+    "editor.rulers": [
+      80
+    ],
+    // This project has a lot of unorthodox JS/TS usage, so disable the error
+    // highlighting for it.
+    "typescript.validate.enable": false,
+    "javascript.validate.enable": false,
+    // SVG viewer settings.
+    "svgviewer.enableautopreview": true,
+    "svgviewer.previewcolumn": "Active",
+    "svgviewer.showzoominout": true,
+    "browser-preview.startUrl": "http://127.0.0.1:8080/preview.html"
+  },
+  // Add the IDs of extensions you want installed when the container is created.
+  "extensions": [
+    "cssho.vscode-svgviewer",
+    // For STL preview in a browser.
+    "auchenberg.vscode-browser-preview",
+  ],
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+  // Uncomment the next line to run commands after the container is created - for example installing git.
+  // "postCreateCommand": "cd /workspace/src && nix-shell",
+  // Uncomment when using a ptrace-based debugger like C++, Go, and Rust
+  "runArgs": [
+    "--cap-add=SYS_PTRACE",
+    "--security-opt",
+    "seccomp=unconfined"
+  ],
+  // Uncomment to use the Docker CLI from inside the container. See https://aka.ms/vscode-remote/samples/docker-in-docker.
+  "mounts": [
+    "source=hypo-pg-vscode-extensions,target=/root/.vscode-server/extensions,type=volume",
+    "source=hypo-pg-bashhistory,target=/commandhistory,type=volume",
+  ],
+}
