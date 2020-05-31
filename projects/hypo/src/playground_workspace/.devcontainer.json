@@ -23,7 +23,7 @@
     "svgviewer.enableautopreview": true,
     "svgviewer.previewcolumn": "Active",
     "svgviewer.showzoominout": true,
-    "browser-preview.startUrl": "http://127.0.0.1:8080/preview.html"
+    "browser-preview.startUrl": "http://127.0.0.1:8080/viewer/index.html"
   },
   // Add the IDs of extensions you want installed when the container is created.
   "extensions": [
@@ -46,4 +46,5 @@
     "source=hypo-pg-vscode-extensions,target=/root/.vscode-server/extensions,type=volume",
     "source=hypo-pg-bashhistory,target=/commandhistory,type=volume",
   ],
+  "postCreateCommand": "nohup http-server -a 127.0.0.1 &",
 }

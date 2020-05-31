@@ -7,7 +7,7 @@ LABEL description="Playground for building Hypo projects."
 #RUN apt-get update --fix-missing && apt-get -y install \
 RUN apt-get update --fix-missing
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
-        curl perl sudo locales bzip2 bash xz-utils git wget vim man jq npm
+    curl perl sudo locales bzip2 bash xz-utils git wget vim man jq npm
 
 RUN apt-get clean && apt-get purge && apt-get autoremove --purge -y && \
     rm -rf /var/lib/apt/lists/*
@@ -19,10 +19,16 @@ RUN npm install -g typescript
 # We create an HTTP server in order to enable previews.
 RUN npm install -g http-server
 
+# Install Chrome, which is used by a vscode plugin.
+RUN echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && apt update \
+    && apt install -y google-chrome-stable
+
 # Download the latest release of Hypo.
 RUN cd /usr/bin \
     && curl -L https://github.com/aabtop/reify/releases/download/v0.1.0/hypo_v0-1-0_x86-64.gz \
-           | gunzip -c > hypo \
+    | gunzip -c > hypo \
     && chmod +x hypo
 
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen

@@ -1,0 +1,31 @@
+<html>
+
+<head>
+  <script src="third_party/stl_viewer/stl_viewer.min.js"></script>
+
+  <style>
+    #stl_cont {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="stl_cont"></div>
+
+  <script>
+    window.onload = function () {
+      var stl_viewer = new StlViewer(
+        document.getElementById("stl_cont"),
+        {
+          models: [{
+            id: 0,
+            filename: "http://127.0.0.1:8080/output.stl"
+          }]
+        });
+    }; 
+  </script>
+</body>
+
+</html>
