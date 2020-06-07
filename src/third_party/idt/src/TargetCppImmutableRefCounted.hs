@@ -111,8 +111,14 @@ namedTypeDefinition t = case t of
   TypeDeclaration (NamedType n t@(Struct l)) ->
     DTL.unpack $ renderMustache structTemplate $ object
       ["name" .= n, "members" .= members l]
-  TypeDeclaration (NamedType n t@(Enum l)) ->
-    DTL.unpack $ renderMustache enumTemplate $ object
+  TypeDeclaration (NamedType n t@(Enum l)) -> if isSimpleEnum l
+    then
+      "enum class "
+      ++ n
+      ++ " {\n"
+      ++ unlines (map (\x -> "  " ++ fst x ++ ",") l)
+      ++ "};\n"
+    else DTL.unpack $ renderMustache enumTemplate $ object
       [ "constructors" .= constructors l
       , "tagged_union_def" .= renderMustache
         taggedUnionTemplate

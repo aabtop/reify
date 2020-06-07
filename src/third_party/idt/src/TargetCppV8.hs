@@ -37,6 +37,16 @@ enumCCTemplate =
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
 
+-- brittany @ simpleEnumHTemplate --exactprint-only
+simpleEnumHTemplate =
+  case
+      compileMustacheText
+        "simpleEnumHTemplate"
+        (DT.pack $(embedStringFile "src/CppV8SimpleEnum.stache.h"))
+    of
+      Left  bundle   -> panic (errorBundlePretty bundle)
+      Right template -> template
+
 -- brittany @ taggedUnionHTemplate --exactprint-only
 taggedUnionHTemplate =
   case
@@ -125,7 +135,9 @@ unionMemberToStacheObject (k, ts) =
           | (tn, t) <- ts
           ]
   in  object
-        ["__kind" .= DT.pack k, "params" .= params, "firstParam" .= head params]
+        (  ["__kind" .= DT.pack k, "params" .= params]
+        ++ [ "firstParam" .= head params | (not . null) params ]
+        )
 
 enumMembers :: [(String, [Type])] -> [Value]
 enumMembers es =
@@ -171,8 +183,9 @@ namedTypeDefinition namespace immRefCntNamespace t = case t of
       "Only forward declarations of Enum, Structs and TaggedUnions are supported."
   TypeDeclaration nt@(NamedType _ (Struct _)) ->
     DTL.unpack $ renderMustache structHTemplate $ templateObject nt
-  TypeDeclaration nt@(NamedType _ (Enum _)) ->
-    DTL.unpack $ renderMustache enumHTemplate $ templateObject nt
+  TypeDeclaration nt@(NamedType n (Enum cs)) -> if isSimpleEnum cs
+    then DTL.unpack $ renderMustache simpleEnumHTemplate $ templateObject nt
+    else DTL.unpack $ renderMustache enumHTemplate $ templateObject nt
   TypeDeclaration nt@(NamedType _ (TaggedUnion _)) ->
     DTL.unpack $ renderMustache taggedUnionHTemplate $ templateObject nt
   TypeDeclaration (NamedType n t) ->
@@ -199,8 +212,9 @@ convertToImmRefCntFunctions :: String -> String -> Declaration -> Maybe String
 convertToImmRefCntFunctions namespace immRefCntNamespace decl = case decl of
   (TypeDeclaration nt@(NamedType _ (Struct _))) ->
     Just $ DTL.unpack $ renderMustache structCCTemplate $ templateObject nt
-  (TypeDeclaration nt@(NamedType _ (Enum _))) ->
-    Just $ DTL.unpack $ renderMustache enumCCTemplate $ templateObject nt
+  (TypeDeclaration nt@(NamedType _ (Enum cs))) -> if not . isSimpleEnum $ cs
+    then Just $ DTL.unpack $ renderMustache enumCCTemplate $ templateObject nt
+    else Nothing
   (TypeDeclaration nt@(NamedType _ (TaggedUnion _))) ->
     Just $ DTL.unpack $ renderMustache taggedUnionCCTemplate $ templateObject nt
   _ -> Nothing

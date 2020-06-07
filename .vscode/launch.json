@@ -7,9 +7,9 @@
       "request": "launch",
       "program": "/cmake_out/hypo",
       "args": [
-        "${workspaceFolder}/projects/hypo/src/example_scripts/jeep.ts",
-        "Jeep",
-        "/cmake_out/foo"
+        "${workspaceFolder}/projects/hypo/src/playground_workspace/example_scripts/octatest.ts",
+        "Main",
+        "${workspaceFolder}/foo"
       ],
       "stopAtEntry": false,
       "cwd": "/tmp",

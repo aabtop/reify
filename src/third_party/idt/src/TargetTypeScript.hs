@@ -9,9 +9,9 @@ import           Panic
 import           Idt
 import           IdtProcessing
 
-enumConstructorFunctionString :: String -> (String, String, [Type]) -> String
-enumConstructorFunctionString enumName (cn, tn, ts) =
-  let structConstructors = ("__kind: " ++ "'" ++ tn ++ "'")
+enumConstructorFunctionString :: String -> (String, [Type]) -> String
+enumConstructorFunctionString enumName (cn, ts) =
+  let structConstructors = ("__kind: " ++ "'" ++ cn ++ "'")
         : map (\x -> x ++ ": " ++ x) (enumTypeNames ts)
   in  "export function "
         ++ cn
@@ -23,10 +23,10 @@ enumConstructorFunctionString enumName (cn, tn, ts) =
         ++ intercalate ", " structConstructors
         ++ "};\n}"
 
-enumConstructorTypeString :: (String, String, [Type]) -> String
-enumConstructorTypeString (cn, tn, ts) =
+enumConstructorTypeString :: (String, [Type]) -> String
+enumConstructorTypeString (cn, ts) =
   let structMemberDefs =
-          ("__kind: " ++ "'" ++ tn ++ "'")
+          ("__kind: " ++ "'" ++ cn ++ "'")
             : zipWith (\n t -> n ++ ": " ++ typeString t) (enumTypeNames ts) ts
   in  "{" ++ intercalate "; " structMemberDefs ++ "}"
 
@@ -43,6 +43,25 @@ enumEntryString (n, ts) =
     ++ "'; "
     ++ unwords (map (++ ";") (enumTypesToParameters ts))
     ++ " }"
+
+simpleEnumString :: String -> [String] -> String
+simpleEnumString n ens =
+  "export const enum "
+    ++ n
+    ++ " {\n"
+    ++ unlines [ "  " ++ en ++ "," | en <- ens ]
+    ++ "}\n"
+
+enumString :: String -> [(String, [Type])] -> String
+enumString n cs = if isSimpleEnum cs
+  then simpleEnumString n (map fst cs)
+  else
+    concatMap (\c -> enumConstructorFunctionString n c ++ "\n") cs
+    ++ "export type "
+    ++ n
+    ++ " = "
+    ++ intercalate " | " (map enumConstructorTypeString cs)
+    ++ ";\n"
 
 taggedUnionTypeName :: Type -> String
 taggedUnionTypeName t = case t of
@@ -73,20 +92,10 @@ typeString (Enum l) = panic "Enums may only be referenced as named types."
 typeString (TaggedUnion ts) =
   panic "TaggedUnions may only be referenced as named types."
 
-enumString :: String -> [(String, String, [Type])] -> String
-enumString n cs =
-  concatMap (\c -> enumConstructorFunctionString n c ++ "\n") cs
-    ++ "export type "
-    ++ n
-    ++ " = "
-    ++ intercalate " | " (map enumConstructorTypeString cs)
-    ++ ";\n"
-
 namedTypeDefinition :: Declaration -> String
 namedTypeDefinition t = case t of
-  ForwardDeclaration _ -> ""
-  TypeDeclaration (NamedType n t@(Enum l)) ->
-    enumString n [ (cn, cn, cts) | (cn, cts) <- l ]
+  ForwardDeclaration _                        -> ""
+  TypeDeclaration    (NamedType n t@(Enum l)) -> enumString n l
   TypeDeclaration (NamedType n t@(TaggedUnion tuts)) ->
     "export type "
       ++ n

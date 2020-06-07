@@ -5,6 +5,7 @@
 #include "cgal/conversions.h"
 #include "cgal/embed_2d_in_3d.h"
 #include "cgal/primitives_3d.h"
+#include "cgal/subdivide.h"
 #include "cgal/types_nef_polyhedron_3.h"
 #include "construct_region2.h"
 #include "hypo.h"
@@ -77,6 +78,10 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Octahedron& x) {
   return result;
 }
 
+Nef_polyhedron_3 ConstructRegion3(const hypo::Subdivide& x) {
+  return cgal::Subdivide(ConstructRegion3(x.source), x.method, x.iterations);
+}
+
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
@@ -99,6 +104,9 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
     return ConstructRegion3(**obj_ptr);
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::Octahedron>>(&x)) {
+    return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::Subdivide>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   }
 

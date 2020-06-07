@@ -3,6 +3,7 @@ module IdtProcessing
   , Declaration(..)
   , DeclarationSequence
   , asDeclarationSequence
+  , isSimpleEnum
   )
 where
 
@@ -188,3 +189,9 @@ toDeclarationSequence tl =
 asDeclarationSequence
   :: [NamedType] -> Either CyclicDependencyError DeclarationSequence
 asDeclarationSequence = toDeclarationSequence . List.map Concrete
+
+-- Returns true if the given Enum parameters all have zero parameters.
+-- In other words, this is a "C++ enum" as opposed to a Haskell enum where
+-- the constructors take parameters.
+isSimpleEnum :: [(String, [Type])] -> Bool
+isSimpleEnum = all (\(_, ts) -> List.null ts)

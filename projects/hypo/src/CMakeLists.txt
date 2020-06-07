@@ -48,6 +48,8 @@ add_executable(hypo
   cgal/export_to_svg.h
   cgal/primitives_3d.cc
   cgal/primitives_3d.h
+  cgal/subdivide.cc
+  cgal/subdivide.h
   cgal/types_core.h
   cgal/types_nef_polyhedron_3.h
   cgal/types_surface_mesh.h

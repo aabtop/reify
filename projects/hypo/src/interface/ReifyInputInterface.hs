@@ -53,6 +53,18 @@ idt =
       NamedType "Intersection3" $ Struct [("regions", List $ Concrete region3)]
     difference3 = NamedType "Difference3"
       $ Struct [("a", Concrete region3), ("b", Concrete region3)]
+    subdivideMethod = NamedType "SubdivideMethod" $ Enum
+      [
+      --  ( "CatmullClark", []) -- TODO(issue #18): Produces a runtime error.
+      -- , ("DooSabin", []),  -- TODO(issue #17): Compile problems in CGAL.
+        ("Loop" , [])
+      , ("Sqrt3", [])
+      ]
+    subdivide = NamedType "Subdivide" $ Struct
+      [ ("source"    , Concrete region3)
+      , ("method"    , Concrete subdivideMethod)
+      , ("iterations", int)
+      ]
     region3 = NamedType "Region3" $ TaggedUnion
       [ Reference extrudeRegion2
       , Reference transform3
@@ -61,6 +73,7 @@ idt =
       , Reference difference3
       , Reference icosahedron
       , Reference octahedron
+      , Reference subdivide
       ]
   in
     [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3]
