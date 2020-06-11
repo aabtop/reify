@@ -41,9 +41,11 @@ idt =
 
     sphere =
       NamedType "Sphere" $ Struct [("radius", float), ("center", cvec 3)]
+    octahedron = NamedType "Octahedron" $ Struct [("sphere", Concrete sphere)]
     icosahedron =
       NamedType "Icosahedron" $ Struct [("sphere", Concrete sphere)]
-    octahedron = NamedType "Octahedron" $ Struct [("sphere", Concrete sphere)]
+    sphereBased = NamedType "SphereBased" $ TaggedUnion
+      [Reference octahedron, Reference icosahedron, Reference subdivideSphere]
     extrudeRegion2 = NamedType "Extrude" $ Struct
       [("source", Concrete region2), ("transforms", Tuple [cmat 4 3, cmat 4 3])]
     transform3 = NamedType "Transform3"
@@ -65,6 +67,8 @@ idt =
       , ("method"    , Concrete subdivideMethod)
       , ("iterations", int)
       ]
+    subdivideSphere = NamedType "SubdivideSphere"
+      $ Struct [("source", Concrete sphereBased), ("iterations", int)]
     region3 = NamedType "Region3" $ TaggedUnion
       [ Reference extrudeRegion2
       , Reference transform3
@@ -74,6 +78,7 @@ idt =
       , Reference icosahedron
       , Reference octahedron
       , Reference subdivide
+      , Reference subdivideSphere
       ]
   in
     [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3]

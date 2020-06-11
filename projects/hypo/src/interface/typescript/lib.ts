@@ -151,3 +151,12 @@ export function Cylinder(
           {circle: {radius: radius, center: [0, 0]}, num_points: num_points}),
       height);
 }
+
+export function GeodesicSphere(params: {
+  sphere: rgi.SphereParams; iterations: number;
+}): rgi.SubdivideSphere {
+  return rgi.SubdivideSphere({
+    source: rgi.Icosahedron({sphere: params.sphere}),
+    iterations: params.iterations
+  });
+}

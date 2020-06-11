@@ -82,6 +82,29 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Subdivide& x) {
   return cgal::Subdivide(ConstructRegion3(x.source), x.method, x.iterations);
 }
 
+// Given a SphereBased object, extracts from it the Sphere object.
+const Sphere& ToSphere(const hypo::SphereBased& sphere_like) {
+  return std::visit(
+      [](const auto& x) -> const Sphere& {
+        using T = std::decay_t<decltype(x)>;
+        if constexpr (std::is_same<T,
+                                   std::shared_ptr<
+                                       const hypo::SubdivideSphere>>::value) {
+          return ToSphere(x->source);
+        } else {
+          return x->sphere;
+        }
+      },
+      static_cast<const hypo::SphereBased::AsVariant&>(sphere_like));
+}
+
+Nef_polyhedron_3 ConstructRegion3(const hypo::SubdivideSphere& x) {
+  return cgal::SubdivideSphere(
+      std::visit([](const auto& arg) { return ConstructRegion3(arg); },
+                 static_cast<const hypo::SphereBased::AsVariant&>(x.source)),
+      ToSphere(x.source), x.iterations);
+}
+
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
@@ -107,6 +130,10 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
     return ConstructRegion3(**obj_ptr);
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::Subdivide>>(&x)) {
+    return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::SubdivideSphere>>(
+                     &x)) {
     return ConstructRegion3(**obj_ptr);
   }
 
