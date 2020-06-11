@@ -8,7 +8,7 @@ let start_clip_height = 6.5;
 
 let base_square = h.Rectangle({left: -1.0, top: 1.0, right: 1.0, bottom: -1.0});
 
-let column = h.ExtrudeFromZPlane(base_square, height);
+let column = h.ExtrudeFromZPlane({source: base_square, height: height});
 
 let big_square = h.Rectangle({left: -2.0, top: 2.0, right: 2.0, bottom: -2.0});
 

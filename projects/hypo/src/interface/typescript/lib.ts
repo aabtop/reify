@@ -131,25 +131,31 @@ export function MMul433(a: rgi.Matrix43, b: rgi.Matrix33): rgi.Matrix43 {
 }
 
 export function TranslatedRegion3(
-    region: rgi.Region3, translation: rgi.Vec3): rgi.Region3 {
-  return rgi.Transform3({source: region, transform: Translate3(translation)});
+    params: {source: rgi.Region3; translation: rgi.Vec3;}): rgi.Region3 {
+  return rgi.Transform3(
+      {source: params.source, transform: Translate3(params.translation)});
 }
 
 export function ExtrudeFromZPlane(
-    source: rgi.Region2, height: number): rgi.Region3 {
+    params: {source: rgi.Region2; height: number;}): rgi.Region3 {
   return rgi.Extrude({
-    source: source,
-    transforms:
-        [EmbedOnZPlane, MMul443(Translate3([0, 0, height]), EmbedOnZPlane)]
+    source: params.source,
+    transforms: [
+      EmbedOnZPlane, MMul443(Translate3([0, 0, params.height]), EmbedOnZPlane)
+    ]
   });
 }
 
-export function Cylinder(
-    radius: number, height: number, num_points: number): rgi.Region3 {
-  return ExtrudeFromZPlane(
-      rgi.CircleAsPolygon(
-          {circle: {radius: radius, center: [0, 0]}, num_points: num_points}),
-      height);
+export function Cylinder(params: {
+  radius: number; height: number; num_points: number;
+}): rgi.Region3 {
+  return ExtrudeFromZPlane({
+    source: rgi.CircleAsPolygon({
+      circle: {radius: params.radius, center: [0, 0]},
+      num_points: params.num_points
+    }),
+    height: params.height
+  });
 }
 
 export function GeodesicSphere(params: {
