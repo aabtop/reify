@@ -24,5 +24,9 @@ let subtraction_region = h.Extrude({
 
 
 export function Tungsten() {
-  return h.Difference3({a: column, b: subtraction_region});
+  const sphere = h.GeodesicSphere(
+      {sphere: {radius: 0.15, center: [0, 0, 0]}, iterations: 2});
+
+  return h.MinkowskiSum3(
+      {regions: [sphere, h.Difference3({a: column, b: subtraction_region})]});
 }

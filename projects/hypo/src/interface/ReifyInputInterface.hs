@@ -31,12 +31,15 @@ idt =
       NamedType "Intersection2" $ Struct [("regions", List $ Concrete region2)]
     difference2 = NamedType "Difference2"
       $ Struct [("a", Concrete region2), ("b", Concrete region2)]
+    minkowskiSum2 =
+      NamedType "MinkowskiSum2" $ Struct [("regions", List $ Concrete region2)]
     region2 = NamedType "Region2" $ TaggedUnion
       [ Reference circleAsPolygon
       , Reference rectangle
       , Reference union2
       , Reference intersection2
       , Reference difference2
+      , Reference minkowskiSum2
       ]
 
     sphere =
@@ -69,6 +72,8 @@ idt =
       ]
     subdivideSphere = NamedType "SubdivideSphere"
       $ Struct [("source", Concrete sphereBased), ("iterations", int)]
+    minkowskiSum3 =
+      NamedType "MinkowskiSum3" $ Struct [("regions", List $ Concrete region3)]
     region3 = NamedType "Region3" $ TaggedUnion
       [ Reference extrudeRegion2
       , Reference transform3
@@ -79,6 +84,7 @@ idt =
       , Reference octahedron
       , Reference subdivide
       , Reference subdivideSphere
+      , Reference minkowskiSum3
       ]
   in
     [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3]

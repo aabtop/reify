@@ -1,6 +1,7 @@
 #include "cgal/construct_region3.h"
 
 #include <CGAL/aff_transformation_tags.h>
+#include <CGAL/minkowski_sum_3.h>
 
 #include "cgal/conversions.h"
 #include "cgal/embed_2d_in_3d.h"
@@ -105,6 +106,19 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::SubdivideSphere& x) {
       ToSphere(x.source), x.iterations);
 }
 
+Nef_polyhedron_3 ConstructRegion3(const hypo::MinkowskiSum3& x) {
+  if (x.regions.empty()) {
+    return Nef_polyhedron_3();
+  }
+
+  Nef_polyhedron_3 result(ConstructRegion3(x.regions[0]));
+  for (size_t i = 1; i < x.regions.size(); ++i) {
+    Nef_polyhedron_3 next(ConstructRegion3(x.regions[i]));
+    result = CGAL::minkowski_sum_3(result, next);
+  }
+  return result;
+}
+
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
@@ -134,6 +148,9 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::SubdivideSphere>>(
                      &x)) {
+    return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::MinkowskiSum3>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   }
 
