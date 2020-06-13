@@ -3,6 +3,20 @@ export * from 'reify_generated_interface'
 
 const DEGREES_TO_RADIANS = (2 * Math.PI) / 360;
 
+export function Translate2(translation: rgi.Vec2): rgi.Matrix33 {
+  return [1.0, 0.0, translation[0], 0.0, 1.0, translation[1], 0.0, 0.0, 1.0];
+}
+
+export function Rotate2(angle_in_degrees: number): rgi.Matrix33 {
+  let sinx = Math.sin(angle_in_degrees * DEGREES_TO_RADIANS);
+  let cosx = Math.cos(angle_in_degrees * DEGREES_TO_RADIANS);
+  return [cosx, -sinx, 0.0, sinx, cosx, 0.0, 0.0, 0.0, 1.0];
+}
+
+export function Scale2(x: number, y: number): rgi.Matrix33 {
+  return [x, 0.0, 1.0, 0.0, y, 1.0, 0.0, 0.0, 1.0];
+}
+
 export function Translate3(translation: rgi.Vec3): rgi.Matrix44 {
   return [
     1.0, 0.0, 0.0, translation[0], 0.0, 1.0, 0.0, translation[1], 0.0, 0.0, 1.0,
@@ -37,6 +51,12 @@ export function Rotate3Z(angle_in_degrees: number): rgi.Matrix44 {
   return [
     cosx, -sinx, 0.0, 0.0, sinx, cosx, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
     0.0, 1.0
+  ];
+}
+
+export function Scale3(x: number, y: number, z: number): rgi.Matrix44 {
+  return [
+    x, 0.0, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 0.0, z, 1.0, 0.0, 0.0, 0.0, 1.0
   ];
 }
 

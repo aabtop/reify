@@ -26,6 +26,8 @@ idt =
       $ Struct [("circle", Concrete circle), ("num_points", int)]
     rectangle = NamedType "Rectangle" $ Struct
       [("left", float), ("top", float), ("right", float), ("bottom", float)]
+    transform2 = NamedType "Transform2"
+      $ Struct [("source", Concrete region2), ("transform", cmat 3 3)]
     union2 = NamedType "Union2" $ Struct [("regions", List $ Concrete region2)]
     intersection2 =
       NamedType "Intersection2" $ Struct [("regions", List $ Concrete region2)]
@@ -36,6 +38,7 @@ idt =
     region2 = NamedType "Region2" $ TaggedUnion
       [ Reference circleAsPolygon
       , Reference rectangle
+      , Reference transform2
       , Reference union2
       , Reference intersection2
       , Reference difference2

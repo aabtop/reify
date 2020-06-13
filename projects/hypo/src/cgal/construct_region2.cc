@@ -2,6 +2,7 @@
 
 #include <CGAL/minkowski_sum_2.h>
 
+#include "cgal/conversions.h"
 #include "cgal/types_polygons.h"
 #include "hypo.h"
 
@@ -38,6 +39,36 @@ Polygon_set_2 ConstructRegion2(const hypo::Rectangle& rectangle) {
   polygon.push_back(Point_2(rectangle.left, rectangle.top));
 
   return Polygon_set_2(polygon);
+}
+
+Polygon_set_2 ConstructRegion2(const hypo::Transform2& x) {
+  Aff_transformation_2 transform = ToAff_transformation_2(x.transform);
+
+  Polygon_set_2 input_polygon_set(ConstructRegion2(x.source));
+
+  std::vector<Polygon_with_holes_2> polygons_with_holes;
+  polygons_with_holes.reserve(
+      input_polygon_set.number_of_polygons_with_holes());
+  input_polygon_set.polygons_with_holes(
+      std::back_inserter(polygons_with_holes));
+
+  Polygon_set_2 output;
+
+  for (const auto& polygon_with_holes : polygons_with_holes) {
+    std::vector<Polygon_2> output_holes;
+    std::transform(polygon_with_holes.holes_begin(),
+                   polygon_with_holes.holes_end(),
+                   std::back_inserter(output_holes),
+                   [&transform](const auto& hole) -> Polygon_2 {
+                     return CGAL::transform(transform, hole);
+                   });
+
+    output.insert(Polygon_with_holes_2(
+        CGAL::transform(transform, polygon_with_holes.outer_boundary()),
+        output_holes.begin(), output_holes.end()));
+  }
+
+  return output;
 }
 
 Polygon_set_2 ConstructRegion2(const hypo::Union2& x) {
@@ -106,6 +137,9 @@ Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
     return ConstructRegion2(**obj_ptr);
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::Rectangle>>(&x)) {
+    return ConstructRegion2(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::Transform2>>(&x)) {
     return ConstructRegion2(**obj_ptr);
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::Union2>>(&x)) {

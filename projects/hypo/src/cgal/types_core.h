@@ -17,6 +17,7 @@ using Point_2 = Kernel::Point_2;
 using Vector_2 = Kernel::Vector_2;
 using Point_3 = Kernel::Point_3;
 using Vector_3 = Kernel::Vector_3;
+using Aff_transformation_2 = CGAL::Aff_transformation_2<Kernel>;
 using Aff_transformation_3 = CGAL::Aff_transformation_3<Kernel>;
 
 const float kPi = 3.14159265359f;

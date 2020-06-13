@@ -1,12 +1,15 @@
 import * as h from 'hypo';
 
 export function Main() {
-  return h.MinkowskiSum2({
-    regions: [
-      h.CircleAsPolygon(
-          {circle: {radius: 0.1, center: [0, 0]}, num_points: 50}),
-      h.Rectangle({left: -1, top: 1, right: 1, bottom: -1})
-    ]
+  return h.Transform2({
+    source: h.MinkowskiSum2({
+      regions: [
+        h.CircleAsPolygon(
+            {circle: {radius: 0.1, center: [0, 0]}, num_points: 50}),
+        h.Rectangle({left: -1, top: 1, right: 1, bottom: -1})
+      ]
+    }),
+    transform: h.Rotate2(45)
   });
 }
 
