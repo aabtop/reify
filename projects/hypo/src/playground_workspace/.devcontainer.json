@@ -25,7 +25,7 @@
     "svgviewer.enableautopreview": true,
     "svgviewer.previewcolumn": "Active",
     "svgviewer.showzoominout": true,
-    "browser-preview.startUrl": "http://127.0.0.1:8080/viewer/index.html",
+    "browser-preview.startUrl": "http://127.0.0.1:8080/viewer/index.html?stl_path=output.stl",
   },
   // Add the IDs of extensions you want installed when the container is created.
   "extensions": [
