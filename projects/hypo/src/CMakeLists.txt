@@ -46,6 +46,8 @@ add_executable(hypo
   cgal/export_to_stl.h
   cgal/export_to_svg.cc
   cgal/export_to_svg.h
+  cgal/extrude.cc
+  cgal/extrude.h
   cgal/primitives_3d.cc
   cgal/primitives_3d.h
   cgal/subdivide.cc

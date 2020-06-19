@@ -84,10 +84,7 @@ export function TranspileModule(
   }
   const options: ts.CompilerOptions = {
     module: ts.ModuleKind.ES2015,
-    strictNullChecks: true,
-    noImplicitReturns: true,
-    noImplicitThis: true,
-    noImplicitAny: true,
+    strict: true,
     noErrorTruncation: true,
   };
   const host: ts.CompilerHost = {

@@ -14,7 +14,7 @@ export function Rotate2(angle_in_degrees: number): rgi.Matrix33 {
 }
 
 export function Scale2(x: number, y: number): rgi.Matrix33 {
-  return [x, 0.0, 1.0, 0.0, y, 1.0, 0.0, 0.0, 1.0];
+  return [x, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 1.0];
 }
 
 export function Translate3(translation: rgi.Vec3): rgi.Matrix44 {
@@ -56,13 +56,13 @@ export function Rotate3Z(angle_in_degrees: number): rgi.Matrix44 {
 
 export function Scale3(x: number, y: number, z: number): rgi.Matrix44 {
   return [
-    x, 0.0, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 0.0, z, 1.0, 0.0, 0.0, 0.0, 1.0
+    x, 0.0, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 0.0, z, 0.0, 0.0, 0.0, 0.0, 1.0
   ];
 }
 
-export let Identity3: rgi.Matrix33 =
+export const Identity2: rgi.Matrix33 =
     [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
-export let Identity4: rgi.Matrix44 = [
+export const Identity3: rgi.Matrix44 = [
   1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0
 ];
 

@@ -52,8 +52,8 @@ idt =
       NamedType "Icosahedron" $ Struct [("sphere", Concrete sphere)]
     sphereBased = NamedType "SphereBased" $ TaggedUnion
       [Reference octahedron, Reference icosahedron, Reference subdivideSphere]
-    extrudeRegion2 = NamedType "Extrude" $ Struct
-      [("source", Concrete region2), ("transforms", Tuple [cmat 4 3, cmat 4 3])]
+    extrudeRegion2 = NamedType "Extrude"
+      $ Struct [("source", Concrete region2), ("transforms", List (cmat 4 3))]
     transform3 = NamedType "Transform3"
       $ Struct [("source", Concrete region3), ("transform", cmat 4 4)]
     union3 = NamedType "Union3" $ Struct [("regions", List $ Concrete region3)]

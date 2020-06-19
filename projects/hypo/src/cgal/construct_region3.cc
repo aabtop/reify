@@ -25,8 +25,7 @@ Point_3 ToPoint3(const hypo::Vec3& vec3) {
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Extrude& x) {
   return EmbedPolygonSetAs3DSurfaceMesh(ConstructRegion2(x.source),
-                                        std::get<0>(x.transforms),
-                                        std::get<1>(x.transforms));
+                                        x.transforms);
 }
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Transform3& x) {
