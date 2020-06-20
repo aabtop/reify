@@ -9,6 +9,9 @@ RUN apt-get update --fix-missing
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
     curl perl sudo locales bzip2 bash xz-utils git wget vim man jq npm
 
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
+    clang-format
+
 RUN apt-get clean && apt-get purge && apt-get autoremove --purge -y && \
     rm -rf /var/lib/apt/lists/*
 

@@ -32,6 +32,7 @@
     "cssho.vscode-svgviewer",
     // For STL preview in a browser.
     "auchenberg.vscode-browser-preview",
+    "xaver.clang-format",
   ],
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
