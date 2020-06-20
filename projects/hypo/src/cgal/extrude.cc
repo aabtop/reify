@@ -169,8 +169,9 @@ void CreateInnerLayer(
 }
 }  // namespace
 
-void extrude_mesh_multiple(const Surface_mesh& input, Surface_mesh& output,
-                           const std::vector<Matrix43>& transforms) {
+void ExtrudeMeshWithTransformList(const Surface_mesh& input,
+                                  Surface_mesh& output,
+                                  const std::vector<Matrix43>& transforms) {
   CGAL_assertion(!CGAL::is_closed(input));
   assert(transforms.size() > 1);
 

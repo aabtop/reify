@@ -9,8 +9,9 @@
 namespace hypo {
 namespace cgal {
 
-void extrude_mesh_multiple(const Surface_mesh& input, Surface_mesh& output,
-                           const std::vector<Matrix43>& transforms);
+void ExtrudeMeshWithTransformList(const Surface_mesh& input,
+                                  Surface_mesh& output,
+                                  const std::vector<Matrix43>& transforms);
 
 }  // namespace cgal
 }  // namespace hypo

@@ -203,7 +203,7 @@ Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
 
   Surface_mesh extruded_mesh;
 
-  extrude_mesh_multiple(input_as_mesh, extruded_mesh, transforms);
+  ExtrudeMeshWithTransformList(input_as_mesh, extruded_mesh, transforms);
 
   return Nef_polyhedron_3(extruded_mesh);
 }
