@@ -142,7 +142,7 @@ preamble =
 \  __kind: string;\
 \}\
 \\
-\function withKind<T>(x: T, kind: string): T & __KindObject {\
+\function withKind<T extends object>(x: T, kind: string): T & __KindObject {\
 \  if (x.hasOwnProperty('__kind')) {\
 \    return x as T & __KindObject;\
 \  } else {\

@@ -84,6 +84,11 @@ export function TranspileModule(
   }
   const options: ts.CompilerOptions = {
     module: ts.ModuleKind.ES2015,
+    strictNullChecks: true,
+    noImplicitReturns: true,
+    noImplicitThis: true,
+    noImplicitAny: true,
+    noErrorTruncation: true,
   };
   const host: ts.CompilerHost = {
     fileExists: filePath => {
