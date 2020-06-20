@@ -166,6 +166,27 @@ export function ExtrudeFromZPlane(
   });
 }
 
+export function TwistExtrudeFromZPlane(params: {
+  source: rgi.Region2,
+  height: number,
+  twist_amount_in_degrees: number,
+  num_layers: number
+}): rgi.Region3 {
+  // assert(num_layers >= 2);
+
+  return rgi.Extrude({
+    source: params.source,
+    transforms: Array.from({length: params.num_layers}).map((_, layer) => {
+      let progress = layer / (params.num_layers - 1);
+      return MMul443(
+          Translate3([0, 0, progress * params.height]),
+          MMul433(
+              EmbedOnZPlane,
+              Rotate2(progress * params.twist_amount_in_degrees)));
+    })
+  });
+}
+
 export function Cylinder(params: {
   radius: number; height: number; num_points: number;
 }): rgi.Region3 {
