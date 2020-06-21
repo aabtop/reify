@@ -34,17 +34,6 @@ Nef_polyhedron_3 EmbedPolygonWithHolesIn3DXYPlane(
 }
 }  // namespace
 
-Nef_polyhedron_3 EmbedPolygonSetIn3DXYPlane(const Polygon_set_2& polygon_set) {
-  Nef_polyhedron_3 output;
-  std::vector<Polygon_with_holes_2> polygons_with_holes;
-  polygons_with_holes.reserve(polygon_set.number_of_polygons_with_holes());
-  polygon_set.polygons_with_holes(std::back_inserter(polygons_with_holes));
-  for (const auto& polygon_with_holes : polygons_with_holes) {
-    output += EmbedPolygonWithHolesIn3DXYPlane(polygon_with_holes);
-  }
-  return output;
-}
-
 namespace {
 struct FaceInfo2 {
   int nesting_level;
@@ -196,14 +185,15 @@ Surface_mesh ConvertTriangulationToSurfaceMesh(
 
 Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
     const Polygon_set_2& polygon_set,
-    const std::vector<hypo::Matrix43>& transforms) {
+    const std::vector<hypo::Matrix43>& transforms, bool closed) {
   Constrained_Delaunay_triangulation_2 cdt = TriangulatePolygonSet(polygon_set);
 
   Surface_mesh input_as_mesh = ConvertTriangulationToSurfaceMesh(cdt);
 
   Surface_mesh extruded_mesh;
 
-  ExtrudeMeshWithTransformList(input_as_mesh, extruded_mesh, transforms);
+  ExtrudeMeshWithTransformList(input_as_mesh, extruded_mesh, transforms,
+                               closed);
 
   return Nef_polyhedron_3(extruded_mesh);
 }

@@ -8,11 +8,10 @@
 namespace hypo {
 namespace cgal {
 
-Nef_polyhedron_3 EmbedPolygonSetIn3DXYPlane(const Polygon_set_2& polygon_set);
-
 Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
     const Polygon_set_2& polygon_set,
-    const std::vector<hypo::Matrix43>& transforms);
+    const std::vector<hypo::Matrix43>& transforms,
+    bool closed);
 
 }  // namespace cgal
 }  // namespace hypo

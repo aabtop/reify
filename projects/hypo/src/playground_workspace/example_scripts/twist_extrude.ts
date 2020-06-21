@@ -13,6 +13,6 @@ export function Main() {
     source: crossSection,
     height: HEIGHT,
     twist_amount_in_degrees: TWIST,
-    num_layers: LAYERS
+    num_slices: LAYERS
   });
 }

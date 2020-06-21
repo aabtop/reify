@@ -19,7 +19,8 @@ let subtraction_region = h.Extrude({
         h.Translate3([0, 0, start_clip_height]),
         h.MMul443(h.Rotate3Y(20), h.EmbedOnZPlane)),
     h.MMul443(h.Translate3([0, 0, height + 0.5]), h.EmbedOnZPlane)
-  ]
+  ],
+  closed: false
 });
 
 

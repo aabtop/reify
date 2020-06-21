@@ -13,10 +13,11 @@ typeString :: Type -> String
 typeString (Concrete       (NamedType n _)) = n
 typeString (Reference      (NamedType n _)) = n
 typeString (NamedPrimitive n              ) = case n of
-  "string" -> "String"
-  "f32"    -> "float"
-  "i32"    -> "Int"
-  _        -> n
+  "string"  -> "String"
+  "f32"     -> "float"
+  "i32"     -> "Int"
+  "boolean" -> "Bool"
+  _         -> n
 typeString (List t) = "[" ++ typeString t ++ "]"
 typeString (Tuple l) = "(" ++ intercalate ", " (map typeString l) ++ ")"
 typeString (FixedSizeArray t s) = typeString (List t)

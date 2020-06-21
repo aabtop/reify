@@ -111,10 +111,11 @@ typeString :: Type -> String
 typeString (Concrete       (NamedType n _)) = n
 typeString (Reference      (NamedType n _)) = "Ref<" ++ n ++ ">"
 typeString (NamedPrimitive n              ) = case n of
-  "string" -> "v8::String"
-  "f32"    -> "F32"
-  "i32"    -> "I32"
-  _        -> panic $ "Unsupported primitive type: " ++ n
+  "string"  -> "v8::String"
+  "f32"     -> "F32"
+  "i32"     -> "I32"
+  "boolean" -> "v8::Boolean"
+  _         -> panic $ "Unsupported primitive type: " ++ n
 typeString (List t) = "List<" ++ typeString t ++ ">"
 typeString (Tuple l) =
   "Tuple<" ++ intercalate ", " [ typeString x | x <- l ] ++ ">"

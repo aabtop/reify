@@ -78,10 +78,11 @@ typeString (Concrete       (NamedType n (Struct _))) = n ++ "Params"
 typeString (Concrete       (NamedType n _         )) = n
 typeString (Reference      (NamedType n _         )) = n
 typeString (NamedPrimitive n                       ) = case n of
-  "string" -> "string"
-  "f32"    -> "number"
-  "i32"    -> "number"
-  _        -> n
+  "string"  -> "string"
+  "f32"     -> "number"
+  "i32"     -> "number"
+  "boolean" -> "boolean"
+  _         -> n
 typeString (List  t) = typeString t ++ "[]"
 typeString (Tuple l) = "[" ++ intercalate ", " (map typeString l) ++ "]"
 typeString (FixedSizeArray t s) | s <= 32   = typeString (Tuple $ replicate s t)

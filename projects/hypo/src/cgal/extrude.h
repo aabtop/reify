@@ -11,7 +11,8 @@ namespace cgal {
 
 void ExtrudeMeshWithTransformList(const Surface_mesh& input,
                                   Surface_mesh& output,
-                                  const std::vector<Matrix43>& transforms);
+                                  const std::vector<Matrix43>& transforms,
+                                  bool closed);
 
 }  // namespace cgal
 }  // namespace hypo

@@ -60,10 +60,11 @@ typeString :: Type -> String
 typeString (Concrete (NamedType n _)) = n
 typeString (Reference (NamedType n _)) = "std::shared_ptr<const " ++ n ++ ">"
 typeString (NamedPrimitive n) = case n of
-  "string" -> "std::string"
-  "f32"    -> "float"
-  "i32"    -> "int"
-  _        -> panic $ "Unsupported primitive type: " ++ n
+  "string"  -> "std::string"
+  "f32"     -> "float"
+  "i32"     -> "int"
+  "boolean" -> "bool"
+  _         -> panic $ "Unsupported primitive type: " ++ n
 typeString (List t) = "std::vector<" ++ typeString t ++ ">"
 typeString (Tuple l) =
   "std::tuple<" ++ intercalate ", " [ typeString x | x <- l ] ++ ">"

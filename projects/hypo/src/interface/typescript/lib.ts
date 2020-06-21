@@ -162,7 +162,8 @@ export function ExtrudeFromZPlane(
     source: params.source,
     transforms: [
       EmbedOnZPlane, MMul443(Translate3([0, 0, params.height]), EmbedOnZPlane)
-    ]
+    ],
+    closed: false
   });
 }
 
@@ -170,21 +171,55 @@ export function TwistExtrudeFromZPlane(params: {
   source: rgi.Region2,
   height: number,
   twist_amount_in_degrees: number,
-  num_layers: number
+  num_slices: number
 }): rgi.Region3 {
-  // assert(num_layers >= 2);
+  // assert(num_slices >= 2);
 
   return rgi.Extrude({
     source: params.source,
-    transforms: Array.from({length: params.num_layers}).map((_, layer) => {
-      let progress = layer / (params.num_layers - 1);
+    transforms: Array.from({length: params.num_slices}).map((_, slice) => {
+      const progress = slice / (params.num_slices - 1);
       return MMul443(
           Translate3([0, 0, progress * params.height]),
           MMul433(
               EmbedOnZPlane,
               Rotate2(progress * params.twist_amount_in_degrees)));
-    })
+    }),
+    closed: false
   });
+}
+
+export function RotateExtrudeAroundZAxis(params: {
+  source: rgi.Region2,
+  num_slices: number,
+}): rgi.Region3 {
+  return rgi.Extrude({
+    source: params.source,
+    transforms: Array.from({length: params.num_slices}).map((_, slice) => {
+      const progress = slice / params.num_slices;
+      return MMul443(
+          Rotate3Z(progress * 360), MMul443(Rotate3X(90), EmbedOnZPlane));
+    }),
+    closed: true
+  });
+}
+
+export function Torus(params: {
+  inner_radius: number,
+  outer_radius: number,
+  num_cross_section_points: number,
+  num_slices: number
+}): rgi.Region3 {
+  let crossSection = rgi.CircleAsPolygon({
+    circle: {
+      radius: (params.outer_radius - params.inner_radius) / 2,
+      center: [(params.outer_radius + params.inner_radius) / 2, 0]
+    },
+    num_points: params.num_cross_section_points
+  });
+
+  return RotateExtrudeAroundZAxis(
+      {source: crossSection, num_slices: params.num_slices});
 }
 
 export function Cylinder(params: {

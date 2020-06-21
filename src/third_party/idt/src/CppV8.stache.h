@@ -117,6 +117,18 @@ struct TypeMatchesTypeScriptString<float> {
   static bool Result(std::string_view ts) { return ts == "number"; }
 };
 
+V8_INLINE bool Value(v8::Isolate* isolate, v8::Local<v8::Boolean> x) {
+  return x->Value();
+}
+template <>
+struct FromImmRefCnt<bool> {
+  using type = v8::Boolean;
+};
+template <>
+struct TypeMatchesTypeScriptString<bool> {
+  static bool Result(std::string_view ts) { return ts == "boolean"; }
+};
+
 template <typename T>
 class List : public v8::Array {
  public:

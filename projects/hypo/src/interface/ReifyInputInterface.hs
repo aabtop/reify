@@ -12,20 +12,21 @@ import           Idt
 idt :: NamedTypeList
 idt =
   let
-    float = NamedPrimitive "f32"
-    int   = NamedPrimitive "i32"
-    vec n = NamedType ("Vec" ++ show n) $ FixedSizeArray float n
+    f32     = NamedPrimitive "f32"
+    i32     = NamedPrimitive "i32"
+    boolean = NamedPrimitive "boolean"
+
+    vec n = NamedType ("Vec" ++ show n) $ FixedSizeArray f32 n
     cvec = Concrete . vec
     mat m n =
-      NamedType ("Matrix" ++ show m ++ show n) $ FixedSizeArray float (m * n)
+      NamedType ("Matrix" ++ show m ++ show n) $ FixedSizeArray f32 (m * n)
     cmat m n = Concrete $ mat m n
 
-    circle =
-      NamedType "Circle" $ Struct [("radius", float), ("center", cvec 2)]
+    circle = NamedType "Circle" $ Struct [("radius", f32), ("center", cvec 2)]
     circleAsPolygon = NamedType "CircleAsPolygon"
-      $ Struct [("circle", Concrete circle), ("num_points", int)]
-    rectangle = NamedType "Rectangle" $ Struct
-      [("left", float), ("top", float), ("right", float), ("bottom", float)]
+      $ Struct [("circle", Concrete circle), ("num_points", i32)]
+    rectangle = NamedType "Rectangle"
+      $ Struct [("left", f32), ("top", f32), ("right", f32), ("bottom", f32)]
     transform2 = NamedType "Transform2"
       $ Struct [("source", Concrete region2), ("transform", cmat 3 3)]
     union2 = NamedType "Union2" $ Struct [("regions", List $ Concrete region2)]
@@ -45,15 +46,17 @@ idt =
       , Reference minkowskiSum2
       ]
 
-    sphere =
-      NamedType "Sphere" $ Struct [("radius", float), ("center", cvec 3)]
+    sphere = NamedType "Sphere" $ Struct [("radius", f32), ("center", cvec 3)]
     octahedron = NamedType "Octahedron" $ Struct [("sphere", Concrete sphere)]
     icosahedron =
       NamedType "Icosahedron" $ Struct [("sphere", Concrete sphere)]
     sphereBased = NamedType "SphereBased" $ TaggedUnion
       [Reference octahedron, Reference icosahedron, Reference subdivideSphere]
-    extrudeRegion2 = NamedType "Extrude"
-      $ Struct [("source", Concrete region2), ("transforms", List (cmat 4 3))]
+    extrudeRegion2 = NamedType "Extrude" $ Struct
+      [ ("source"    , Concrete region2)
+      , ("transforms", List (cmat 4 3))
+      , ("closed"    , boolean)
+      ]
     transform3 = NamedType "Transform3"
       $ Struct [("source", Concrete region3), ("transform", cmat 4 4)]
     union3 = NamedType "Union3" $ Struct [("regions", List $ Concrete region3)]
@@ -71,10 +74,10 @@ idt =
     subdivide = NamedType "Subdivide" $ Struct
       [ ("source"    , Concrete region3)
       , ("method"    , Concrete subdivideMethod)
-      , ("iterations", int)
+      , ("iterations", i32)
       ]
     subdivideSphere = NamedType "SubdivideSphere"
-      $ Struct [("source", Concrete sphereBased), ("iterations", int)]
+      $ Struct [("source", Concrete sphereBased), ("iterations", i32)]
     minkowskiSum3 =
       NamedType "MinkowskiSum3" $ Struct [("regions", List $ Concrete region3)]
     region3 = NamedType "Region3" $ TaggedUnion
