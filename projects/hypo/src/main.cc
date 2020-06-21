@@ -1,3 +1,4 @@
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -49,6 +50,31 @@ int CallFunctionAndExportOutput(hypo::reify::RuntimeEnvironment* runtime_env,
 
   return results ? 0 : 1;
 }
+
+int BuildOutputAndSaveToFile(
+    hypo::reify::RuntimeEnvironment* runtime_env,
+    const hypo::reify::CompiledModule::ExportedSymbol* entry_point_function,
+    const char* function_name,  // TODO: This seems redundant given
+                                // |entry_point_function|, remove it.
+    const char* output_base_file_path) {
+  if (entry_point_function->HasType<hypo::reify::Function<hypo::Region2()>>()) {
+    return CallFunctionAndExportOutput<hypo::Region2>(
+        runtime_env, function_name, output_base_file_path);
+  } else if (entry_point_function
+                 ->HasType<hypo::reify::Function<hypo::Region3()>>()) {
+    return CallFunctionAndExportOutput<hypo::Region3>(
+        runtime_env, function_name, output_base_file_path);
+  } else {
+    std::cerr << "Exported symbol '" << entry_point_function->name
+              << "' has type '" << entry_point_function->typescript_type_string
+              << "', which is not a supported type.  Currently only "
+                 "parameter-less functions that return Region2 or Region3 "
+                 "types are supported."
+              << std::endl;
+    return 1;
+  }
+}
+
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -58,6 +84,10 @@ int main(int argc, char* argv[]) {
               << std::endl;
     return 1;
   }
+
+  using namespace std::chrono;
+
+  high_resolution_clock::time_point start_time = high_resolution_clock::now();
 
   // Setup a TypeScript compiler environment.
   hypo::reify::CompilerEnvironment compile_env;
@@ -104,23 +134,28 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  auto after_compile = high_resolution_clock::now();
+  auto compile_time = after_compile - start_time;
+
   // Check if the user-specified symbol has either a hypo::Region2 or a
   // hypo::Region3 type, these are the only types that we support.  If we do
   // find a supported type, run the function and export the output to a file.
-  if (entry_point_function->HasType<hypo::reify::Function<hypo::Region2()>>()) {
-    return CallFunctionAndExportOutput<hypo::Region2>(
-        runtime_env, function_name, output_base_file_path);
-  } else if (entry_point_function
-                 ->HasType<hypo::reify::Function<hypo::Region3()>>()) {
-    return CallFunctionAndExportOutput<hypo::Region3>(
-        runtime_env, function_name, output_base_file_path);
-  } else {
-    std::cerr << "Exported symbol '" << entry_point_function->name
-              << "' has type '" << entry_point_function->typescript_type_string
-              << "', which is not a supported type.  Currently only "
-                 "parameter-less functions that return Region2 or Region3 "
-                 "types are supported."
-              << std::endl;
-    return 1;
+  int return_code = BuildOutputAndSaveToFile(
+      runtime_env, entry_point_function, function_name, output_base_file_path);
+  auto after_build_output = high_resolution_clock::now();
+  auto build_output_time = after_build_output - after_compile;
+
+  if (return_code == 0) {
+    std::cerr << "Build success. (Compile time: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     compile_time)
+                     .count()
+              << "ms, Build time: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     build_output_time)
+                     .count()
+              << "ms)" << std::endl;
   }
+
+  return return_code;
 }
