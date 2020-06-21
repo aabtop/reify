@@ -2,6 +2,8 @@
 
 #include <CGAL/minkowski_sum_2.h>
 
+#include <limits>
+
 #include "cgal/conversions.h"
 #include "cgal/types_polygons.h"
 #include "hypo.h"
@@ -33,10 +35,20 @@ Polygon_set_2 ConstructRegion2(const hypo::CircleAsPolygon& circle_as_polygon) {
 Polygon_set_2 ConstructRegion2(const hypo::Rectangle& rectangle) {
   Polygon_2 polygon;
   polygon.container().reserve(3);
-  polygon.push_back(Point_2(rectangle.left, rectangle.bottom));
-  polygon.push_back(Point_2(rectangle.right, rectangle.bottom));
-  polygon.push_back(Point_2(rectangle.right, rectangle.top));
-  polygon.push_back(Point_2(rectangle.left, rectangle.top));
+
+  float left = std::min(std::get<0>(rectangle.points)[0],
+                        std::get<1>(rectangle.points)[0]);
+  float right = std::max(std::get<0>(rectangle.points)[0],
+                         std::get<1>(rectangle.points)[0]);
+  float bottom = std::min(std::get<0>(rectangle.points)[1],
+                          std::get<1>(rectangle.points)[1]);
+  float top = std::max(std::get<0>(rectangle.points)[1],
+                       std::get<1>(rectangle.points)[1]);
+
+  polygon.push_back(Point_2(left, bottom));
+  polygon.push_back(Point_2(right, bottom));
+  polygon.push_back(Point_2(right, top));
+  polygon.push_back(Point_2(left, top));
 
   return Polygon_set_2(polygon);
 }

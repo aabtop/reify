@@ -25,8 +25,8 @@ idt =
     circle = NamedType "Circle" $ Struct [("radius", f32), ("center", cvec 2)]
     circleAsPolygon = NamedType "CircleAsPolygon"
       $ Struct [("circle", Concrete circle), ("num_points", i32)]
-    rectangle = NamedType "Rectangle"
-      $ Struct [("left", f32), ("top", f32), ("right", f32), ("bottom", f32)]
+    rectangle =
+      NamedType "Rectangle" $ Struct [("points", Tuple [cvec 2, cvec 2])]
     transform2 = NamedType "Transform2"
       $ Struct [("source", Concrete region2), ("transform", cmat 3 3)]
     union2 = NamedType "Union2" $ Struct [("regions", List $ Concrete region2)]

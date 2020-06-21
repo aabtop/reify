@@ -2,7 +2,7 @@ import * as h from 'hypo';
 
 function Beam(radius: number, length: number): h.Region3 {
   let crossSection =
-      h.Rectangle({left: -radius, top: radius, right: radius, bottom: -radius});
+      h.Rectangle({points: [[-radius, radius], [radius, -radius]]});
   return h.TranslatedRegion3({
     source: h.ExtrudeFromZPlane({source: crossSection, height: length}),
     translation: [0, 0, -length / 2]
