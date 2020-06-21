@@ -8,6 +8,8 @@
 #include "hypo.h"
 #include "reify.h"
 
+using namespace std::chrono;
+
 namespace {
 // Load an entire file's contents into memory.
 std::optional<std::string> LoadFile(const char* filename) {
@@ -19,6 +21,13 @@ std::optional<std::string> LoadFile(const char* filename) {
   return buffer.str();
 }
 
+struct CallAndExportResults {
+  std::chrono::microseconds call_time;
+  std::chrono::microseconds build_time;
+  std::chrono::microseconds export_time;
+  std::string output_filepath;
+};
+
 // Call the TypeScript function named by |function_name| within the given
 // |runtime_env|.  Output the results into the file named by
 // |output_base_file_path|.  Note that the file should not have an extension,
@@ -28,30 +37,44 @@ std::optional<std::string> LoadFile(const char* filename) {
 // return value is of type hypo::Region3, a STL file will be output which can
 // be opened by an STL file viewer.
 template <typename T>
-int CallFunctionAndExportOutput(hypo::reify::RuntimeEnvironment* runtime_env,
-                                const char* function_name,
-                                const char* output_base_file_path) {
+std::optional<CallAndExportResults> CallFunctionAndExportOutput(
+    hypo::reify::RuntimeEnvironment* runtime_env, const char* function_name,
+    const char* output_base_file_path) {
+  high_resolution_clock::time_point start_call_time =
+      high_resolution_clock::now();
+
   auto entrypoint_or_error =
       runtime_env->GetExport<hypo::reify::Function<T()>>(function_name);
   if (auto error = std::get_if<0>(&entrypoint_or_error)) {
     std::cerr << "Problem finding entrypoint function: " << *error << std::endl;
-    return 1;
+    return std::nullopt;
   }
   auto entrypoint = &std::get<1>(entrypoint_or_error);
 
   auto result_or_error = entrypoint->Call();
   if (auto error = std::get_if<0>(&result_or_error)) {
     std::cerr << "Error running function: " << *error << std::endl;
-    return 1;
+    return std::nullopt;
   }
 
-  bool results = hypo::cgal::ExportToFile(std::get<1>(result_or_error),
-                                          output_base_file_path);
+  auto call_time = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::high_resolution_clock::now() - start_call_time);
 
-  return results ? 0 : 1;
+  auto results = hypo::cgal::BuildAndExportToFile(std::get<1>(result_or_error),
+                                                  output_base_file_path);
+
+  if (!results) {
+    return std::nullopt;
+  }
+
+  return std::optional<CallAndExportResults>(
+      {.call_time = call_time,
+       .build_time = results->build_time,
+       .export_time = results->export_time,
+       .output_filepath = results->output_filepath});
 }
 
-int BuildOutputAndSaveToFile(
+std::optional<CallAndExportResults> BuildOutputAndSaveToFile(
     hypo::reify::RuntimeEnvironment* runtime_env,
     const hypo::reify::CompiledModule::ExportedSymbol* entry_point_function,
     const char* function_name,  // TODO: This seems redundant given
@@ -71,10 +94,26 @@ int BuildOutputAndSaveToFile(
                  "parameter-less functions that return Region2 or Region3 "
                  "types are supported."
               << std::endl;
-    return 1;
+    return std::nullopt;
   }
 }
 
+void PrintResultsInformation(std::ostream& out, microseconds compile_time,
+                             const CallAndExportResults& results) {
+  out << "Successfully produced '" << results.output_filepath << "'. "
+      << std::endl;
+  out << "  Compile time: " << duration_cast<milliseconds>(compile_time).count()
+      << "ms" << std::endl;
+  out << "  Call time: "
+      << duration_cast<milliseconds>(results.call_time).count() << "ms"
+      << std::endl;
+  out << "  Build time: "
+      << duration_cast<milliseconds>(results.build_time).count() << "ms"
+      << std::endl;
+  out << "  Export time: "
+      << duration_cast<milliseconds>(results.export_time).count() << "ms"
+      << std::endl;
+}
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -84,8 +123,6 @@ int main(int argc, char* argv[]) {
               << std::endl;
     return 1;
   }
-
-  using namespace std::chrono;
 
   high_resolution_clock::time_point start_time = high_resolution_clock::now();
 
@@ -135,27 +172,19 @@ int main(int argc, char* argv[]) {
   }
 
   auto after_compile = high_resolution_clock::now();
-  auto compile_time = after_compile - start_time;
+  auto compile_time = duration_cast<microseconds>(after_compile - start_time);
 
   // Check if the user-specified symbol has either a hypo::Region2 or a
   // hypo::Region3 type, these are the only types that we support.  If we do
   // find a supported type, run the function and export the output to a file.
-  int return_code = BuildOutputAndSaveToFile(
+  auto build_results = BuildOutputAndSaveToFile(
       runtime_env, entry_point_function, function_name, output_base_file_path);
-  auto after_build_output = high_resolution_clock::now();
-  auto build_output_time = after_build_output - after_compile;
 
-  if (return_code == 0) {
-    std::cerr << "Build success. (Compile time: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(
-                     compile_time)
-                     .count()
-              << "ms, Build time: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(
-                     build_output_time)
-                     .count()
-              << "ms)" << std::endl;
+  if (!build_results) {
+    return 1;
   }
 
-  return return_code;
+  PrintResultsInformation(std::cerr, compile_time, *build_results);
+
+  return 0;
 }
