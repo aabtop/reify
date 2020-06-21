@@ -30,7 +30,7 @@ RUN echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >
 
 # Download the latest release of Hypo.
 RUN cd /usr/bin \
-    && curl -L https://github.com/aabtop/reify/releases/download/v0.1.1/hypo_v0-1-1_x86-64.gz \
+    && curl -L https://github.com/aabtop/reify/releases/download/v0.1.2/hypo_v0-1-2_x86-64.gz \
     | gunzip -c > hypo \
     && chmod +x hypo
 
