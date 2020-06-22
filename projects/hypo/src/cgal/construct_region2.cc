@@ -16,6 +16,16 @@ Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
   return hypo::cgal::ConstructRegion2(x);
 }
 
+Polygon_set_2 ConstructRegion2(const hypo::Polygon& polygon) {
+  Polygon_2 polygon_out;
+  polygon_out.container().reserve(polygon.path.size());
+
+  for (auto point : polygon.path) {
+    polygon_out.push_back(Point_2(point[0], point[1]));
+  }
+  return Polygon_set_2(polygon_out);
+}
+
 Polygon_set_2 ConstructRegion2(const hypo::CircleAsPolygon& circle_as_polygon) {
   Polygon_2 polygon;
   polygon.container().reserve(circle_as_polygon.num_points);
@@ -144,8 +154,11 @@ Polygon_set_2 ConstructRegion2(const hypo::MinkowskiSum2& x) {
 }  // namespace
 
 Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
-  if (auto obj_ptr =
-          std::get_if<std::shared_ptr<const hypo::CircleAsPolygon>>(&x)) {
+  if (auto obj_ptr = std::get_if<std::shared_ptr<const hypo::Polygon>>(&x)) {
+    return ConstructRegion2(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::CircleAsPolygon>>(
+                     &x)) {
     return ConstructRegion2(**obj_ptr);
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::Rectangle>>(&x)) {

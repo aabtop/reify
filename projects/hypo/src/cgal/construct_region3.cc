@@ -2,6 +2,7 @@
 
 #include <CGAL/aff_transformation_tags.h>
 #include <CGAL/minkowski_sum_3.h>
+#include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 
 #include "cgal/conversions.h"
 #include "cgal/embed_2d_in_3d.h"
@@ -21,6 +22,13 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
 
 Point_3 ToPoint3(const hypo::Vec3& vec3) {
   return Point_3(vec3[0], vec3[1], vec3[2]);
+}
+
+Nef_polyhedron_3 ConstructRegion3(const hypo::TriangleList3& x) {
+  Surface_mesh mesh;
+  CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(
+      x.vertices, x.triangles, mesh);
+  return Nef_polyhedron_3(mesh);
 }
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Extrude& x) {
@@ -121,7 +129,10 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::MinkowskiSum3& x) {
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
-  if (auto obj_ptr = std::get_if<std::shared_ptr<const hypo::Extrude>>(&x)) {
+  if (auto obj_ptr = std::get_if<std::shared_ptr<const hypo::TriangleList3>>(&x)) {
+    return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::Extrude>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::Transform3>>(&x)) {

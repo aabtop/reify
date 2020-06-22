@@ -84,6 +84,15 @@ bool ExportToSVG(const Polygon_set_2& polygon_set,
       << bounding_box.ymin() << " " << bounding_box.xmax() - bounding_box.xmin()
       << " " << bounding_box.ymax() - bounding_box.ymin() << "\">" << std::endl;
 
+  out << "   <!-- Setup coordinate space such that positive y is up. -->"
+      << std::endl;
+  out << "  <g transform=\"translate(0," << bounding_box.ymax() << ")\">"
+      << std::endl;
+  out << "  <g transform=\"scale(1, -1)\">" << std::endl;
+  out << "  <g transform=\"translate(0," << -bounding_box.ymin() << ")\">"
+      << std::endl;
+  out << std::endl;
+
   for (const auto& polygon_with_holes : polygons_with_holes) {
     OutputPolygonWithHoles(&out, polygon_with_holes);
   }
