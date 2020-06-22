@@ -70,6 +70,20 @@ export const Identity3: rgi.Matrix44 = [
 export let EmbedOnZPlane: rgi.Matrix43 =
     [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0];
 
+export function VMul3(a: rgi.Matrix44, b: rgi.Vec3): rgi.Vec3 {
+  return [
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * 1,
+    a[4] * b[0] + a[5] * b[1] + a[6] * b[2] + a[7] * 1,
+    a[8] * b[0] + a[9] * b[1] + a[10] * b[2] + a[11] * 1
+  ];
+}
+
+export function VMul2(a: rgi.Matrix33, b: rgi.Vec2): rgi.Vec2 {
+  return [
+    a[0] * b[0] + a[1] * b[1] + a[2] * 1, a[3] * b[0] + a[4] * b[1] + a[5] * 1
+  ];
+}
+
 export function MMul4(a: rgi.Matrix44, b: rgi.Matrix44): rgi.Matrix44 {
   return [
     a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12],
@@ -92,6 +106,29 @@ export function MMul4(a: rgi.Matrix44, b: rgi.Matrix44): rgi.Matrix44 {
     a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14],
     a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15],
   ];
+}
+
+export function Cross(a: rgi.Vec3, b: rgi.Vec3): rgi.Vec3 {
+  return [
+    a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0]
+  ];
+}
+
+export function Dot2(a: rgi.Vec2, b: rgi.Vec2): number {
+  return a[0] * b[0] + a[1] * b[1];
+}
+
+export function Dot3(a: rgi.Vec3, b: rgi.Vec3): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+export function Negate2(x: rgi.Vec2): rgi.Vec2 {
+  return [-x[0], -x[1]];
+}
+
+export function Negate3(x: rgi.Vec3): rgi.Vec3 {
+  return [-x[0], -x[1], -x[2]];
 }
 
 export function MMul3(a: rgi.Matrix33, b: rgi.Matrix33): rgi.Matrix33 {
