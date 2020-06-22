@@ -42,23 +42,23 @@ Polygon_set_2 ConstructRegion2(const hypo::CircleAsPolygon& circle_as_polygon) {
   return Polygon_set_2(polygon);
 }
 
-Polygon_set_2 ConstructRegion2(const hypo::Rectangle& rectangle) {
+Polygon_set_2 ConstructRegion2(const hypo::Box2& rectangle) {
   Polygon_2 polygon;
   polygon.container().reserve(3);
 
-  float left = std::min(std::get<0>(rectangle.points)[0],
-                        std::get<1>(rectangle.points)[0]);
-  float right = std::max(std::get<0>(rectangle.points)[0],
-                         std::get<1>(rectangle.points)[0]);
-  float bottom = std::min(std::get<0>(rectangle.points)[1],
-                          std::get<1>(rectangle.points)[1]);
-  float top = std::max(std::get<0>(rectangle.points)[1],
-                       std::get<1>(rectangle.points)[1]);
+  hypo::Vec2 bmin;
+  bmin.fill(std::numeric_limits<float>::infinity());
+  hypo::Vec2 bmax;
+  bmax.fill(-std::numeric_limits<float>::infinity());
+  for (size_t i = 0; i < 2; ++i) {
+    bmin[i] = std::min(rectangle.corners[0][i], rectangle.corners[1][i]);
+    bmax[i] = std::max(rectangle.corners[0][i], rectangle.corners[1][i]);
+  }
 
-  polygon.push_back(Point_2(left, bottom));
-  polygon.push_back(Point_2(right, bottom));
-  polygon.push_back(Point_2(right, top));
-  polygon.push_back(Point_2(left, top));
+  polygon.push_back(Point_2(bmin[0], bmin[1]));
+  polygon.push_back(Point_2(bmax[0], bmin[1]));
+  polygon.push_back(Point_2(bmax[0], bmax[1]));
+  polygon.push_back(Point_2(bmin[0], bmax[1]));
 
   return Polygon_set_2(polygon);
 }
@@ -161,7 +161,7 @@ Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
                      &x)) {
     return ConstructRegion2(**obj_ptr);
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::Rectangle>>(&x)) {
+                 std::get_if<std::shared_ptr<const hypo::Box2>>(&x)) {
     return ConstructRegion2(**obj_ptr);
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::Transform2>>(&x)) {

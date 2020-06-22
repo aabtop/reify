@@ -6,11 +6,9 @@ import * as h from 'hypo';
 let height = 7;
 let start_clip_height = 6.5;
 
-let base_square = h.Rectangle({points: [[-1.0, 1.0], [1.0, -1.0]]});
+let column = h.Box3({corners: [[-1.0, -1.0, 0], [1.0, 1.0, height]]});
 
-let column = h.ExtrudeFromZPlane({source: base_square, height: height});
-
-let big_square = h.Rectangle({points: [[-2.0, 2.0], [2.0, -2.0]]});
+let big_square = h.Box2({corners: [[-2.0, 2.0], [2.0, -2.0]]});
 
 let subtraction_region = h.Extrude({
   source: big_square,
@@ -24,7 +22,7 @@ let subtraction_region = h.Extrude({
 });
 
 
-export function Tungsten() {
+export function Main() {
   const sphere = h.GeodesicSphere(
       {sphere: {radius: 0.15, center: [0, 0, 0]}, iterations: 2});
 

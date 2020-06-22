@@ -1,8 +1,8 @@
 #include "cgal/construct_region3.h"
 
+#include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 #include <CGAL/aff_transformation_tags.h>
 #include <CGAL/minkowski_sum_3.h>
-#include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 
 #include "cgal/conversions.h"
 #include "cgal/embed_2d_in_3d.h"
@@ -29,6 +29,27 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::TriangleList3& x) {
   CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(
       x.vertices, x.triangles, mesh);
   return Nef_polyhedron_3(mesh);
+}
+
+Nef_polyhedron_3 ConstructRegion3(const hypo::Box3& cuboid) {
+  Nef_polyhedron_3 result(MakeUnitBoxMesh());
+
+  hypo::Vec3 bmin;
+  bmin.fill(std::numeric_limits<float>::infinity());
+  hypo::Vec3 bmax;
+  bmax.fill(-std::numeric_limits<float>::infinity());
+  for (size_t i = 0; i < 3; ++i) {
+    bmin[i] = std::min(cuboid.corners[0][i], cuboid.corners[1][i]);
+    bmax[i] = std::max(cuboid.corners[0][i], cuboid.corners[1][i]);
+  }
+  hypo::Vec3 size{bmax[0] - bmin[0], bmax[1] - bmin[1], bmax[2] - bmin[2]};
+
+  Aff_transformation_3 size_scale(size[0], 0, 0, 0, size[1], 0, 0, 0, size[2]);
+  Aff_transformation_3 corner_translate(CGAL::Translation(),
+                                        Vector_3(bmin[0], bmin[1], bmin[2]));
+  result.transform(corner_translate * size_scale);
+
+  return result;
 }
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Extrude& x) {
@@ -129,7 +150,11 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::MinkowskiSum3& x) {
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
-  if (auto obj_ptr = std::get_if<std::shared_ptr<const hypo::TriangleList3>>(&x)) {
+  if (auto obj_ptr =
+          std::get_if<std::shared_ptr<const hypo::TriangleList3>>(&x)) {
+    return ConstructRegion3(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::Box3>>(&x)) {
     return ConstructRegion3(**obj_ptr);
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::Extrude>>(&x)) {

@@ -22,14 +22,14 @@ idt =
       NamedType ("Matrix" ++ show m ++ show n) $ FixedSizeArray f32 (m * n)
     cmat m n = Concrete $ mat m n
     polyline n = NamedType ("Polyline" ++ show n) $ List (cvec n)
-    cpolyline       = Concrete . polyline
+    cpolyline = Concrete . polyline
+    box n = NamedType ("Box" ++ show n)
+      $ Struct [("corners", FixedSizeArray (cvec n) 2)]
 
-    polygon         = NamedType "Polygon" $ Struct [("path", cpolyline 2)]
+    polygon = NamedType "Polygon" $ Struct [("path", cpolyline 2)]
     circle = NamedType "Circle" $ Struct [("radius", f32), ("center", cvec 2)]
     circleAsPolygon = NamedType "CircleAsPolygon"
       $ Struct [("circle", Concrete circle), ("num_points", i32)]
-    rectangle =
-      NamedType "Rectangle" $ Struct [("points", Tuple [cvec 2, cvec 2])]
     transform2 = NamedType "Transform2"
       $ Struct [("source", Concrete region2), ("transform", cmat 3 3)]
     union2 = NamedType "Union2" $ Struct [("regions", List $ Concrete region2)]
@@ -42,7 +42,7 @@ idt =
     region2 = NamedType "Region2" $ TaggedUnion
       [ Reference polygon
       , Reference circleAsPolygon
-      , Reference rectangle
+      , Reference (box 2)
       , Reference transform2
       , Reference union2
       , Reference intersection2
@@ -92,6 +92,7 @@ idt =
       NamedType "MinkowskiSum3" $ Struct [("regions", List $ Concrete region3)]
     region3 = NamedType "Region3" $ TaggedUnion
       [ Reference (triangleList 3)
+      , Reference (box 3)
       , Reference extrudeRegion2
       , Reference transform3
       , Reference union3

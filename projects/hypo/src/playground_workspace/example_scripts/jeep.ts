@@ -12,6 +12,6 @@ let my_jeep = h.Union3({
   ]
 });
 
-export function Jeep() {
+export function Main() {
   return my_jeep;
 }

@@ -190,14 +190,17 @@ class FixedSizeArray : public v8::Array {
  private:
   static void CheckCast(v8::Value* obj) {}
 };
+
+template <typename T, int S>
+auto Value(v8::Isolate* isolate, v8::Local<FixedSizeArray<T, S>> x);
+
 namespace internal {
 template <typename T, int S, std::size_t... Indices>
 auto Value(v8::Isolate* isolate, v8::Local<FixedSizeArray<T, S>> x,
            indices<Indices...>) {
-  return std::array<decltype(Value(isolate, std::declval<v8::Local<T>>())), S>{
+  return std::array<decltype({{namespace}}::Value(isolate, std::declval<v8::Local<T>>())), S>{
       {{namespace}}::Value(isolate, x->Get(Indices))...};
 }
-
 }  // namespace internal
 
 template <typename T, int S>

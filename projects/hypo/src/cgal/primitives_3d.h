@@ -12,6 +12,9 @@ Surface_mesh MakeUnitIcosahedronMesh();
 // Returns a unit octahedron centered at the origin.
 Surface_mesh MakeUnitOctahedronMesh();
 
+// Returns a unit box with one corner at (0, 0, 0) and the other at (1, 1, 1).
+Surface_mesh MakeUnitBoxMesh();
+
 }  // namespace cgal
 }  // namespace hypo
 

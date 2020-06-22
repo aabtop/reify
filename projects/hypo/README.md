@@ -43,15 +43,15 @@ export function Eye(center: h.Vec2) {
   return h.Difference2({a: eye_area, b: pupil});
 }
 
-export function Eyes() {
+export function Main() {
   return h.Union2({regions: [Eye([10, 10]), Eye([30, 10])]});
 }
 ```
 
-When we call the hypo with a reference to the exported function `Eyes` via:
+When we call the hypo with a reference to the exported function `Main` via:
 
 ``` 
-hypo eyes.ts Eyes out
+hypo eyes.ts Main out
 ```
 
 the file `out.svg` will be produced:
@@ -66,10 +66,9 @@ Let's say you have the file [spiral_beams.ts](./src/example_scripts/spiral_beams
 import * as h from 'hypo';
 
 function Beam(radius: number, length: number): h.Region3 {
-  let crossSection =
-      h.Rectangle({left: -radius, top: radius, right: radius, bottom: -radius});
-  return h.TranslatedRegion3(
-      h.ExtrudeFromZPlane(crossSection, length), [0, 0, -length / 2]);
+  return h.Box3({
+    corners: [[-radius, -radius, -length / 2], [radius, radius, length / 2]]
+  });
 }
 
 function SpiralStack(stackSize: number): h.Region3[] {
@@ -127,15 +126,15 @@ From [Getting Nix](https://nixos.org/download.html):
 curl -L https://nixos.org/nix/install | sh
 ```
 
-In order to get a properly configured `PATH`, you may need to restart your shell or, as is suggested by the installer above, run:
+In order to get a properly configured `PATH` , you may need to restart your shell or, as is suggested by the installer above, run:
 
-```
+``` 
 . /home/${USER}/.nix-profile/etc/profile.
 ```
 
-If you get an error about `nixpkgs` not being installed when you run `nix-build`, run:
+If you get an error about `nixpkgs` not being installed when you run `nix-build` , run:
 
-```
+``` 
 nix-channel --update nixpkgs
 ```
 
@@ -149,14 +148,13 @@ After Nix is installed, you can build Hypo with (assuming you are at the root of
 nix-build projects/hypo/src
 ```
 
-The resulting hypo executable will be located at the path `result/bin/hypo`, in the Reify repository's root where you ran `nix-build`.
-
+The resulting hypo executable will be located at the path `result/bin/hypo` , in the Reify repository's root where you ran `nix-build` .
 
 ### Build with Docker
 
 If you have Docker installed, you can build entirely within a container without installing anything else (e.g. you don't need to install Nix).  To do this, enter the Reify repository's (e.g. the git repository that contains Hypo) root directory and type:
 
-```
+``` 
 ./build.sh
 ```
 

@@ -69,5 +69,41 @@ Surface_mesh MakeUnitOctahedronMesh() {
   return mesh;
 }
 
+namespace {
+const std::array<Point_3, 8> box_points = {{
+    {0.0000000000, 0.0000000000, 0.0000000000},
+    {0.0000000000, 0.0000000000, 1.0000000000},
+    {0.0000000000, 1.0000000000, 0.0000000000},
+    {0.0000000000, 1.0000000000, 1.0000000000},
+    {1.0000000000, 0.0000000000, 0.0000000000},
+    {1.0000000000, 0.0000000000, 1.0000000000},
+    {1.0000000000, 1.0000000000, 0.0000000000},
+    {1.0000000000, 1.0000000000, 1.0000000000},
+}};
+
+using Triangle = std::array<std::size_t, 3>;
+const std::array<Triangle, 12> box_triangles = {{
+    {0, 1, 3},
+    {3, 2, 0},
+    {6, 7, 5},
+    {5, 4, 6},
+    {1, 0, 4},
+    {4, 5, 1},
+    {2, 3, 7},
+    {7, 6, 2},
+    {0, 2, 6},
+    {6, 4, 0},
+    {3, 1, 5},
+    {5, 7, 3},
+}};
+}  // namespace
+
+Surface_mesh MakeUnitBoxMesh() {
+  Surface_mesh mesh;
+  CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(
+      box_points, box_triangles, mesh);
+  return mesh;
+}
+
 }  // namespace cgal
 }  // namespace hypo

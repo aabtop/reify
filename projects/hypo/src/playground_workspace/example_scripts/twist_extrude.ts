@@ -6,8 +6,7 @@ export function Main() {
   const TWIST = 360;
   const LAYERS = 64;
 
-  let crossSection =
-      h.Rectangle({points: [[-RADIUS, RADIUS], [RADIUS, -RADIUS]]});
+  let crossSection = h.Box2({corners: [[-RADIUS, RADIUS], [RADIUS, -RADIUS]]});
 
   return h.TwistExtrudeFromZPlane({
     source: crossSection,
