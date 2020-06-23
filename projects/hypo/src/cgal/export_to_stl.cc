@@ -16,7 +16,7 @@ bool ExportToSTL(const Nef_polyhedron_3& polyhedron,
   CGAL::convert_nef_polyhedron_to_polygon_soup(polyhedron, vertices, faces,
                                                true);
 
-  std::ofstream out(output_filepath);
+  std::ostringstream out;
 
   out << "solid " << output_filepath << std::endl;
   for (const auto& face : faces) {
@@ -39,6 +39,10 @@ bool ExportToSTL(const Nef_polyhedron_3& polyhedron,
     out << "  endfacet" << std::endl;
   }
   out << "endsolid " << output_filepath << std::endl;
+
+  std::ofstream fout(output_filepath);
+  auto out_string = out.str();
+  fout.write(out_string.c_str(), out_string.size());
 
   return true;
 }
