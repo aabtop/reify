@@ -1,3 +1,4 @@
+#include <iostream>
 #include <string_view>
 
 #include "compiled_module_impl.h"
@@ -8,9 +9,18 @@
 #define str(s) #s
 
 namespace {
+#include "src_gen/lib_ts.h"
 #include "src_gen/reify_generated_interface_ts.h"
-#include "src_gen/reify_interface_ts.h"
 }  // namespace
+
+#define TS_LIB_TS_FROM_NAMESPACE2(x) ts_##x##_ts
+#define TS_LIB_TS_FROM_NAMESPACE(x) TS_LIB_TS_FROM_NAMESPACE2(x)
+#define TS_LIB_TS_LEN_FROM_NAMESPACE2(x) ts_##x##_ts_len
+#define TS_LIB_TS_LEN_FROM_NAMESPACE(x) TS_LIB_TS_LEN_FROM_NAMESPACE2(x)
+
+#define TS_LIB_TS TS_LIB_TS_FROM_NAMESPACE(REIFY_GENERATED_PROJECT_NAMESPACE)
+#define TS_LIB_TS_LEN \
+  TS_LIB_TS_LEN_FROM_NAMESPACE(REIFY_GENERATED_PROJECT_NAMESPACE)
 
 namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
@@ -40,6 +50,15 @@ CompilerEnvironment::Compile(std::string_view path, std::string_view source) {
           std::get_if<TypeScriptCompiler::Error>(&transpile_results_or_error)) {
     return *error;
   }
+  const auto& results = std::get<TypeScriptCompiler::TranspileResults>(
+      transpile_results_or_error);
+  for (const auto& declaration_file : results.declaration_files) {
+    std::cout << std::endl;
+    std::cout << "declaration file path: " << declaration_file.path << std::endl
+              << std::endl;
+    std::cout << declaration_file.content << std::endl;
+    std::cout << std::endl << std::endl << std::endl;
+  }
 
   return std::shared_ptr<CompiledModule>(
       new CompiledModule(std::make_unique<CompiledModule::Impl>(
@@ -51,10 +70,10 @@ std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
 CompilerEnvironment::Impl::Compile(std::string_view path,
                                    std::string_view source) {
   std::string_view reify_ts_interface_src_str(
-      reinterpret_cast<const char*>(ts_reify_ts_interface_ts),
-      ts_reify_ts_interface_ts_len);
-  std::string_view ts_lib_reify_str(reinterpret_cast<const char*>(ts_lib_ts),
-                                    ts_lib_ts_len);
+      reinterpret_cast<const char*>(ts_reify_generated_interface_ts),
+      ts_reify_generated_interface_ts_len);
+  std::string_view ts_lib_reify_str(reinterpret_cast<const char*>(TS_LIB_TS),
+                                    TS_LIB_TS_LEN);
 
   return tsc_.TranspileToJavaScript(
       path, source,

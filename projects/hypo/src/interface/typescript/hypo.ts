@@ -214,7 +214,7 @@ export function TwistExtrudeFromZPlane(params: {
 
   return rgi.Extrude({
     source: params.source,
-    transforms: Array.from({length: params.num_slices}).map((_, slice) => {
+    transforms: [...Array(params.num_slices).keys()].map(slice => {
       const progress = slice / (params.num_slices - 1);
       return MMul443(
           Translate3([0, 0, progress * params.height]),
@@ -232,7 +232,7 @@ export function RotateExtrudeAroundZAxis(params: {
 }): rgi.Region3 {
   return rgi.Extrude({
     source: params.source,
-    transforms: Array.from({length: params.num_slices}).map((_, slice) => {
+    transforms: [...Array(params.num_slices).keys()].map(slice => {
       const progress = slice / params.num_slices;
       return MMul443(
           Rotate3Z(progress * 360), MMul443(Rotate3X(90), EmbedOnZPlane));

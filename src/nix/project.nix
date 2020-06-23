@@ -45,7 +45,7 @@ in
       # instead only their C++ header file versions are referenced.
       mkdir -p $out/src_gen/interface/ts
       cp $reifyInterfaceDefinitionFiles/*.ts $out/src_gen/interface/ts
-      cp $ts_lib_dir/lib.ts $out/src_gen/interface/ts
+      cp $ts_lib_dir/$reifyNamespace.ts $out/src_gen/interface/ts
 
       # Setup a header file that defines the customized C++ namespace for this
       # project.
@@ -54,8 +54,8 @@ in
       # Convert the TypeScript interface files to header files for inclusion
       # in the C++ binary.
       ln -s $out/src_gen/interface/ts ts
-      xxd -i ts/lib.ts > $out/src_gen/reify_interface_ts.h
-      xxd -i ts/reify_ts_interface.ts > $out/src_gen/reify_generated_interface_ts.h
+      xxd -i ts/$reifyNamespace.ts > $out/src_gen/lib_ts.h
+      xxd -i ts/reify_generated_interface.ts > $out/src_gen/reify_generated_interface_ts.h
 
       # Add the TypeScript compiler JS binary to the generated source folder.
       ln -s $reifyTscWrapper tsc_wrapper.js

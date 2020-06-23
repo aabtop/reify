@@ -1,12 +1,27 @@
+import lib_es2015_collection from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.collection.d.ts'
 import lib_es2015_core from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.core.d.ts'
+import lib_es2015_generator from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.generator.d.ts'
+import lib_es2015_iterable from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.iterable.d.ts'
+import lib_es2015_symbol from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.symbol.d.ts'
 import lib_es5 from 'raw-loader!./../node_modules/typescript/lib/lib.es5.d.ts'
-import reify_root_d_ts from 'raw-loader!./../resources/reify_root.asset.d.ts'
 import * as ts from 'typescript';
 
+const LIB_MODULES = [
+  ['/lib.es5.d.ts', lib_es5],
+  ['/lib.es2015.core.d.ts', lib_es2015_core],
+  ['/lib.es2015.symbol.d.ts', lib_es2015_symbol],
+  ['/lib.es2015.iterable.d.ts', lib_es2015_iterable],
+  ['/lib.es2015.generator.d.ts', lib_es2015_generator],
+];
+
+const LIB_SOURCE_FILES = LIB_MODULES.map(x => {
+  return ts.createSourceFile(x[0], x[1], ts.ScriptTarget.Latest);
+});
+
+// We don't make use of the default lib and instead just set it to blank.
 const defaultLibFilename = '/lib.d.ts';
-const defaultLibSourceFile = ts.createSourceFile(
-    defaultLibFilename, lib_es5 + lib_es2015_core + reify_root_d_ts,
-    ts.ScriptTarget.Latest);
+const defaultLibSourceFile =
+    ts.createSourceFile(defaultLibFilename, '', ts.ScriptTarget.Latest);
 
 export type ModuleExport = {
   symbol_name: string; type_string: string;
@@ -16,6 +31,10 @@ export type ModuleExport = {
 export type TranspilationOutput = {
   // Mapping from a JS file path to file contents.
   js_modules: {[key: string]: string};
+
+  // Mapping from declarations
+  declaration_files: {[key: string]: string};
+
   // The file path of the primary module, e.g. the transpiled input source
   // module.  This can be used to index into |js_modules| above.
   primary_module: string;
@@ -66,10 +85,11 @@ function GetDiagnosticsError(diagnostic: ts.Diagnostic): TranspileError {
 }
 
 export function TranspileModule(
-    path: string, text: string,
-    systemModules: {[key: string]: string;}): TranspileResults {
+    path: string, text: string, systemModules: {[key: string]: string;},
+    generate_declarations: boolean): TranspileResults {
   let results: TranspilationOutput = {
     js_modules: {},
+    declaration_files: {},
     primary_module: path.split('.').slice(0, -1).join('.') + '.js',
     module_exports: [],
   };
@@ -78,15 +98,28 @@ export function TranspileModule(
     [path]: ts.createSourceFile(path, text, ts.ScriptTarget.Latest),
     [defaultLibFilename]: defaultLibSourceFile,
   };
+  for (var i = 0; i < LIB_MODULES.length; ++i) {
+    sourceMap[LIB_MODULES[i][0]] = LIB_SOURCE_FILES[i];
+  }
   for (var key in systemModules) {
     sourceMap[key] =
         ts.createSourceFile(key, systemModules[key], ts.ScriptTarget.Latest);
   }
-  const options: ts.CompilerOptions = {
+
+  const DECLARATIONS_DIRECTORY = 'declarations';
+
+  let options: ts.CompilerOptions = {
     module: ts.ModuleKind.ES2015,
+    target: ts.ScriptTarget.ES2015,
+    lib: LIB_MODULES.map(x => x[0]),
     strict: true,
     noErrorTruncation: true,
   };
+  if (generate_declarations) {
+    options.declaration = generate_declarations;
+    options.declarationDir = DECLARATIONS_DIRECTORY;
+  }
+
   const host: ts.CompilerHost = {
     fileExists: filePath => {
       console.log('fileExists: ' + filePath);
@@ -119,7 +152,13 @@ export function TranspileModule(
       console.log('writeFile---');
       console.log('name: ' + name);
       console.log('text: ' + text);
-      results.js_modules[name] = text;
+      const DECLARATIONS_PREFIX = DECLARATIONS_DIRECTORY + '/';
+      if (name.startsWith(DECLARATIONS_PREFIX)) {
+        results.declaration_files[name.substring(DECLARATIONS_PREFIX.length)] =
+            text;
+      } else {
+        results.js_modules[name] = text;
+      }
     }
   };
   const program = ts.createProgram({options, rootNames: [path], host});

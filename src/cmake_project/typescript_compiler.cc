@@ -278,9 +278,10 @@ auto TypeScriptCompiler::TranspileToJavaScript(
           .ToLocalChecked();
 
   v8::Local<v8::Value> parameters[] = {
-      input_path_v8_str, input_typescript_v8_str, system_module_map};
+      input_path_v8_str, input_typescript_v8_str, system_module_map,
+      v8::Boolean::New(isolate_, false)};
   v8::Local<v8::Object> global = context->Global();
-  auto result = transpile_function->Call(context, global, 3, parameters)
+  auto result = transpile_function->Call(context, global, 4, parameters)
                     .ToLocalChecked()
                     .As<v8::Object>();
   assert(result->IsObject());
@@ -336,6 +337,33 @@ auto TypeScriptCompiler::TranspileToJavaScript(
                             .ToLocalChecked()
                             .As<v8::String>();
   return_value.primary_module = ToStdString(isolate_, primary_module);
+
+  auto declaration_files_field_name =
+      v8::String::NewFromUtf8(isolate_, "declaration_files");
+  v8::Local<v8::Object> declaration_files =
+      output->Get(context, declaration_files_field_name)
+          .ToLocalChecked()
+          .As<v8::Object>();
+  assert(declaration_files->IsObject());
+
+  v8::Local<v8::Array> declaration_file_paths =
+      declaration_files->GetOwnPropertyNames(context).ToLocalChecked();
+  for (int i = 0; i < declaration_file_paths->Length(); ++i) {
+    auto declaration_file_path = declaration_file_paths->Get(context, i)
+                                     .ToLocalChecked()
+                                     .As<v8::String>();
+    std::string declaration_file_path_str =
+        ToStdString(isolate_, declaration_file_path);
+    auto declaration_file_contents =
+        declaration_files->Get(context, declaration_file_path)
+            .ToLocalChecked()
+            .As<v8::String>();
+    std::string declaration_file_conents_str =
+        ToStdString(isolate_, declaration_file_contents);
+    return_value.declaration_files.push_back(
+        {.path = declaration_file_path_str,
+         .content = declaration_file_conents_str});
+  }
 
   auto js_modules_field_name = v8::String::NewFromUtf8(isolate_, "js_modules");
   v8::Local<v8::Object> js_modules = output->Get(context, js_modules_field_name)

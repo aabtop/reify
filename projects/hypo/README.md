@@ -110,7 +110,7 @@ Other examples can be found in the [example_scripts](./src/example_scripts) dire
 
 ## Implementation Details
 
-The core interface types for Hypo are defined in [ReifyInputInterface.hs](./src/interface/ReifyInputInterface.hs).  In addition to the core types defined there, a pure-TypeScript layer of convenience functionality is provided as well in [lib.ts](./src/interface/typescript/lib.ts).
+The core interface types for Hypo are defined in [ReifyInputInterface.hs](./src/interface/ReifyInputInterface.hs).  In addition to the core types defined there, a pure-TypeScript layer of convenience functionality is provided as well in [hypo.ts](./src/interface/typescript/hypo.ts).
 
 ## Building
 

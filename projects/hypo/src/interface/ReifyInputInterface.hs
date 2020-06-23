@@ -111,8 +111,8 @@ idt =
 namespace :: String
 namespace = "hypo"
 
--- The directory containing a "lib.ts" file which defines the interface.
--- Within this file one may import reify_generated_interface to access the
+-- The directory containing typescript files which defines the interface.
+-- Within these files one may import reify_generated_interface to access the
 -- TypeScript types generated from the definition of |idt| above.
 typescriptLibDir :: String
 typescriptLibDir = "./typescript"

@@ -45,9 +45,11 @@ class TypeScriptCompiler {
   struct TranspileResults {
     std::string primary_module;
     std::vector<Module> modules;
+    std::vector<Module> declaration_files;
 
     // Symbols exported from the primary module.
     std::vector<ExportedSymbol> exported_symbols;
+
     const Module* LookupPath(const std::string& path) const;
     const Module& GetPrimaryModule() const {
       return *LookupPath(primary_module);

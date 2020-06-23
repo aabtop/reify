@@ -139,17 +139,20 @@ namedTypeDefinition t = case t of
 
 preamble =
   "\
-\interface __KindObject {\
-\  __kind: string;\
-\}\
-\\
-\function withKind<T extends object>(x: T, kind: string): T & __KindObject {\
-\  if (x.hasOwnProperty('__kind')) {\
-\    return x as T & __KindObject;\
-\  } else {\
-\    return Object.assign({__kind: kind}, x);\
-\  }\
-\}"
+\declare function withInternalField(x: Object): Object;\n\
+\\n\
+\interface __KindObject {\n\
+\  __kind: string;\n\
+\}\n\
+\\n\
+\function withKind<T extends object>(x: T, kind: string): T & __KindObject {\n\
+\  if (x.hasOwnProperty('__kind')) {\n\
+\    return x as T & __KindObject;\n\
+\  } else {\n\
+\    return Object.assign({__kind: kind}, x);\n\
+\  }\n\
+\}\n\
+\\n"
 
 toTypeScriptSourceCode :: DeclarationSequence -> String
 toTypeScriptSourceCode decls =
