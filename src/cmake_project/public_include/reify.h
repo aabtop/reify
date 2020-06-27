@@ -176,6 +176,12 @@ class CompilerEnvironment {
   std::variant<CompileError, std::shared_ptr<CompiledModule>> Compile(
       std::string_view path, std::string_view source);
 
+  struct DeclarationFile {
+    std::string filepath;
+    std::string content;
+  };
+  std::vector<DeclarationFile> GetDeclarationFiles();
+
  private:
   class Impl;
   std::unique_ptr<Impl> impl_;
@@ -202,6 +208,6 @@ namespace WITH_V8(REIFY_GENERATED_PROJECT_NAMESPACE) {
       return hypo_v8::TypeMatchesTypeScriptString<R>::Result(return_value);
     }
   };
-}  // namespace WITH_V8(REIFY_GENERATED_PROJECT_NAMESPACE)
+}  // namespace )
 
 #endif  // _REIFY_REIFY_H_

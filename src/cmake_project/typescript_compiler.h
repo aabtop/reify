@@ -40,6 +40,7 @@ class TypeScriptCompiler {
 
   struct CompileOptions {
     std::vector<InputModule> system_modules;
+    bool generate_declaration_files;
   };
 
   struct TranspileResults {

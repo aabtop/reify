@@ -1,4 +1,5 @@
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -74,6 +75,7 @@ std::optional<CallAndExportResults> CallFunctionAndExportOutput(
        .output_filepath = results->output_filepath});
 }
 
+// A non-templated wrapper function around CallFunctionAndExportOutput().
 std::optional<CallAndExportResults> BuildOutputAndSaveToFile(
     hypo::reify::RuntimeEnvironment* runtime_env,
     const hypo::reify::CompiledModule::ExportedSymbol* entry_point_function,
@@ -114,13 +116,44 @@ void PrintResultsInformation(std::ostream& out, microseconds compile_time,
       << duration_cast<milliseconds>(results.export_time).count() << "ms"
       << std::endl;
 }
+
+int DumpDeclarationFiles(const std::filesystem::path& declarations_dir,
+                         hypo::reify::CompilerEnvironment* compile_env) {
+  std::vector<hypo::reify::CompilerEnvironment::DeclarationFile>
+      declaration_files = compile_env->GetDeclarationFiles();
+
+  std::filesystem::create_directories(declarations_dir);
+  for (const auto& declaration_file : declaration_files) {
+    auto full_path(declarations_dir / declaration_file.filepath);
+    std::ofstream fout(full_path);
+    if (fout.fail()) {
+      std::cerr << "Error opening " << full_path << "." << std::endl;
+      return 1;
+    }
+    fout.write(declaration_file.content.data(),
+               declaration_file.content.size());
+    if (fout.fail()) {
+      std::cerr << "Error writing to " << full_path << "." << std::endl;
+      return 1;
+    }
+    std::cout << "Created " << full_path << "." << std::endl;
+  }
+
+  return 0;
+}
+
+void PrintUsage(const char* argv0) {
+  std::cerr << "USAGE:" << std::endl
+            << argv0 << std::endl
+            << "  [--declaration_files_dir=DECLARATIONS_DIR]" << std::endl
+            << "  INPUT_FILE FUNCTION_NAME OUTPUT_FILE_WITHOUT_EXTENSION"
+            << std::endl;
+}
 }  // namespace
 
 int main(int argc, char* argv[]) {
-  if (argc < 4) {
-    std::cerr << "USAGE: " << argv[0]
-              << " INPUT_FILE FUNCTION_NAME OUTPUT_FILE_WITHOUT_EXTENSION"
-              << std::endl;
+  if (argc < 2) {
+    PrintUsage(argv[0]);
     return 1;
   }
 
@@ -129,16 +162,34 @@ int main(int argc, char* argv[]) {
   // Setup a TypeScript compiler environment.
   hypo::reify::CompilerEnvironment compile_env;
 
+  // Check if the user is just requesting that we dump out the TypeScript
+  // declaration files.  This is a useful operation if one is attempting to
+  // setup a Hypo development environment.
+  std::string first_parameter = argv[1];
+  const std::string DECLARATION_OUT_DIR_SWITCH = "--declaration_out_dir=";
+  if (first_parameter.find(DECLARATION_OUT_DIR_SWITCH) == 0) {
+    std::string declarations_dir =
+        first_parameter.substr(DECLARATION_OUT_DIR_SWITCH.size());
+
+    return DumpDeclarationFiles(declarations_dir, &compile_env);
+  }
+
+  // Okay the user doesn't just want to dump declaration files out.
+  if (argc < 4) {
+    PrintUsage(argv[0]);
+    return 1;
+  }
+
   // Load the contents of the referenced input file into memory.
-  auto input_file = LoadFile(argv[1]);
+  auto input_file = LoadFile(first_parameter.c_str());
   if (!input_file) {
-    std::cerr << "Error loading file '" << argv[1] << "'." << std::endl;
+    std::cerr << "Error loading file '" << first_parameter << "'." << std::endl;
     return 1;
   }
 
   // Compile the contents of the user's script in memory and check if there were
   // any errors.
-  auto module_or_error = compile_env.Compile(argv[1], *input_file);
+  auto module_or_error = compile_env.Compile(first_parameter, *input_file);
   if (auto error = std::get_if<0>(&module_or_error)) {
     std::cerr << "Error compiling TypeScript:" << std::endl;
     std::cerr << error->path << ":" << error->line + 1 << ":"

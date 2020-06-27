@@ -32,8 +32,12 @@ class CompilerEnvironment::Impl {
                  ? TypeScriptCompiler::SnapshotOptions::kNoSnapshot
                  : TypeScriptCompiler::SnapshotOptions::kCacheSnapshot) {}
 
+  enum class GenerateDeclarationFiles { Yes, No };
   std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
-  Compile(std::string_view path, std::string_view source);
+  Compile(std::string_view path, std::string_view source,
+          GenerateDeclarationFiles generate_declaration_files);
+
+  std::vector<DeclarationFile> GetDeclarationFiles();
 
  private:
   TypeScriptCompiler tsc_;
@@ -45,19 +49,11 @@ CompilerEnvironment::~CompilerEnvironment() {}
 
 std::variant<CompileError, std::shared_ptr<CompiledModule>>
 CompilerEnvironment::Compile(std::string_view path, std::string_view source) {
-  auto transpile_results_or_error = impl_->Compile(path, source);
+  auto transpile_results_or_error =
+      impl_->Compile(path, source, Impl::GenerateDeclarationFiles::No);
   if (auto error =
           std::get_if<TypeScriptCompiler::Error>(&transpile_results_or_error)) {
     return *error;
-  }
-  const auto& results = std::get<TypeScriptCompiler::TranspileResults>(
-      transpile_results_or_error);
-  for (const auto& declaration_file : results.declaration_files) {
-    std::cout << std::endl;
-    std::cout << "declaration file path: " << declaration_file.path << std::endl
-              << std::endl;
-    std::cout << declaration_file.content << std::endl;
-    std::cout << std::endl << std::endl << std::endl;
   }
 
   return std::shared_ptr<CompiledModule>(
@@ -66,21 +62,55 @@ CompilerEnvironment::Compile(std::string_view path, std::string_view source) {
               transpile_results_or_error)))));
 }
 
-std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
-CompilerEnvironment::Impl::Compile(std::string_view path,
-                                   std::string_view source) {
-  std::string_view reify_ts_interface_src_str(
-      reinterpret_cast<const char*>(ts_reify_generated_interface_ts),
-      ts_reify_generated_interface_ts_len);
-  std::string_view ts_lib_reify_str(reinterpret_cast<const char*>(TS_LIB_TS),
-                                    TS_LIB_TS_LEN);
+std::vector<CompilerEnvironment::DeclarationFile>
+CompilerEnvironment::GetDeclarationFiles() {
+  return impl_->GetDeclarationFiles();
+}
 
+namespace {
+const TypeScriptCompiler::InputModule REIFY_GENERATED_INTERFACE_MODULE = {
+    "/reify_generated_interface.ts",
+    std::string_view(
+        reinterpret_cast<const char*>(ts_reify_generated_interface_ts),
+        ts_reify_generated_interface_ts_len)};
+const TypeScriptCompiler::InputModule LIB_INTERFACE_MODULE = {
+    "/" xstr(REIFY_GENERATED_PROJECT_NAMESPACE) ".ts",
+    std::string_view(reinterpret_cast<const char*>(TS_LIB_TS), TS_LIB_TS_LEN)};
+
+}  // namespace
+
+std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
+CompilerEnvironment::Impl::Compile(
+    std::string_view path, std::string_view source,
+    GenerateDeclarationFiles generate_declaration_files) {
   return tsc_.TranspileToJavaScript(
       path, source,
-      {.system_modules = {
-           {"/reify_generated_interface.ts", reify_ts_interface_src_str},
-           {"/" xstr(REIFY_GENERATED_PROJECT_NAMESPACE) ".ts",
-            ts_lib_reify_str}}});
+      {.system_modules = {REIFY_GENERATED_INTERFACE_MODULE,
+                          LIB_INTERFACE_MODULE},
+       .generate_declaration_files =
+           (generate_declaration_files == GenerateDeclarationFiles::Yes)});
+}
+
+std::vector<CompilerEnvironment::DeclarationFile>
+CompilerEnvironment::Impl::GetDeclarationFiles() {
+  auto transpile_results_or_error =
+      Compile(LIB_INTERFACE_MODULE.path, LIB_INTERFACE_MODULE.content,
+              GenerateDeclarationFiles::Yes);
+  if (auto error =
+          std::get_if<TypeScriptCompiler::Error>(&transpile_results_or_error)) {
+    assert(false);
+  }
+
+  auto transpile_results = std::get<TypeScriptCompiler::TranspileResults>(
+      transpile_results_or_error);
+
+  std::vector<DeclarationFile> declarations;
+  declarations.reserve(transpile_results.declaration_files.size());
+  for (auto& declaration : transpile_results.declaration_files) {
+    declarations.push_back({.filepath = std::move(declaration.path),
+                            .content = std::move(declaration.content)});
+  }
+  return declarations;
 }
 
 }  // namespace reify

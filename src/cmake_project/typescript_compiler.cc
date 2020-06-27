@@ -279,7 +279,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
 
   v8::Local<v8::Value> parameters[] = {
       input_path_v8_str, input_typescript_v8_str, system_module_map,
-      v8::Boolean::New(isolate_, false)};
+      v8::Boolean::New(isolate_, options.generate_declaration_files)};
   v8::Local<v8::Object> global = context->Global();
   auto result = transpile_function->Call(context, global, 4, parameters)
                     .ToLocalChecked()
