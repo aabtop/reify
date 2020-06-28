@@ -150,7 +150,8 @@ bool CompilerEnvironment::Impl::CreateWorkspaceDirectory(
       transpile_results_or_error);
 
   for (auto& declaration : transpile_results.declaration_files) {
-    if (!WriteToFile(declaration.path, declaration.content)) {
+    if (!WriteToFile(declarations_directory / declaration.path,
+                     declaration.content)) {
       return false;
     }
   }
