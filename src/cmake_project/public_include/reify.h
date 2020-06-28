@@ -2,6 +2,7 @@
 #define _REIFY_REIFY_H_
 
 #include <cassert>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -176,11 +177,12 @@ class CompilerEnvironment {
   std::variant<CompileError, std::shared_ptr<CompiledModule>> Compile(
       std::string_view path, std::string_view source);
 
-  struct DeclarationFile {
-    std::string filepath;
-    std::string content;
-  };
-  std::vector<DeclarationFile> GetDeclarationFiles();
+  // Creates a directory at the specified path containing the root of a
+  // TypeScript project setup to recognize the Reify types.  For example,
+  // it will create a `tsconfig.json` file as well as a directory containing
+  // the `.d.ts` TypeScript declaration files.
+  // Returns true on success and false on failure.
+  bool CreateWorkspaceDirectory(const std::filesystem::path& out_dir_path);
 
  private:
   class Impl;

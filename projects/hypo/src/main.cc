@@ -117,35 +117,10 @@ void PrintResultsInformation(std::ostream& out, microseconds compile_time,
       << std::endl;
 }
 
-int DumpDeclarationFiles(const std::filesystem::path& declarations_dir,
-                         hypo::reify::CompilerEnvironment* compile_env) {
-  std::vector<hypo::reify::CompilerEnvironment::DeclarationFile>
-      declaration_files = compile_env->GetDeclarationFiles();
-
-  std::filesystem::create_directories(declarations_dir);
-  for (const auto& declaration_file : declaration_files) {
-    auto full_path(declarations_dir / declaration_file.filepath);
-    std::ofstream fout(full_path);
-    if (fout.fail()) {
-      std::cerr << "Error opening " << full_path << "." << std::endl;
-      return 1;
-    }
-    fout.write(declaration_file.content.data(),
-               declaration_file.content.size());
-    if (fout.fail()) {
-      std::cerr << "Error writing to " << full_path << "." << std::endl;
-      return 1;
-    }
-    std::cout << "Created " << full_path << "." << std::endl;
-  }
-
-  return 0;
-}
-
 void PrintUsage(const char* argv0) {
   std::cerr << "USAGE:" << std::endl
             << argv0 << std::endl
-            << "  [--declaration_files_dir=DECLARATIONS_DIR]" << std::endl
+            << "  [--make_workspace_dir=DECLARATIONS_DIR]" << std::endl
             << "  INPUT_FILE FUNCTION_NAME OUTPUT_FILE_WITHOUT_EXTENSION"
             << std::endl;
 }
@@ -163,15 +138,15 @@ int main(int argc, char* argv[]) {
   hypo::reify::CompilerEnvironment compile_env;
 
   // Check if the user is just requesting that we dump out the TypeScript
-  // declaration files.  This is a useful operation if one is attempting to
-  // setup a Hypo development environment.
+  // declaration and other workspace setup files.  This is a useful operation if
+  // one is attempting to setup a Hypo development environment.
   std::string first_parameter = argv[1];
-  const std::string DECLARATION_OUT_DIR_SWITCH = "--declaration_out_dir=";
-  if (first_parameter.find(DECLARATION_OUT_DIR_SWITCH) == 0) {
-    std::string declarations_dir =
-        first_parameter.substr(DECLARATION_OUT_DIR_SWITCH.size());
+  const std::string MAKE_WORKSPACE_DIR_SWITCH = "--make_workspace_dir=";
+  if (first_parameter.find(MAKE_WORKSPACE_DIR_SWITCH) == 0) {
+    std::string make_workspace_dir =
+        first_parameter.substr(MAKE_WORKSPACE_DIR_SWITCH.size());
 
-    return DumpDeclarationFiles(declarations_dir, &compile_env);
+    return compile_env.CreateWorkspaceDirectory(make_workspace_dir) ? 0 : 1;
   }
 
   // Okay the user doesn't just want to dump declaration files out.
