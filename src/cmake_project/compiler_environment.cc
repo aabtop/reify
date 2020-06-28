@@ -133,12 +133,14 @@ bool CompilerEnvironment::Impl::CreateWorkspaceDirectory(
     assert(false);
   }
 
-  if (!std::filesystem::create_directories(out_dir_path)) {
+  std::filesystem::create_directories(out_dir_path);
+  if (!std::filesystem::directory_entry(out_dir_path).exists()) {
     std::cerr << "Error creating directory " << out_dir_path << std::endl;
     return false;
   }
   const auto declarations_directory = out_dir_path / "declarations";
-  if (!std::filesystem::create_directories(declarations_directory)) {
+  std::filesystem::create_directories(declarations_directory);
+  if (!std::filesystem::directory_entry(declarations_directory).exists()) {
     std::cerr << "Error creating declarations directory "
               << declarations_directory << std::endl;
     return false;
