@@ -49,5 +49,5 @@
     "source=hypo-pg-vscode-extensions,target=/root/.vscode-server/extensions,type=volume",
     "source=hypo-pg-bashhistory,target=/commandhistory,type=volume",
   ],
-  "postCreateCommand": "nohup http-server -c-1 -a 127.0.0.1 &",
+  "postCreateCommand": "(nohup http-server -c-1 -a 127.0.0.1 &) && hypo --make_workspace_dir=/workspace",
 }

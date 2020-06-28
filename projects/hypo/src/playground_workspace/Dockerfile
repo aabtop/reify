@@ -5,14 +5,11 @@ LABEL description="Playground for building Hypo projects."
 
 # Install some basic tools to enable us to get nix installed.
 #RUN apt-get update --fix-missing && apt-get -y install \
-RUN apt-get update --fix-missing
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
-    curl perl sudo locales bzip2 bash xz-utils git wget vim man jq npm
-
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
-    clang-format
-
-RUN apt-get clean && apt-get purge && apt-get autoremove --purge -y && \
+RUN apt-get update --fix-missing && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y install \
+        curl perl sudo locales bzip2 bash xz-utils git wget vim man jq npm \
+        clang-format && \
+    apt-get clean && apt-get purge && apt-get autoremove --purge -y && \
     rm -rf /var/lib/apt/lists/*
 
 # Install the TypeScript compiler globally so that it's available to VS Code
@@ -30,7 +27,7 @@ RUN echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >
 
 # Download the latest release of Hypo.
 RUN cd /usr/bin \
-    && curl -L https://github.com/aabtop/reify/releases/download/v0.1.2/hypo_v0-1-2_x86-64.gz \
+    && curl -L https://github.com/aabtop/reify/releases/download/v0.1.3/hypo_v0-1-3_x86-64.gz \
     | gunzip -c > hypo \
     && chmod +x hypo
 
