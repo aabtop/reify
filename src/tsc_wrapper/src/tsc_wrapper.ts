@@ -6,6 +6,21 @@ import lib_es2015_symbol from 'raw-loader!./../node_modules/typescript/lib/lib.e
 import lib_es5 from 'raw-loader!./../node_modules/typescript/lib/lib.es5.d.ts'
 import * as ts from 'typescript';
 
+// Injected by the embedder.
+declare function externalGetSourceFile(path: string): string;
+declare function externalFileExists(path: string): boolean;
+
+function getSystemFileContent(
+    sourceMap: {[key: string]: ts.SourceFile}, path: string): ts.SourceFile|
+    null {
+  const trimmedPath = path.trim();
+  if (trimmedPath in sourceMap) {
+    return sourceMap[trimmedPath];
+  } else {
+    return null;
+  }
+}
+
 const LIB_MODULES = [
   ['/lib.es5.d.ts', lib_es5],
   ['/lib.es2015.core.d.ts', lib_es2015_core],
@@ -94,8 +109,8 @@ export function TranspileModule(
     module_exports: [],
   };
 
+  let input_source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest);
   let sourceMap: {[key: string]: ts.SourceFile} = {
-    [path]: ts.createSourceFile(path, text, ts.ScriptTarget.Latest),
     [defaultLibFilename]: defaultLibSourceFile,
   };
   for (var i = 0; i < LIB_MODULES.length; ++i) {
@@ -114,6 +129,7 @@ export function TranspileModule(
     lib: LIB_MODULES.map(x => x[0]),
     strict: true,
     noErrorTruncation: true,
+    baseUrl: '/',
   };
   if (generate_declarations) {
     options.declaration = generate_declarations;
@@ -122,42 +138,41 @@ export function TranspileModule(
 
   const host: ts.CompilerHost = {
     fileExists: filePath => {
-      console.log('fileExists: ' + filePath);
-      return filePath in sourceMap;
+      return (getSystemFileContent(sourceMap, filePath) != null) ||
+          filePath.trim() === path.trim() ||
+          externalFileExists(filePath.trim());
     },
-    directoryExists: dirPath => {
-      console.log('directoryExists: ' + dirPath);
-      // return true;
-      return dirPath === '/';
-    },
+    directoryExists: dirPath => true,
     getCurrentDirectory: () => '/',
     getDirectories: path => {
-      console.log('getDirectories: ' + path);
       return [];
     },
     getCanonicalFileName: fileName => fileName,
     getNewLine: () => '\n',
     getDefaultLibFileName: () => defaultLibFilename,
     getSourceFile: filePath => {
-      console.log('getSourceFile: ' + filePath);
-      console.log('found: ' + filePath in sourceMap)
-      return sourceMap[filePath];
+      const systemContent = getSystemFileContent(sourceMap, filePath);
+      if (systemContent != null) {
+        return systemContent;
+      } else if (filePath.trim() === path.trim()) {
+        return input_source;
+      } else {
+        return ts.createSourceFile(
+            filePath, externalGetSourceFile(filePath.trim()),
+            ts.ScriptTarget.Latest);
+      }
     },
     readFile: filePath => {
-      console.log('readFile: ' + filePath);
       return undefined;
     },
     useCaseSensitiveFileNames: () => true,
-    writeFile: (name, text) => {
-      console.log('writeFile---');
-      console.log('name: ' + name);
-      console.log('text: ' + text);
+    writeFile: (name, contents) => {
       const DECLARATIONS_PREFIX = DECLARATIONS_DIRECTORY + '/';
       if (name.startsWith(DECLARATIONS_PREFIX)) {
         results.declaration_files[name.substring(DECLARATIONS_PREFIX.length)] =
-            text;
+            contents;
       } else {
-        results.js_modules[name] = text;
+        results.js_modules[name] = contents;
       }
     }
   };
@@ -165,7 +180,6 @@ export function TranspileModule(
 
   let diagnostics = ts.getPreEmitDiagnostics(program);
   if (diagnostics.length > 0) {
-    console.log(diagnostics[0]);
     let message = '';
     return {
       success: false,

@@ -60,7 +60,8 @@ class TypeScriptCompiler {
   using Error = CompileError;
 
   std::variant<TranspileResults, Error> TranspileToJavaScript(
-      std::string_view input_path, std::string_view input_typescript,
+      const std::filesystem::path& input_path,
+      std::string_view input_typescript,
       const CompileOptions& options = CompileOptions());
 
  private:

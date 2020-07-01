@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string_view>
+#include <vector>
 
 #include "compiled_module_impl.h"
 #include "context_environment.h"
@@ -11,6 +12,7 @@ namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 namespace {
+
 std::string ToStdString(v8::Isolate* isolate, const v8::Local<v8::Value> str) {
   v8::String::Utf8Value utf8_kind_value(isolate, str.template As<v8::String>());
 
@@ -44,26 +46,43 @@ v8::MaybeLocal<v8::Module> InstantiateModule(
     return v8::MaybeLocal<v8::Module>();
   }
 
-  if (v8_module->InstantiateModule(context, &ResolveModuleCallback)
-          .IsNothing()) {
-    return v8::MaybeLocal<v8::Module>();  //
+  const auto context_environment = reinterpret_cast<ContextEnvironment*>(
+      context->GetAlignedPointerFromEmbedderData(1));
+
+  context_environment->source_file_import_stack.push_back(&module.path);
+  bool failed =
+      v8_module->InstantiateModule(context, &ResolveModuleCallback).IsNothing();
+  context_environment->source_file_import_stack.pop_back();
+
+  if (failed) {
+    return v8::MaybeLocal<v8::Module>();
   }
 
   return v8_module;
-}
+}  // namespace
 
 v8::MaybeLocal<v8::Module> ResolveModuleCallback(
     v8::Local<v8::Context> context, v8::Local<v8::String> specifier,
     v8::Local<v8::Module> referrer) {
+  const auto context_environment = reinterpret_cast<ContextEnvironment*>(
+      context->GetAlignedPointerFromEmbedderData(1));
   const auto transpile_results =
-      reinterpret_cast<ContextEnvironment*>(
-          context->GetAlignedPointerFromEmbedderData(1))
-          ->compiled_module->impl()
-          ->transpile_results();
+      context_environment->compiled_module->impl()->transpile_results();
 
   std::string specifier_as_str = ToStdString(context->GetIsolate(), specifier);
 
-  auto module = transpile_results.LookupPath("/" + specifier_as_str + ".js");
+  const TypeScriptCompiler::Module* module;
+
+  if (!specifier_as_str.empty() && specifier_as_str[0] == '.') {
+    auto importer_directory =
+        std::filesystem::path(
+            *context_environment->source_file_import_stack.back())
+            .parent_path();
+    module = transpile_results.LookupPath(
+        (importer_directory / (specifier_as_str + ".js")).lexically_normal());
+  } else {
+    module = transpile_results.LookupPath("/" + specifier_as_str + ".js");
+  }
 
   if (!module) {
     std::string error_str =

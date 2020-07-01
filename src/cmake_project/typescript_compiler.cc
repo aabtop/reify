@@ -40,6 +40,126 @@ std::filesystem::path GetCacheFilePath() {
   std::filesystem::path hypo_cache_dir(home_dir / ".cache/hypo");
   return hypo_cache_dir / "typescript_compiler_v8_snapshot";
 }
+
+struct TranspileContextEnvironment {
+  std::filesystem::path project_root_dir;
+};
+
+std::filesystem::path GetProjectRoot(v8::Isolate* isolate) {
+  return reinterpret_cast<TranspileContextEnvironment*>(
+             isolate->GetCurrentContext()->GetAlignedPointerFromEmbedderData(1))
+      ->project_root_dir;
+}
+
+// Used to represent a filepath from the TypeScript compiler's perspective.
+std::optional<std::filesystem::path> GetSafeProjectPath(
+    v8::Isolate* isolate, const std::filesystem::path& file_path) {
+  auto project_root = GetProjectRoot(isolate);
+
+  assert(project_root.is_absolute());
+  assert(project_root.is_absolute());
+
+  auto [project_root_end, nothing] = std::mismatch(
+      project_root.begin(), project_root.end(), file_path.begin());
+
+  if (project_root_end != project_root.end()) {
+    // This file folder is outside of the project root, so we will refuse to
+    // open it.
+    return std::nullopt;
+  }
+
+  return file_path;
+}
+
+namespace injected_functions {
+void GetSourceFile(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate* isolate = args.GetIsolate();
+  v8::HandleScope handle_scope(isolate);
+
+  if (args.Length() < 1 || !args[0]->IsString()) {
+    isolate->ThrowException(v8::String::NewFromUtf8(
+        isolate, "Expected a string for the first argument."));
+    return;
+  }
+
+  std::filesystem::path file_path = ToStdString(isolate, args[0]);
+
+  auto safe_absolute_path = GetSafeProjectPath(isolate, file_path);
+  if (!safe_absolute_path) {
+    isolate->ThrowException(v8::String::NewFromUtf8(
+        isolate,
+        ("Error reading data from " + std::string(file_path) + ".").c_str()));
+    return;
+  }
+
+  std::ifstream fin(*safe_absolute_path, std::ios::ate);
+  if (fin.fail()) {
+    isolate->ThrowException(v8::String::NewFromUtf8(
+        isolate,
+        ("Error opening file " + std::string(file_path) + ".").c_str()));
+  }
+
+  size_t file_size = fin.tellg();
+  fin.seekg(0, std::ios::beg);
+
+  auto source_content = std::unique_ptr<char[]>(new char[file_size]);
+  if (!fin.read(source_content.get(), file_size)) {
+    isolate->ThrowException(v8::String::NewFromUtf8(
+        isolate,
+        ("Error reading data from " + std::string(file_path) + ".").c_str()));
+    return;
+  }
+
+  v8::Local<v8::String> source_content_v8;
+  if (!v8::String::NewFromUtf8(isolate, source_content.get(),
+                               v8::NewStringType::kNormal, file_size)
+           .ToLocal(&source_content_v8)) {
+    // Let the exception pass through.
+    return;
+  }
+
+  args.GetReturnValue().Set(source_content_v8);
+}
+
+void FileExists(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate* isolate = args.GetIsolate();
+  v8::HandleScope handle_scope(isolate);
+
+  if (args.Length() < 1 || !args[0]->IsString()) {
+    isolate->ThrowException(v8::String::NewFromUtf8(
+        isolate, "Expected a string for the first argument."));
+    return;
+  }
+
+  std::filesystem::path file_path = ToStdString(isolate, args[0]);
+
+  auto safe_absolute_path = GetSafeProjectPath(isolate, file_path);
+  if (!safe_absolute_path) {
+    args.GetReturnValue().Set(v8::Boolean::New(isolate, false));
+    return;
+  }
+
+  bool file_exists = std::filesystem::exists(*safe_absolute_path) &&
+                     !std::filesystem::is_directory(*safe_absolute_path);
+  args.GetReturnValue().Set(v8::Boolean::New(isolate, file_exists));
+}
+
+}  // namespace injected_functions
+
+// Setup all of the functions for injection into the JavaScript environment.
+v8::Local<v8::ObjectTemplate> CreateGlobalTemplate(v8::Isolate* isolate) {
+  v8::Local<v8::ObjectTemplate> global_template =
+      v8::ObjectTemplate::New(isolate);
+
+  global_template->Set(
+      isolate, "externalGetSourceFile",
+      v8::FunctionTemplate::New(isolate, injected_functions::GetSourceFile));
+  global_template->Set(
+      isolate, "externalFileExists",
+      v8::FunctionTemplate::New(isolate, injected_functions::FileExists));
+
+  return global_template;
+}
 }  // namespace
 
 bool TypeScriptCompiler::LoadIsolateFromSnapshot() {
@@ -71,7 +191,8 @@ bool TypeScriptCompiler::LoadIsolateFromSnapshot() {
   v8::Isolate::Scope isolate_scope(isolate_);
   v8::HandleScope handle_scope(isolate_);
 
-  context_.Reset(isolate_, v8::Context::New(isolate_));
+  context_.Reset(isolate_, v8::Context::New(isolate_, nullptr,
+                                            CreateGlobalTemplate(isolate_)));
 
   return true;
 }
@@ -116,7 +237,8 @@ void TypeScriptCompiler::InitializeIsolateWithoutSnapshot() {
 v8::Local<v8::Context> TypeScriptCompiler::InitializeIsolate(
     v8::Isolate* isolate, v8::SnapshotCreator* snapshot_creator) {
   // Create a new context.
-  v8::Local<v8::Context> context = v8::Context::New(isolate);
+  v8::Local<v8::Context> context =
+      v8::Context::New(isolate, nullptr, CreateGlobalTemplate(isolate));
 
   // Enter the context for compiling and running the hello world script.
   v8::Context::Scope context_scope(context);
@@ -253,7 +375,7 @@ v8::Local<v8::Object> CreateSystemModuleMap(
 }  // namespace
 
 auto TypeScriptCompiler::TranspileToJavaScript(
-    std::string_view input_path, std::string_view input_typescript,
+    const std::filesystem::path& input_path, std::string_view input_typescript,
     const CompileOptions& options) -> std::variant<TranspileResults, Error> {
   v8::Isolate::Scope isolate_scope(isolate_);
   v8::HandleScope handle_scope(isolate_);
@@ -267,9 +389,12 @@ auto TypeScriptCompiler::TranspileToJavaScript(
   auto transpile_function =
       v8::Local<v8::Function>::New(isolate_, transpile_function_);
 
+  std::filesystem::path input_filename =
+      std::filesystem::canonical(input_path.lexically_normal()).string();
   auto input_path_v8_str =
-      v8::String::NewFromUtf8(isolate_, input_path.data(),
-                              v8::NewStringType::kNormal, input_path.size())
+      v8::String::NewFromUtf8(isolate_, input_filename.string().data(),
+                              v8::NewStringType::kNormal,
+                              input_filename.string().size())
           .ToLocalChecked();
   auto input_typescript_v8_str =
       v8::String::NewFromUtf8(isolate_, input_typescript.data(),
@@ -277,14 +402,31 @@ auto TypeScriptCompiler::TranspileToJavaScript(
                               input_typescript.size())
           .ToLocalChecked();
 
+  TranspileContextEnvironment context_environment{
+      .project_root_dir = std::filesystem::canonical(
+          input_path.parent_path().lexically_normal())};
+  context->SetAlignedPointerInEmbedderData(1, &context_environment);
+
   v8::Local<v8::Value> parameters[] = {
       input_path_v8_str, input_typescript_v8_str, system_module_map,
       v8::Boolean::New(isolate_, options.generate_declaration_files)};
   v8::Local<v8::Object> global = context->Global();
-  auto result = transpile_function->Call(context, global, 4, parameters)
-                    .ToLocalChecked()
-                    .As<v8::Object>();
-  assert(result->IsObject());
+  v8::Local<v8::Value> call_return_value;
+  if (!transpile_function->Call(context, global, 4, parameters)
+           .ToLocal(&call_return_value) ||
+      !call_return_value->IsObject()) {
+    context->SetAlignedPointerInEmbedderData(1, nullptr);
+    return Error{
+        .path = input_path,
+        .line = 0,
+        .column = 0,
+        .message = ToStdString(isolate_, try_catch.Exception()),
+    };
+  }
+
+  v8::Local<v8::Object> result = call_return_value.As<v8::Object>();
+
+  context->SetAlignedPointerInEmbedderData(1, nullptr);
 
   auto success_field_name = v8::String::NewFromUtf8(isolate_, "success");
   v8::Local<v8::Boolean> success = result->Get(context, success_field_name)
