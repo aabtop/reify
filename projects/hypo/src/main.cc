@@ -134,9 +134,6 @@ int main(int argc, char* argv[]) {
 
   high_resolution_clock::time_point start_time = high_resolution_clock::now();
 
-  // Setup a TypeScript compiler environment.
-  hypo::reify::CompilerEnvironment compile_env;
-
   // Check if the user is just requesting that we dump out the TypeScript
   // declaration and other workspace setup files.  This is a useful operation if
   // one is attempting to setup a Hypo development environment.
@@ -146,8 +143,32 @@ int main(int argc, char* argv[]) {
     std::string make_workspace_dir =
         first_parameter.substr(MAKE_WORKSPACE_DIR_SWITCH.size());
 
-    return compile_env.CreateWorkspaceDirectory(make_workspace_dir) ? 0 : 1;
+    return hypo::reify::CompilerEnvironment::CreateWorkspaceDirectory(
+               make_workspace_dir)
+               ? 0
+               : 1;
   }
+
+  const std::filesystem::path input_source_file(first_parameter);
+  if (!std::filesystem::exists(input_source_file)) {
+    std::cerr << "Input file " << input_source_file << " does not exist."
+              << std::endl;
+    return 1;
+  }
+
+  // Setup a "chroot" filesystem for module loading based on the directory of
+  // the input source file.
+  auto absolute_input_source_file =
+      std::filesystem::absolute(input_source_file);
+  auto absolute_input_source_dir = absolute_input_source_file.parent_path();
+
+  hypo::reify::MountedHostFolderFilesystem virtual_filesystem(
+      absolute_input_source_dir);
+  std::string virtual_input_source_path =
+      *virtual_filesystem.HostPathToVirtualPath(absolute_input_source_file);
+
+  // Setup a TypeScript compiler environment.
+  hypo::reify::CompilerEnvironment compile_env(&virtual_filesystem);
 
   // Okay the user doesn't just want to dump declaration files out.
   if (argc < 4) {
@@ -155,16 +176,9 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  // Load the contents of the referenced input file into memory.
-  auto input_file = LoadFile(first_parameter.c_str());
-  if (!input_file) {
-    std::cerr << "Error loading file '" << first_parameter << "'." << std::endl;
-    return 1;
-  }
-
   // Compile the contents of the user's script in memory and check if there were
   // any errors.
-  auto module_or_error = compile_env.Compile(first_parameter, *input_file);
+  auto module_or_error = compile_env.Compile(virtual_input_source_path);
   if (auto error = std::get_if<0>(&module_or_error)) {
     std::cerr << "Error compiling TypeScript:" << std::endl;
     std::cerr << error->path << ":" << error->line + 1 << ":"

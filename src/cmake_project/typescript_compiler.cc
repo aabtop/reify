@@ -42,33 +42,13 @@ std::filesystem::path GetCacheFilePath() {
 }
 
 struct TranspileContextEnvironment {
-  std::filesystem::path project_root_dir;
+  VirtualFilesystem* virtual_filesystem;
 };
 
-std::filesystem::path GetProjectRoot(v8::Isolate* isolate) {
+VirtualFilesystem* GetVirtualFilesystem(v8::Isolate* isolate) {
   return reinterpret_cast<TranspileContextEnvironment*>(
              isolate->GetCurrentContext()->GetAlignedPointerFromEmbedderData(1))
-      ->project_root_dir;
-}
-
-// Used to represent a filepath from the TypeScript compiler's perspective.
-std::optional<std::filesystem::path> GetSafeProjectPath(
-    v8::Isolate* isolate, const std::filesystem::path& file_path) {
-  auto project_root = GetProjectRoot(isolate);
-
-  assert(project_root.is_absolute());
-  assert(project_root.is_absolute());
-
-  auto [project_root_end, nothing] = std::mismatch(
-      project_root.begin(), project_root.end(), file_path.begin());
-
-  if (project_root_end != project_root.end()) {
-    // This file folder is outside of the project root, so we will refuse to
-    // open it.
-    return std::nullopt;
-  }
-
-  return file_path;
+      ->virtual_filesystem;
 }
 
 namespace injected_functions {
@@ -82,37 +62,23 @@ void GetSourceFile(const v8::FunctionCallbackInfo<v8::Value>& args) {
     return;
   }
 
-  std::filesystem::path file_path = ToStdString(isolate, args[0]);
+  std::string virtual_file_path = ToStdString(isolate, args[0]);
 
-  auto safe_absolute_path = GetSafeProjectPath(isolate, file_path);
-  if (!safe_absolute_path) {
+  auto file = GetVirtualFilesystem(isolate)->GetPath(virtual_file_path);
+  auto maybe_file_contents = file.get_content();
+
+  if (auto* error =
+          std::get_if<VirtualFilesystem::Error>(&maybe_file_contents)) {
     isolate->ThrowException(v8::String::NewFromUtf8(
         isolate,
-        ("Error reading data from " + std::string(file_path) + ".").c_str()));
+        ("Error reading data from " + file.diagnostics_path + ".").c_str()));
     return;
   }
-
-  std::ifstream fin(*safe_absolute_path, std::ios::ate);
-  if (fin.fail()) {
-    isolate->ThrowException(v8::String::NewFromUtf8(
-        isolate,
-        ("Error opening file " + std::string(file_path) + ".").c_str()));
-  }
-
-  size_t file_size = fin.tellg();
-  fin.seekg(0, std::ios::beg);
-
-  auto source_content = std::unique_ptr<char[]>(new char[file_size]);
-  if (!fin.read(source_content.get(), file_size)) {
-    isolate->ThrowException(v8::String::NewFromUtf8(
-        isolate,
-        ("Error reading data from " + std::string(file_path) + ".").c_str()));
-    return;
-  }
+  auto& file_contents = std::get<std::string>(maybe_file_contents);
 
   v8::Local<v8::String> source_content_v8;
-  if (!v8::String::NewFromUtf8(isolate, source_content.get(),
-                               v8::NewStringType::kNormal, file_size)
+  if (!v8::String::NewFromUtf8(isolate, file_contents.data(),
+                               v8::NewStringType::kNormal, file_contents.size())
            .ToLocal(&source_content_v8)) {
     // Let the exception pass through.
     return;
@@ -131,17 +97,11 @@ void FileExists(const v8::FunctionCallbackInfo<v8::Value>& args) {
     return;
   }
 
-  std::filesystem::path file_path = ToStdString(isolate, args[0]);
+  std::string virtual_file_path = ToStdString(isolate, args[0]);
 
-  auto safe_absolute_path = GetSafeProjectPath(isolate, file_path);
-  if (!safe_absolute_path) {
-    args.GetReturnValue().Set(v8::Boolean::New(isolate, false));
-    return;
-  }
-
-  bool file_exists = std::filesystem::exists(*safe_absolute_path) &&
-                     !std::filesystem::is_directory(*safe_absolute_path);
-  args.GetReturnValue().Set(v8::Boolean::New(isolate, file_exists));
+  bool exists =
+      GetVirtualFilesystem(isolate)->GetPath(virtual_file_path).exists();
+  args.GetReturnValue().Set(v8::Boolean::New(isolate, exists));
 }
 
 }  // namespace injected_functions
@@ -317,7 +277,9 @@ void TypeScriptCompiler::LocateTranspileFunction() {
   transpile_function_.Reset(isolate_, transpile_function);
 }
 
-TypeScriptCompiler::TypeScriptCompiler(SnapshotOptions snapshot_options) {
+TypeScriptCompiler::TypeScriptCompiler(VirtualFilesystem* virtual_filesystem,
+                                       SnapshotOptions snapshot_options)
+    : virtual_filesystem_(virtual_filesystem) {
   switch (snapshot_options) {
     case SnapshotOptions::kCacheSnapshot: {
       if (!LoadIsolateFromSnapshot()) {
@@ -375,8 +337,8 @@ v8::Local<v8::Object> CreateSystemModuleMap(
 }  // namespace
 
 auto TypeScriptCompiler::TranspileToJavaScript(
-    const std::filesystem::path& input_path, std::string_view input_typescript,
-    const CompileOptions& options) -> std::variant<TranspileResults, Error> {
+    std::string_view virtual_absolute_path, const CompileOptions& options)
+    -> std::variant<TranspileResults, Error> {
   v8::Isolate::Scope isolate_scope(isolate_);
   v8::HandleScope handle_scope(isolate_);
   auto context = v8::Local<v8::Context>::New(isolate_, context_);
@@ -389,22 +351,36 @@ auto TypeScriptCompiler::TranspileToJavaScript(
   auto transpile_function =
       v8::Local<v8::Function>::New(isolate_, transpile_function_);
 
-  std::filesystem::path input_filename =
-      std::filesystem::canonical(input_path.lexically_normal()).string();
   auto input_path_v8_str =
-      v8::String::NewFromUtf8(isolate_, input_filename.string().data(),
+      v8::String::NewFromUtf8(isolate_, virtual_absolute_path.data(),
                               v8::NewStringType::kNormal,
-                              input_filename.string().size())
+                              virtual_absolute_path.size())
           .ToLocalChecked();
+
+  std::string diagnostics_path =
+      virtual_filesystem_->GetPath(virtual_absolute_path).diagnostics_path;
+
+  auto maybe_input_typescript =
+      virtual_filesystem_->GetPath(virtual_absolute_path).get_content();
+  if (auto error =
+          std::get_if<VirtualFilesystem::Error>(&maybe_input_typescript)) {
+    return Error{
+        .path = diagnostics_path,
+        .line = 0,
+        .column = 0,
+        .message = "Could not open file.",
+    };
+  }
+  auto& input_typescript = std::get<std::string>(maybe_input_typescript);
+
   auto input_typescript_v8_str =
       v8::String::NewFromUtf8(isolate_, input_typescript.data(),
                               v8::NewStringType::kNormal,
                               input_typescript.size())
           .ToLocalChecked();
 
-  TranspileContextEnvironment context_environment{
-      .project_root_dir = std::filesystem::canonical(
-          input_path.parent_path().lexically_normal())};
+  TranspileContextEnvironment context_environment{.virtual_filesystem =
+                                                      virtual_filesystem_};
   context->SetAlignedPointerInEmbedderData(1, &context_environment);
 
   v8::Local<v8::Value> parameters[] = {
@@ -417,7 +393,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
       !call_return_value->IsObject()) {
     context->SetAlignedPointerInEmbedderData(1, nullptr);
     return Error{
-        .path = input_path,
+        .path = diagnostics_path,
         .line = 0,
         .column = 0,
         .message = ToStdString(isolate_, try_catch.Exception()),
@@ -460,10 +436,13 @@ auto TypeScriptCompiler::TranspileToJavaScript(
             .As<v8::String>();
     assert(message->IsString());
 
-    return Error{.path = ToStdString(isolate_, path),
-                 .line = static_cast<int>(line->Value()),
-                 .column = static_cast<int>(column->Value()),
-                 .message = ToStdString(isolate_, message)};
+    std::string virtual_path = ToStdString(isolate_, path);
+
+    return Error{
+        .path = virtual_filesystem_->GetPath(virtual_path).diagnostics_path,
+        .line = static_cast<int>(line->Value()),
+        .column = static_cast<int>(column->Value()),
+        .message = ToStdString(isolate_, message)};
   }
 
   auto output_field_name = v8::String::NewFromUtf8(isolate_, "output");
@@ -527,7 +506,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
   }
 
   if (!return_value.LookupPath(return_value.primary_module)) {
-    return Error{.path = std::string(input_path),
+    return Error{.path = diagnostics_path,
                  .line = 0,
                  .column = 0,
                  .message = "Could not find the primary output module, '" +

@@ -20,9 +20,6 @@ class TypeScriptCompiler {
     kCacheSnapshot,
     kNoSnapshot,
   };
-  TypeScriptCompiler(
-      SnapshotOptions snapshot_options = SnapshotOptions::kNoSnapshot);
-  ~TypeScriptCompiler();
 
   using ExportedSymbol = CompiledModule::ExportedSymbol;
 
@@ -59,9 +56,13 @@ class TypeScriptCompiler {
 
   using Error = CompileError;
 
+  TypeScriptCompiler(
+      VirtualFilesystem* virtual_filesystem,
+      SnapshotOptions snapshot_options = SnapshotOptions::kNoSnapshot);
+  ~TypeScriptCompiler();
+
   std::variant<TranspileResults, Error> TranspileToJavaScript(
-      const std::filesystem::path& input_path,
-      std::string_view input_typescript,
+      std::string_view virtual_absolute_path,
       const CompileOptions& options = CompileOptions());
 
  private:
@@ -73,6 +74,8 @@ class TypeScriptCompiler {
       v8::Isolate* isolate, v8::SnapshotCreator* snapshot_creator);
   void LocateTranspileFunction();
   void InitializeIsolateWithoutSnapshot();
+
+  VirtualFilesystem* virtual_filesystem_;
 
   v8::Isolate::CreateParams isolate_create_params_;
   v8::Isolate* isolate_;

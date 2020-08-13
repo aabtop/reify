@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -78,6 +79,60 @@ class Function<R()> {
 
  private:
   GenericFunction generic_function_;
+};
+
+// Allows specification of how to find and load imported TypeScript modules.
+class VirtualFilesystem {
+ public:
+  struct Error {
+    std::string message;
+  };
+  struct FilePath {
+    // The path that will represent this file for the sake of diagnostics,
+    // for example this is the path that will be displayed to the user when
+    // an error occurs.  By letting this differ from the virtual file path,
+    // we enable error messages to be meaningful to users while the scripts
+    // continue to be sandboxed.
+    std::string diagnostics_path;
+    // Returns true if the file exists, otherwise returns false.
+    std::function<bool()> exists;
+    // A function that, when called, will return the contents of the file.
+    std::function<std::variant<Error, std::string>()> get_content;
+  };
+
+  // Returns a handle to a file, given a virtual file path.  The virtual
+  // file system is the one in which the TypeScript compiler will operate.
+  // Virtual absolute paths always start with a `/`.
+  virtual FilePath GetPath(std::string_view virtual_absolute_path) = 0;
+};
+
+// Similar to `chroot`, this VirtualFilesystem implementation will create a
+// virtual filesystem with the root set as a folder in the host filesystem.
+class MountedHostFolderFilesystem : public VirtualFilesystem {
+ public:
+  MountedHostFolderFilesystem(const std::filesystem::path& host_root);
+  FilePath GetPath(std::string_view virtual_absolute_path) override;
+
+  // Converts a host path into a virtual path.  If the host path is not
+  // contained within the mounted folder, a std::nullopt is returend.
+  std::optional<std::string> HostPathToVirtualPath(
+      const std::filesystem::path& host_absolute_path);
+
+ private:
+  std::filesystem::path TranslateToHostPath(
+      std::string_view virtual_absolute_path) const;
+  std::filesystem::path host_root_;
+};
+
+// Entire filesystem is specified up-front via a filepath to content mapping.
+class InMemoryFilesystem : public VirtualFilesystem {
+ public:
+  using FileMap = std::unordered_map<std::string, std::string>;
+  InMemoryFilesystem(const FileMap& file_map);
+  FilePath GetPath(std::string_view virtual_absolute_path) override;
+
+ private:
+  FileMap file_map_;
 };
 
 class CompiledModule;
@@ -169,20 +224,22 @@ class CompilerEnvironment {
   };
 
   CompilerEnvironment(
+      VirtualFilesystem* virtual_filesystem,
       SnapshotOptions snapshot_options = SnapshotOptions::kNoSnapshot);
   CompilerEnvironment(const CompilerEnvironment&) = delete;
   CompilerEnvironment(CompilerEnvironment&&) = delete;
   ~CompilerEnvironment();
 
   std::variant<CompileError, std::shared_ptr<CompiledModule>> Compile(
-      std::string_view path, std::string_view source);
+      std::string_view virtual_absolute_path);
 
   // Creates a directory at the specified path containing the root of a
   // TypeScript project setup to recognize the Reify types.  For example,
   // it will create a `tsconfig.json` file as well as a directory containing
   // the `.d.ts` TypeScript declaration files.
   // Returns true on success and false on failure.
-  bool CreateWorkspaceDirectory(const std::filesystem::path& out_dir_path);
+  static bool CreateWorkspaceDirectory(
+      const std::filesystem::path& out_dir_path);
 
  private:
   class Impl;

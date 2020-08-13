@@ -28,30 +28,32 @@ namespace reify {
 
 class CompilerEnvironment::Impl {
  public:
-  Impl(SnapshotOptions snapshot_cache_options)
-      : tsc_(snapshot_cache_options == SnapshotOptions::kNoSnapshot
+  Impl(VirtualFilesystem* virtual_filesystem,
+       SnapshotOptions snapshot_cache_options)
+      : tsc_(virtual_filesystem,
+             snapshot_cache_options == SnapshotOptions::kNoSnapshot
                  ? TypeScriptCompiler::SnapshotOptions::kNoSnapshot
                  : TypeScriptCompiler::SnapshotOptions::kCacheSnapshot) {}
 
   enum class GenerateDeclarationFiles { Yes, No };
   std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
-  Compile(std::string_view path, std::string_view source,
+  Compile(std::string_view virtual_absolute_path,
           GenerateDeclarationFiles generate_declaration_files);
-
-  bool CreateWorkspaceDirectory(const std::filesystem::path& out_dir_path);
 
  private:
   TypeScriptCompiler tsc_;
 };
 
-CompilerEnvironment::CompilerEnvironment(SnapshotOptions snapshot_options)
-    : impl_(new CompilerEnvironment::Impl(snapshot_options)) {}
+CompilerEnvironment::CompilerEnvironment(VirtualFilesystem* virtual_filesystem,
+                                         SnapshotOptions snapshot_options)
+    : impl_(new CompilerEnvironment::Impl(virtual_filesystem,
+                                          snapshot_options)) {}
 CompilerEnvironment::~CompilerEnvironment() {}
 
 std::variant<CompileError, std::shared_ptr<CompiledModule>>
-CompilerEnvironment::Compile(std::string_view path, std::string_view source) {
+CompilerEnvironment::Compile(std::string_view virtual_absolute_path) {
   auto transpile_results_or_error =
-      impl_->Compile(path, source, Impl::GenerateDeclarationFiles::No);
+      impl_->Compile(virtual_absolute_path, Impl::GenerateDeclarationFiles::No);
   if (auto error =
           std::get_if<TypeScriptCompiler::Error>(&transpile_results_or_error)) {
     return *error;
@@ -61,11 +63,6 @@ CompilerEnvironment::Compile(std::string_view path, std::string_view source) {
       new CompiledModule(std::make_unique<CompiledModule::Impl>(
           std::move(std::get<TypeScriptCompiler::TranspileResults>(
               transpile_results_or_error)))));
-}
-
-bool CompilerEnvironment::CreateWorkspaceDirectory(
-    const std::filesystem::path& out_dir_path) {
-  return impl_->CreateWorkspaceDirectory(out_dir_path);
 }
 
 namespace {
@@ -82,10 +79,10 @@ const TypeScriptCompiler::InputModule LIB_INTERFACE_MODULE = {
 
 std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
 CompilerEnvironment::Impl::Compile(
-    std::string_view path, std::string_view source,
+    std::string_view virtual_absolute_path,
     GenerateDeclarationFiles generate_declaration_files) {
   return tsc_.TranspileToJavaScript(
-      path, source,
+      virtual_absolute_path,
       {.system_modules = {REIFY_GENERATED_INTERFACE_MODULE,
                           LIB_INTERFACE_MODULE},
        .generate_declaration_files =
@@ -121,11 +118,14 @@ const char* TSCONFIG_JSON_CONTENT = R"json(
 
 }  // namespace
 
-bool CompilerEnvironment::Impl::CreateWorkspaceDirectory(
+bool CompilerEnvironment::CreateWorkspaceDirectory(
     const std::filesystem::path& out_dir_path) {
-  auto transpile_results_or_error =
-      Compile(LIB_INTERFACE_MODULE.path, LIB_INTERFACE_MODULE.content,
-              GenerateDeclarationFiles::Yes);
+  InMemoryFilesystem filesystem(InMemoryFilesystem::FileMap(
+      {{std::string(LIB_INTERFACE_MODULE.path),
+        std::string(LIB_INTERFACE_MODULE.content)}}));
+  CompilerEnvironment compiler_environment(&filesystem);
+  auto transpile_results_or_error = compiler_environment.impl_->Compile(
+      LIB_INTERFACE_MODULE.path, Impl::GenerateDeclarationFiles::Yes);
   if (auto error =
           std::get_if<TypeScriptCompiler::Error>(&transpile_results_or_error)) {
     // We shouldn't have any errors here since we're just compiling a

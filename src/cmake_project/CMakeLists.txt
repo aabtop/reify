@@ -54,6 +54,7 @@ add_library(${TARGET_NAME}
   runtime_environment.cc
   typescript_compiler.cc
   typescript_compiler.h
+  virtual_filesystem.cc
   ${GENERATED_REIFY_INTERFACE}
   ${GENERATED_CPP_V8_H_REIFY_INTERFACE}
   ${GENERATED_CPP_V8_CC_REIFY_INTERFACE}
