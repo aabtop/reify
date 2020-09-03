@@ -107,96 +107,118 @@ void PrintResultsInformation(std::ostream& out, microseconds compile_time,
       << std::endl;
 }
 
-struct CommandLineParameters {
-  // See the help documentation text for descriptions of these options.
+// See the help documentation text for descriptions of these options.
+struct BuildCommandLineParameters {
   std::filesystem::path input_typescript_path;
   std::string function;
   std::filesystem::path output_file_basepath;
 
-  std::optional<std::filesystem::path> make_workspace_dir;
-
-  std::optional<std::filesystem::path> root_project_directory;
-
-  static std::variant<int, CommandLineParameters> Parse(int argc, char* argv[]);
+  std::optional<std::filesystem::path> project_directory;
 };
+struct GenerateProjectDirectoryCommandLineParameters {
+  std::filesystem::path project_directory;
+};
+using CommandLineParameters =
+    std::variant<BuildCommandLineParameters,
+                 GenerateProjectDirectoryCommandLineParameters>;
 
 // Returns either a system exit error code, or parsed and validated command
 // line parameters.
-std::variant<int, CommandLineParameters> CommandLineParameters::Parse(
+std::variant<int, CommandLineParameters> ParseCommandLineParameters(
     int argc, char* argv[]) {
-  CommandLineParameters clp;
+  BuildCommandLineParameters build_clp;
+  GenerateProjectDirectoryCommandLineParameters generate_project_directory_clp;
 
   CLI::App app{"Build geometry declaritively with TypeScript."};
-  app.add_option("input_typescript_path,-i,--input_typescript_path",
-                 clp.input_typescript_path,
-                 "Path to a TypeScript file which defines the function "
-                 "describing the geometry to generate.")
+
+  CLI::App* build =
+      app.add_subcommand("build",
+                         "Builds geometry from an input TypeScript function. "
+                         "Hypo's primary function.");
+  CLI::App* generate_project_directory =
+      app.add_subcommand("generate_project_directory",
+                         "Used to initialize projects with TypeScript "
+                         "definition files to enable full IDE support.");
+
+  // We require exactly one subcommand to be given.
+  app.require_subcommand(1);
+
+  build
+      ->add_option("input_typescript_path,-i,--input_typescript_path",
+                   build_clp.input_typescript_path,
+                   "Path to a TypeScript file which defines the function "
+                   "describing the geometry to generate.")
       ->required()
       ->check(CLI::ExistingFile);
-  app.add_option("function,-f,--function", clp.function,
-                 "The function within the input_typescript_path file which "
-                 "will be executed to create the geomtry.")
+  build
+      ->add_option("function,-f,--function", build_clp.function,
+                   "The function within the `input_typescript_path` file which "
+                   "will be executed to create the geomtry.")
       ->required();
-  app.add_option("output_file_basepath,-o,--output_file_basepath",
-                 clp.output_file_basepath,
-                 "The output file path, without an extension, where the output "
-                 "will be generated into.  The extension will be chosen based "
-                 "on the return type of the specified input function.")
+  build
+      ->add_option(
+          "output_file_basepath,-o,--output_file_basepath",
+          build_clp.output_file_basepath,
+          "The output file path, without an extension, where the output "
+          "will be generated into.  The extension will be chosen based "
+          "on the return type of the specified input function.")
       ->required();
-  app.add_option("root_project_directory,-r,--root_project-directory",
-                 clp.root_project_directory,
-                 "Specifies a directory as the project's root directory, "
-                 "deciding the root folder of the virtual file system in which "
-                 "the function is executed.  This for example affects things "
-                 "like the TypeScript relative imports root folder.")
+  build
+      ->add_option(
+          "-r,--project_directory", build_clp.project_directory,
+          "Specifies a directory as the project's root directory, "
+          "deciding the root folder of the virtual file system in which "
+          "the function is executed.  This for example affects things "
+          "like the TypeScript relative imports root folder. If it is "
+          "not specified, it will be assigned the directory containing "
+          "`input_typescript_path`.")
       ->check(CLI::ExistingDirectory);
-  app.add_option(
-         "-w,--make_workspace_dir", clp.make_workspace_dir,
-         "Instead of generating geometry, a workspace directory will be "
-         "created in the specified directory where TypeScript declaration "
-         "files and will be created such that auto-complete and other IDE "
-         "tools will be enabled while working within that directory.  This can "
-         "be used to setup a Hypo development environment. Note that if this "
-         "flag is provided, no geometry will be generated.")
+
+  generate_project_directory
+      ->add_option(
+          "project_directory,-w,--project_directory",
+          generate_project_directory_clp.project_directory,
+          "Instead of generating geometry, a workspace directory will be "
+          "created in the specified directory where TypeScript declaration "
+          "files and will be created such that auto-complete and other IDE "
+          "tools will be enabled while working within that directory.  This "
+          "can "
+          "be used to setup a Hypo development environment. Note that if this "
+          "flag is provided, no geometry will be generated.")
+      ->required()
       ->check(CLI::NonexistentPath);
 
   CLI11_PARSE(app, argc, argv);
 
-  return clp;
+  if (build->count()) {
+    return build_clp;
+  } else if (generate_project_directory->count()) {
+    return generate_project_directory_clp;
+  } else {
+    assert(false);
+    return build_clp;
+  }
 }
 
-int RunHypo(const CommandLineParameters& clp) {
-  if (clp.make_workspace_dir) {
-    bool result = hypo::reify::CompilerEnvironment::CreateWorkspaceDirectory(
-        *clp.make_workspace_dir);
-    if (result) {
-      std::cout << "Created directory " << *clp.make_workspace_dir
-                << ".  You can now add TypeScript files to it." << std::endl;
-      return 0;
-    } else {
-      return 1;
-    }
-  }
-
+int Build(const BuildCommandLineParameters& clp) {
   high_resolution_clock::time_point start_time = high_resolution_clock::now();
 
   // Setup a "chroot" filesystem for module loading based on the directory of
   // the input source file.
   auto absolute_input_source_file =
       std::filesystem::absolute(clp.input_typescript_path);
-  auto root_project_directory =
-      clp.root_project_directory
-          ? std::filesystem::absolute(*clp.root_project_directory)
-          : absolute_input_source_file.parent_path();
+  auto project_directory =
+      clp.project_directory ? std::filesystem::absolute(*clp.project_directory)
+                            : absolute_input_source_file.parent_path();
 
   hypo::reify::MountedHostFolderFilesystem virtual_filesystem(
-      root_project_directory);
+      project_directory);
   std::optional<std::string> virtual_input_source_path =
       virtual_filesystem.HostPathToVirtualPath(absolute_input_source_file);
   if (!virtual_input_source_path) {
     std::cerr << "Input file " << clp.input_typescript_path
               << " is not contained within the specified project root folder, "
-              << root_project_directory << std::endl;
+              << project_directory << std::endl;
     return 1;
   }
 
@@ -253,14 +275,37 @@ int RunHypo(const CommandLineParameters& clp) {
   return 0;
 }
 
+int GenerateProjectDirectory(
+    const GenerateProjectDirectoryCommandLineParameters& clp) {
+  bool result = hypo::reify::CompilerEnvironment::CreateWorkspaceDirectory(
+      clp.project_directory);
+  if (result) {
+    std::cout << "Created directory " << clp.project_directory
+              << ".  You can now add TypeScript files to it." << std::endl;
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
 }  // namespace
 
 int main(int argc, char* argv[]) {
-  auto parse_results = CommandLineParameters::Parse(argc, argv);
+  auto parse_results = ParseCommandLineParameters(argc, argv);
 
   if (int* exit_code = std::get_if<int>(&parse_results)) {
     return *exit_code;
   }
 
-  return RunHypo(std::get<CommandLineParameters>(parse_results));
+  auto clp = std::get<CommandLineParameters>(parse_results);
+  if (auto build_clp = std::get_if<BuildCommandLineParameters>(&clp)) {
+    return Build(*build_clp);
+  } else if (auto generate_project_directory_clp =
+                 std::get_if<GenerateProjectDirectoryCommandLineParameters>(
+                     &clp)) {
+    return GenerateProjectDirectory(*generate_project_directory_clp);
+  } else {
+    assert(false);
+    return 1;
+  }
 }

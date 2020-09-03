@@ -1,5 +1,5 @@
-import * as TungstenModule from '/tungsten';
 import * as h from 'hypo';
+import * as TungstenModule from 'tungsten';
 
 import * as TorusModule from './torus';
 

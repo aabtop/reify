@@ -111,7 +111,7 @@ const char* TSCONFIG_JSON_CONTENT = R"json(
     "module": "ES2015",
     "lib": [],
     "strict": true,
-    "baseUrl": "./declarations",
+    "baseUrl": "./",
   },
 }
 )json";
@@ -138,7 +138,7 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
     std::cerr << "Error creating directory " << out_dir_path << std::endl;
     return false;
   }
-  const auto declarations_directory = out_dir_path / "declarations";
+  const auto declarations_directory = out_dir_path;
   std::filesystem::create_directories(declarations_directory);
   if (!std::filesystem::directory_entry(declarations_directory).exists()) {
     std::cerr << "Error creating declarations directory "
