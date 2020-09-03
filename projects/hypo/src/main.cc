@@ -5,6 +5,7 @@
 #include <optional>
 #include <sstream>
 
+#include "CLI/CLI.hpp"
 #include "cgal/export_to_file.h"
 #include "hypo.h"
 #include "reify.h"
@@ -12,16 +13,6 @@
 using namespace std::chrono;
 
 namespace {
-// Load an entire file's contents into memory.
-std::optional<std::string> LoadFile(const char* filename) {
-  std::ifstream in(filename);
-  if (in.fail()) return std::nullopt;
-
-  std::stringstream buffer;
-  buffer << in.rdbuf();
-  return buffer.str();
-}
-
 struct CallAndExportResults {
   std::chrono::microseconds call_time;
   std::chrono::microseconds build_time;
@@ -39,8 +30,9 @@ struct CallAndExportResults {
 // be opened by an STL file viewer.
 template <typename T>
 std::optional<CallAndExportResults> CallFunctionAndExportOutput(
-    hypo::reify::RuntimeEnvironment* runtime_env, const char* function_name,
-    const char* output_base_file_path) {
+    hypo::reify::RuntimeEnvironment* runtime_env,
+    const std::string& function_name,
+    const std::string& output_base_file_path) {
   high_resolution_clock::time_point start_call_time =
       high_resolution_clock::now();
 
@@ -79,16 +71,14 @@ std::optional<CallAndExportResults> CallFunctionAndExportOutput(
 std::optional<CallAndExportResults> BuildOutputAndSaveToFile(
     hypo::reify::RuntimeEnvironment* runtime_env,
     const hypo::reify::CompiledModule::ExportedSymbol* entry_point_function,
-    const char* function_name,  // TODO: This seems redundant given
-                                // |entry_point_function|, remove it.
-    const char* output_base_file_path) {
+    const std::string& output_base_file_path) {
   if (entry_point_function->HasType<hypo::reify::Function<hypo::Region2()>>()) {
     return CallFunctionAndExportOutput<hypo::Region2>(
-        runtime_env, function_name, output_base_file_path);
+        runtime_env, entry_point_function->name, output_base_file_path);
   } else if (entry_point_function
                  ->HasType<hypo::reify::Function<hypo::Region3()>>()) {
     return CallFunctionAndExportOutput<hypo::Region3>(
-        runtime_env, function_name, output_base_file_path);
+        runtime_env, entry_point_function->name, output_base_file_path);
   } else {
     std::cerr << "Exported symbol '" << entry_point_function->name
               << "' has type '" << entry_point_function->typescript_type_string
@@ -117,44 +107,72 @@ void PrintResultsInformation(std::ostream& out, microseconds compile_time,
       << std::endl;
 }
 
-void PrintUsage(const char* argv0) {
-  std::cerr << "USAGE:" << std::endl
-            << argv0 << std::endl
-            << "  [--make_workspace_dir=DECLARATIONS_DIR]" << std::endl
-            << "  INPUT_FILE FUNCTION_NAME OUTPUT_FILE_WITHOUT_EXTENSION"
-            << std::endl;
-}
-}  // namespace
+struct CommandLineParameters {
+  // See the help documentation text for descriptions of these options.
+  std::string input_typescript_path;
+  std::string function;
+  std::string output_file_basepath;
 
-int main(int argc, char* argv[]) {
-  if (argc < 2) {
-    PrintUsage(argv[0]);
-    return 1;
+  std::optional<std::string> make_workspace_dir;
+
+  static std::variant<int, CommandLineParameters> Parse(int argc, char* argv[]);
+};
+
+// Returns either a system exit error code, or parsed and validated command
+// line parameters.
+std::variant<int, CommandLineParameters> CommandLineParameters::Parse(
+    int argc, char* argv[]) {
+  CommandLineParameters clp;
+
+  CLI::App app{"Build geometry declaritively with TypeScript."};
+  app.add_option("input_typescript_path,-i,--input_typescript_path",
+                 clp.input_typescript_path,
+                 "Path to a TypeScript file which defines the function "
+                 "describing the geometry to generate.")
+      ->required()
+      ->check(CLI::ExistingFile);
+  app.add_option("function,-f,--function", clp.function,
+                 "The function within the input_typescript_path file which "
+                 "will be executed to create the geomtry.")
+      ->required();
+  app.add_option("output_file_basepath,-o,--output_file_basepath",
+                 clp.output_file_basepath,
+                 "The output file path, without an extension, where the output "
+                 "will be generated into.  The extension will be chosen based "
+                 "on the return type of the specified input function.")
+      ->required();
+
+  app.add_option(
+         "-w,--make_workspace_dir", clp.make_workspace_dir,
+         "Instead of generating geometry, a workspace directory will be "
+         "created in the specified directory where TypeScript declaration "
+         "files and will be created such that auto-complete and other IDE "
+         "tools will be enabled while working within that directory.  This can "
+         "be used to setup a Hypo development environment. Note that if this "
+         "flag is provided, no geometry will be generated.")
+      ->check(CLI::NonexistentPath);
+
+  CLI11_PARSE(app, argc, argv);
+
+  return clp;
+}
+
+int RunHypo(const CommandLineParameters& clp) {
+  if (clp.make_workspace_dir) {
+    bool result = hypo::reify::CompilerEnvironment::CreateWorkspaceDirectory(
+        *clp.make_workspace_dir);
+    if (result) {
+      std::cout << "Created directory " << *clp.make_workspace_dir
+                << ".  You can now add TypeScript files to it." << std::endl;
+      return 0;
+    } else {
+      return 1;
+    }
   }
 
   high_resolution_clock::time_point start_time = high_resolution_clock::now();
 
-  // Check if the user is just requesting that we dump out the TypeScript
-  // declaration and other workspace setup files.  This is a useful operation if
-  // one is attempting to setup a Hypo development environment.
-  std::string first_parameter = argv[1];
-  const std::string MAKE_WORKSPACE_DIR_SWITCH = "--make_workspace_dir=";
-  if (first_parameter.find(MAKE_WORKSPACE_DIR_SWITCH) == 0) {
-    std::string make_workspace_dir =
-        first_parameter.substr(MAKE_WORKSPACE_DIR_SWITCH.size());
-
-    return hypo::reify::CompilerEnvironment::CreateWorkspaceDirectory(
-               make_workspace_dir)
-               ? 0
-               : 1;
-  }
-
-  const std::filesystem::path input_source_file(first_parameter);
-  if (!std::filesystem::exists(input_source_file)) {
-    std::cerr << "Input file " << input_source_file << " does not exist."
-              << std::endl;
-    return 1;
-  }
+  const std::filesystem::path input_source_file(clp.input_typescript_path);
 
   // Setup a "chroot" filesystem for module loading based on the directory of
   // the input source file.
@@ -169,12 +187,6 @@ int main(int argc, char* argv[]) {
 
   // Setup a TypeScript compiler environment.
   hypo::reify::CompilerEnvironment compile_env(&virtual_filesystem);
-
-  // Okay the user doesn't just want to dump declaration files out.
-  if (argc < 4) {
-    PrintUsage(argv[0]);
-    return 1;
-  }
 
   // Compile the contents of the user's script in memory and check if there were
   // any errors.
@@ -199,15 +211,12 @@ int main(int argc, char* argv[]) {
   }
   auto runtime_env = &std::get<1>(runtime_env_or_error);
 
-  const char* function_name = argv[2];
-  const char* output_base_file_path = argv[3];
-
   // Search for a symbol within the compiled module a name specified by the
   // user's command line parameters.
-  auto entry_point_function = module->GetExportedSymbol(function_name);
+  auto entry_point_function = module->GetExportedSymbol(clp.function);
   if (!entry_point_function) {
     std::cerr << "Error could not find an exported symbol named '"
-              << function_name << "'." << std::endl;
+              << clp.function << "'." << std::endl;
     return 1;
   }
 
@@ -218,7 +227,7 @@ int main(int argc, char* argv[]) {
   // hypo::Region3 type, these are the only types that we support.  If we do
   // find a supported type, run the function and export the output to a file.
   auto build_results = BuildOutputAndSaveToFile(
-      runtime_env, entry_point_function, function_name, output_base_file_path);
+      runtime_env, entry_point_function, clp.output_file_basepath);
 
   if (!build_results) {
     return 1;
@@ -227,4 +236,16 @@ int main(int argc, char* argv[]) {
   PrintResultsInformation(std::cerr, compile_time, *build_results);
 
   return 0;
+}
+
+}  // namespace
+
+int main(int argc, char* argv[]) {
+  auto parse_results = CommandLineParameters::Parse(argc, argv);
+
+  if (int* exit_code = std::get_if<int>(&parse_results)) {
+    return *exit_code;
+  }
+
+  return RunHypo(std::get<CommandLineParameters>(parse_results));
 }

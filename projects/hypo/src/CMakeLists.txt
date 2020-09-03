@@ -25,7 +25,11 @@ endif()
 
 add_subdirectory(${REIFY_HYPO_PATH} reify-hypo)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} ${OUT_REIFY_PUBLIC_INCLUDE_DIRECTORIES})
+include_directories(
+  ${CMAKE_CURRENT_LIST_DIR}
+  ${OUT_REIFY_PUBLIC_INCLUDE_DIRECTORIES}
+  ${CMAKE_CURRENT_LIST_DIR}/third_party/CLI11/include
+)
 
 # Some of the boost includes used by CGAL result in spammy messages during
 # compilation.  This flag disables them.
