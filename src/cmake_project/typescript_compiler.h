@@ -48,6 +48,9 @@ class TypeScriptCompiler {
     // Symbols exported from the primary module.
     std::vector<ExportedSymbol> exported_symbols;
 
+    // VFS used during compilation of this module.
+    VirtualFilesystem* virtual_filesystem;
+
     const Module* LookupPath(const std::string& path) const;
     const Module& GetPrimaryModule() const {
       return *LookupPath(primary_module);

@@ -109,11 +109,13 @@ void PrintResultsInformation(std::ostream& out, microseconds compile_time,
 
 struct CommandLineParameters {
   // See the help documentation text for descriptions of these options.
-  std::string input_typescript_path;
+  std::filesystem::path input_typescript_path;
   std::string function;
-  std::string output_file_basepath;
+  std::filesystem::path output_file_basepath;
 
-  std::optional<std::string> make_workspace_dir;
+  std::optional<std::filesystem::path> make_workspace_dir;
+
+  std::optional<std::filesystem::path> root_project_directory;
 
   static std::variant<int, CommandLineParameters> Parse(int argc, char* argv[]);
 };
@@ -141,7 +143,13 @@ std::variant<int, CommandLineParameters> CommandLineParameters::Parse(
                  "will be generated into.  The extension will be chosen based "
                  "on the return type of the specified input function.")
       ->required();
-
+  app.add_option("root_project_directory,-r,--root_project-directory",
+                 clp.root_project_directory,
+                 "Specifies a directory as the project's root directory, "
+                 "deciding the root folder of the virtual file system in which "
+                 "the function is executed.  This for example affects things "
+                 "like the TypeScript relative imports root folder.")
+      ->check(CLI::ExistingDirectory);
   app.add_option(
          "-w,--make_workspace_dir", clp.make_workspace_dir,
          "Instead of generating geometry, a workspace directory will be "
@@ -172,25 +180,32 @@ int RunHypo(const CommandLineParameters& clp) {
 
   high_resolution_clock::time_point start_time = high_resolution_clock::now();
 
-  const std::filesystem::path input_source_file(clp.input_typescript_path);
-
   // Setup a "chroot" filesystem for module loading based on the directory of
   // the input source file.
   auto absolute_input_source_file =
-      std::filesystem::absolute(input_source_file);
-  auto absolute_input_source_dir = absolute_input_source_file.parent_path();
+      std::filesystem::absolute(clp.input_typescript_path);
+  auto root_project_directory =
+      clp.root_project_directory
+          ? std::filesystem::absolute(*clp.root_project_directory)
+          : absolute_input_source_file.parent_path();
 
   hypo::reify::MountedHostFolderFilesystem virtual_filesystem(
-      absolute_input_source_dir);
-  std::string virtual_input_source_path =
-      *virtual_filesystem.HostPathToVirtualPath(absolute_input_source_file);
+      root_project_directory);
+  std::optional<std::string> virtual_input_source_path =
+      virtual_filesystem.HostPathToVirtualPath(absolute_input_source_file);
+  if (!virtual_input_source_path) {
+    std::cerr << "Input file " << clp.input_typescript_path
+              << " is not contained within the specified project root folder, "
+              << root_project_directory << std::endl;
+    return 1;
+  }
 
   // Setup a TypeScript compiler environment.
   hypo::reify::CompilerEnvironment compile_env(&virtual_filesystem);
 
   // Compile the contents of the user's script in memory and check if there were
   // any errors.
-  auto module_or_error = compile_env.Compile(virtual_input_source_path);
+  auto module_or_error = compile_env.Compile(*virtual_input_source_path);
   if (auto error = std::get_if<0>(&module_or_error)) {
     std::cerr << "Error compiling TypeScript:" << std::endl;
     std::cerr << error->path << ":" << error->line + 1 << ":"

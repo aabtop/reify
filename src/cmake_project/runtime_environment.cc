@@ -74,13 +74,18 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
   const TypeScriptCompiler::Module* module;
 
   if (!specifier_as_str.empty() && specifier_as_str[0] == '.') {
+    // Lookup a TypeScript "relateive module" relative to the current file.
     auto importer_directory =
         std::filesystem::path(
             *context_environment->source_file_import_stack.back())
             .parent_path();
     module = transpile_results.LookupPath(
         (importer_directory / (specifier_as_str + ".js")).lexically_normal());
+  } else if (!specifier_as_str.empty() && specifier_as_str[0] == '/') {
+    // Lookup a TypeScript "relative module" via an absolute path.
+    module = transpile_results.LookupPath(specifier_as_str + ".js");
   } else {
+    // Lookup a TypeScript "non-relative module".
     module = transpile_results.LookupPath("/" + specifier_as_str + ".js");
   }
 

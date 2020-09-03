@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iostream>
 #include <numeric>
 
 #include "public_include/reify.h"
@@ -8,7 +9,7 @@ namespace reify {
 
 MountedHostFolderFilesystem::MountedHostFolderFilesystem(
     const std::filesystem::path& host_root)
-    : host_root_(host_root) {
+    : host_root_(std::filesystem::canonical(host_root)) {
   assert(std::filesystem::is_directory(host_root));
   assert(std::filesystem::exists(host_root));
   assert(host_root.is_absolute());
