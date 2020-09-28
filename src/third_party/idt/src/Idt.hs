@@ -5,7 +5,7 @@ module Idt
   )
 where
 
-data NamedType = NamedType {name :: String, idt_type :: Type}
+data NamedType = NamedType {name :: String, description :: String, idt_type :: Type}
 
 data Type =
   Concrete NamedType |
@@ -14,8 +14,8 @@ data Type =
   List Type |
   Tuple [Type] |
   FixedSizeArray Type Int |
-  Struct [(String, Type)] |
-  Enum [(String, [Type])] |
+  Struct [(String, String, Type)] |
+  Enum [(String, String, [Type])] |
   TaggedUnion [Type]
 
 type NamedTypeList = [NamedType]

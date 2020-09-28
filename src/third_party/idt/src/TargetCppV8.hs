@@ -108,9 +108,9 @@ topLevelCCTemplate =
       Right template -> template
 
 typeString :: Type -> String
-typeString (Concrete       (NamedType n _)) = n
-typeString (Reference      (NamedType n _)) = "Ref<" ++ n ++ ">"
-typeString (NamedPrimitive n              ) = case n of
+typeString (Concrete       (NamedType n _ _)) = n
+typeString (Reference      (NamedType n _ _)) = "Ref<" ++ n ++ ">"
+typeString (NamedPrimitive n                ) = case n of
   "string"  -> "v8::String"
   "f32"     -> "F32"
   "i32"     -> "I32"
@@ -140,29 +140,31 @@ unionMemberToStacheObject (k, ts) =
         ++ [ "firstParam" .= head params | (not . null) params ]
         )
 
-enumMembers :: [(String, [Type])] -> [Value]
+enumMembers :: [(String, String, [Type])] -> [Value]
 enumMembers es =
-  [ unionMemberToStacheObject (n, zip (enumTypeNames ts) ts) | (n, ts) <- es ]
+  [ unionMemberToStacheObject (n, zip (enumTypeNames ts) ts)
+  | (n, _, ts) <- es
+  ]
 
 taggedUnionTypeName :: Type -> String
 taggedUnionTypeName t = case t of
-  Concrete (NamedType n _) -> n
-  Reference (NamedType n _) -> n
+  Concrete (NamedType n _ _) -> n
+  Reference (NamedType n _ _) -> n
   _ -> panic "TaggedUnions may only be passed named types."
 
 taggedUnionMembers :: [Type] -> [Value]
 taggedUnionMembers ts =
   [ unionMemberToStacheObject (taggedUnionTypeName t, [("p0", t)]) | t <- ts ]
 
-member :: (String, Type) -> Value
-member (n, t) =
+member :: (String, String, Type) -> Value
+member (n, _, t) =
   object ["memberName" .= DT.pack n, "type" .= DT.pack (typeString t)]
 
-members :: [(String, Type)] -> [Value]
+members :: [(String, String, Type)] -> [Value]
 members = map member
 
 templateObjectForDecl :: String -> String -> NamedType -> Value
-templateObjectForDecl namespace immRefCntNamespace (NamedType n t) =
+templateObjectForDecl namespace immRefCntNamespace (NamedType n _ t) =
   object
     $  [ "name" .= n
        , "namespace" .= namespace
@@ -176,20 +178,20 @@ templateObjectForDecl namespace immRefCntNamespace (NamedType n t) =
 
 namedTypeDefinition :: String -> String -> Declaration -> String
 namedTypeDefinition namespace immRefCntNamespace t = case t of
-  ForwardDeclaration (NamedType n (Struct      _)) -> "class " ++ n ++ ";\n"
-  ForwardDeclaration (NamedType n (Enum        _)) -> "class " ++ n ++ ";\n"
-  ForwardDeclaration (NamedType n (TaggedUnion _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n _ (Struct      _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n _ (Enum        _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n _ (TaggedUnion _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration _ ->
     panic
       "Only forward declarations of Enum, Structs and TaggedUnions are supported."
-  TypeDeclaration nt@(NamedType _ (Struct _)) ->
+  TypeDeclaration nt@(NamedType _ _ (Struct _)) ->
     DTL.unpack $ renderMustache structHTemplate $ templateObject nt
-  TypeDeclaration nt@(NamedType n (Enum cs)) -> if isSimpleEnum cs
+  TypeDeclaration nt@(NamedType n _ (Enum cs)) -> if isSimpleEnum cs
     then DTL.unpack $ renderMustache simpleEnumHTemplate $ templateObject nt
     else DTL.unpack $ renderMustache enumHTemplate $ templateObject nt
-  TypeDeclaration nt@(NamedType _ (TaggedUnion _)) ->
+  TypeDeclaration nt@(NamedType _ _ (TaggedUnion _)) ->
     DTL.unpack $ renderMustache taggedUnionHTemplate $ templateObject nt
-  TypeDeclaration (NamedType n t) ->
+  TypeDeclaration (NamedType n _ t) ->
     "using " ++ n ++ " = " ++ typeString t ++ ";\n"
   where templateObject = templateObjectForDecl namespace immRefCntNamespace
 
@@ -205,18 +207,18 @@ toCppV8SourceCodeH namespace immutableRefCountedHeaderFile immRefCntNamespace de
     ]
 
 constructorDefinition :: Declaration -> Maybe Value
-constructorDefinition (TypeDeclaration nt@(NamedType n t@(Struct l))) =
+constructorDefinition (TypeDeclaration nt@(NamedType n _ t@(Struct l))) =
   Just $ object ["name" .= DT.pack n]
 constructorDefinition _ = Nothing
 
 convertToImmRefCntFunctions :: String -> String -> Declaration -> Maybe String
 convertToImmRefCntFunctions namespace immRefCntNamespace decl = case decl of
-  (TypeDeclaration nt@(NamedType _ (Struct _))) ->
+  (TypeDeclaration nt@(NamedType _ _ (Struct _))) ->
     Just $ DTL.unpack $ renderMustache structCCTemplate $ templateObject nt
-  (TypeDeclaration nt@(NamedType _ (Enum cs))) -> if not . isSimpleEnum $ cs
+  (TypeDeclaration nt@(NamedType _ _ (Enum cs))) -> if not . isSimpleEnum $ cs
     then Just $ DTL.unpack $ renderMustache enumCCTemplate $ templateObject nt
     else Nothing
-  (TypeDeclaration nt@(NamedType _ (TaggedUnion _))) ->
+  (TypeDeclaration nt@(NamedType _ _ (TaggedUnion _))) ->
     Just $ DTL.unpack $ renderMustache taggedUnionCCTemplate $ templateObject nt
   _ -> Nothing
   where templateObject = templateObjectForDecl namespace immRefCntNamespace

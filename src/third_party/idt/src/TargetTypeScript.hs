@@ -9,8 +9,8 @@ import           Panic
 import           Idt
 import           IdtProcessing
 
-enumConstructorFunctionString :: String -> (String, [Type]) -> String
-enumConstructorFunctionString enumName (cn, ts) =
+enumConstructorFunctionString :: String -> (String, String, [Type]) -> String
+enumConstructorFunctionString enumName (cn, _, ts) =
   let structConstructors = ("__kind: " ++ "'" ++ cn ++ "'")
         : map (\x -> x ++ ": " ++ x) (enumTypeNames ts)
   in  "export function "
@@ -23,8 +23,8 @@ enumConstructorFunctionString enumName (cn, ts) =
         ++ intercalate ", " structConstructors
         ++ "};\n}"
 
-enumConstructorTypeString :: (String, [Type]) -> String
-enumConstructorTypeString (cn, ts) =
+enumConstructorTypeString :: (String, String, [Type]) -> String
+enumConstructorTypeString (cn, _, ts) =
   let structMemberDefs =
           ("__kind: " ++ "'" ++ cn ++ "'")
             : zipWith (\n t -> n ++ ": " ++ typeString t) (enumTypeNames ts) ts
@@ -44,19 +44,25 @@ enumEntryString (n, ts) =
     ++ unwords (map (++ ";") (enumTypesToParameters ts))
     ++ " }"
 
-simpleEnumString :: String -> [String] -> String
-simpleEnumString n ens =
-  "export const enum "
+simpleEnumString :: String -> String -> [(String, String)] -> String
+simpleEnumString n c ens =
+  "// "
+    ++ c
+    ++ "\n"
+    ++ "export const enum "
     ++ n
     ++ " {\n"
-    ++ unlines [ "  " ++ en ++ "," | en <- ens ]
+    ++ unlines [ "  // " ++ ec ++ "\n  " ++ en ++ "," | (en, ec) <- ens ]
     ++ "}\n"
 
-enumString :: String -> [(String, [Type])] -> String
-enumString n cs = if isSimpleEnum cs
-  then simpleEnumString n (map fst cs)
+enumString :: String -> String -> [(String, String, [Type])] -> String
+enumString n c cs = if isSimpleEnum cs
+  then simpleEnumString n c (map (\(en, ec, _) -> (en, ec)) cs)
   else
-    concatMap (\c -> enumConstructorFunctionString n c ++ "\n") cs
+    concatMap (\co -> enumConstructorFunctionString n co ++ "\n") cs
+    ++ "// "
+    ++ c
+    ++ "\n"
     ++ "export type "
     ++ n
     ++ " = "
@@ -65,19 +71,19 @@ enumString n cs = if isSimpleEnum cs
 
 taggedUnionTypeName :: Type -> String
 taggedUnionTypeName t = case t of
-  Concrete  (NamedType n (Struct      _)) -> n
-  Concrete  (NamedType n (TaggedUnion _)) -> n
-  Reference (NamedType n (Struct      _)) -> n
-  Reference (NamedType n (TaggedUnion _)) -> n
+  Concrete  (NamedType n _ (Struct      _)) -> n
+  Concrete  (NamedType n _ (TaggedUnion _)) -> n
+  Reference (NamedType n _ (Struct      _)) -> n
+  Reference (NamedType n _ (TaggedUnion _)) -> n
   _ ->
     panic
       "TaggedUnions may only be passed named types of Structs and other TaggedUnions."
 
 typeString :: Type -> String
-typeString (Concrete       (NamedType n (Struct _))) = n ++ "Params"
-typeString (Concrete       (NamedType n _         )) = n
-typeString (Reference      (NamedType n _         )) = n
-typeString (NamedPrimitive n                       ) = case n of
+typeString (Concrete       (NamedType n _ (Struct _))) = n ++ "Params"
+typeString (Concrete       (NamedType n _ _         )) = n
+typeString (Reference      (NamedType n _ _         )) = n
+typeString (NamedPrimitive n                         ) = case n of
   "string"  -> "string"
   "f32"     -> "number"
   "i32"     -> "number"
@@ -88,23 +94,40 @@ typeString (Tuple l) = "[" ++ intercalate ", " (map typeString l) ++ "]"
 typeString (FixedSizeArray t s) | s <= 32   = typeString (Tuple $ replicate s t)
                                 | otherwise = typeString (List t)
 typeString (Struct l) =
-  "{ " ++ concatMap (\(n, t) -> n ++ ": " ++ typeString t ++ "; ") l ++ " }"
+  "{ "
+    ++ concatMap
+         (\(n, c, t) ->
+           "\n  // " ++ c ++ "\n  " ++ n ++ ": " ++ typeString t ++ ";"
+         )
+         l
+    ++ "\n}"
 typeString (Enum l) = panic "Enums may only be referenced as named types."
 typeString (TaggedUnion ts) =
   panic "TaggedUnions may only be referenced as named types."
 
 namedTypeDefinition :: Declaration -> String
 namedTypeDefinition t = case t of
-  ForwardDeclaration _                        -> ""
-  TypeDeclaration    (NamedType n t@(Enum l)) -> enumString n l
-  TypeDeclaration (NamedType n t@(TaggedUnion tuts)) ->
-    "export type "
+  ForwardDeclaration _                          -> ""
+  TypeDeclaration    (NamedType n c t@(Enum l)) -> enumString n c l
+  TypeDeclaration (NamedType n c t@(TaggedUnion tuts)) ->
+    "// "
+      ++ c
+      ++ "\n"
+      ++ "export type "
       ++ n
       ++ " = "
       ++ intercalate " | " (map taggedUnionTypeName tuts)
       ++ ";\n"
-  TypeDeclaration (NamedType n t@(Struct l)) ->
-    ("export type " ++ n ++ "Params = " ++ typeString t ++ ";\n")
+  TypeDeclaration (NamedType n c t@(Struct l)) ->
+    (  "// "
+      ++ c
+      ++ "\n"
+      ++ "export type "
+      ++ n
+      ++ "Params = "
+      ++ typeString t
+      ++ ";\n"
+      )
       ++ (  "interface "
          ++ n
          ++ "WithKind extends "
@@ -134,8 +157,8 @@ namedTypeDefinition t = case t of
             )
          ++ "};\n"
          )
-  TypeDeclaration (NamedType n t) ->
-    "export type " ++ n ++ " = " ++ typeString t ++ ";\n"
+  TypeDeclaration (NamedType n c t) ->
+    "// " ++ c ++ "\n" ++ "export type " ++ n ++ " = " ++ typeString t ++ ";\n"
 
 preamble =
   "\

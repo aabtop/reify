@@ -18,11 +18,11 @@ deriving instance Eq NamedType
 deriving instance Show NamedType
 deriving instance Eq Type
 instance Show Type where
-  show (Concrete       (NamedType n _)) = "Concrete \"" ++ n ++ "\""
-  show (Reference      (NamedType n _)) = "Reference \"" ++ n ++ "\""
-  show (NamedPrimitive n              ) = "NamedPrimitive \"" ++ n ++ "\""
-  show (List           t              ) = "List (" ++ show t ++ ")"
-  show (Tuple          x              ) = "Tuple " ++ show x
+  show (Concrete       (NamedType n _ _)) = "Concrete \"" ++ n ++ "\""
+  show (Reference      (NamedType n _ _)) = "Reference \"" ++ n ++ "\""
+  show (NamedPrimitive n                ) = "NamedPrimitive \"" ++ n ++ "\""
+  show (List           t                ) = "List (" ++ show t ++ ")"
+  show (Tuple          x                ) = "Tuple " ++ show x
   show (FixedSizeArray t s) =
     "(FixedSizeArray " ++ show t ++ " " ++ show s ++ ")"
   show (Struct      x) = "Struct " ++ show x
@@ -57,7 +57,7 @@ addTypeDeclaration
   :: DeclarationSequenceBuilderState
   -> NamedType
   -> DeclarationSequenceBuilderState
-addTypeDeclaration (DeclarationSequenceBuilderState ds fd td) nt@(NamedType n t)
+addTypeDeclaration (DeclarationSequenceBuilderState ds fd td) nt@(NamedType n _ t)
   = DeclarationSequenceBuilderState (ds ++ [TypeDeclaration nt])
                                     (Map.delete n fd)
                                     (Map.insert n nt td)
@@ -66,13 +66,13 @@ addForwardDeclaration
   :: DeclarationSequenceBuilderState
   -> NamedType
   -> DeclarationSequenceBuilderState
-addForwardDeclaration (DeclarationSequenceBuilderState ds fd td) nt@(NamedType n t)
+addForwardDeclaration (DeclarationSequenceBuilderState ds fd td) nt@(NamedType n _ t)
   = DeclarationSequenceBuilderState (ds ++ [ForwardDeclaration nt])
                                     (Map.insert n nt fd)
                                     (assert (not $ member n td) td)
 
 ensureTypeDefined :: NamedTypeMap -> NamedType -> DeclarationSequenceBuilder ()
-ensureTypeDefined under_construction nt@(NamedType n t)
+ensureTypeDefined under_construction nt@(NamedType n _ t)
   | member n under_construction =
       -- This type is currently being built above us in the call stack, which
       -- means we'd loop forever if we recursed into it, so return an error.
@@ -92,7 +92,7 @@ ensureTypeDefined under_construction nt@(NamedType n t)
 
 ensureTypeDefinedOrForwardDeclared
   :: NamedTypeMap -> NamedType -> DeclarationSequenceBuilder ()
-ensureTypeDefinedOrForwardDeclared under_construction nt@(NamedType n t) = do
+ensureTypeDefinedOrForwardDeclared under_construction nt@(NamedType n _ t) = do
   original_state <- get
   case original_state of
     Left  _  -> return ()
@@ -101,7 +101,7 @@ ensureTypeDefinedOrForwardDeclared under_construction nt@(NamedType n t) = do
       new_state <- get
       case new_state of
         Right _ -> return ()  -- If there's no problem, there's no problem!
-        Left (CyclicDependencyError (NamedType en et)) ->
+        Left (CyclicDependencyError (NamedType en _ et)) ->
           -- In the case of a cyclic dependency, create a forward declaration
           -- if we're the cyclic dependency and a forward declaration has
           -- not already been declared.
@@ -132,9 +132,9 @@ buildDeclarationSequence under_construction (Tuple ts) =
 buildDeclarationSequence under_construction (FixedSizeArray t s) =
   buildDeclarationSequence under_construction t
 buildDeclarationSequence under_construction (Struct nts) =
-  mapM_ (\(n, t) -> buildDeclarationSequence under_construction t) nts
+  mapM_ (\(n, _, t) -> buildDeclarationSequence under_construction t) nts
 buildDeclarationSequence under_construction (Enum nts) = mapM_
-  (\(n, ts) -> mapM_ (buildDeclarationSequence under_construction) ts)
+  (\(n, _, ts) -> mapM_ (buildDeclarationSequence under_construction) ts)
   nts
 buildDeclarationSequence under_construction (TaggedUnion ts) =
   mapM_ (buildDeclarationSequence under_construction) ts
@@ -193,5 +193,5 @@ asDeclarationSequence = toDeclarationSequence . List.map Concrete
 -- Returns true if the given Enum parameters all have zero parameters.
 -- In other words, this is a "C++ enum" as opposed to a Haskell enum where
 -- the constructors take parameters.
-isSimpleEnum :: [(String, [Type])] -> Bool
-isSimpleEnum = all (\(_, ts) -> List.null ts)
+isSimpleEnum :: [(String, String, [Type])] -> Bool
+isSimpleEnum = all (\(_, _, ts) -> List.null ts)

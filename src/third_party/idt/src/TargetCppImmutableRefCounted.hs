@@ -57,8 +57,8 @@ topLevelTemplate =
       Right template -> template
 
 typeString :: Type -> String
-typeString (Concrete (NamedType n _)) = n
-typeString (Reference (NamedType n _)) = "std::shared_ptr<const " ++ n ++ ">"
+typeString (Concrete (NamedType n _ _)) = n
+typeString (Reference (NamedType n _ _)) = "std::shared_ptr<const " ++ n ++ ">"
 typeString (NamedPrimitive n) = case n of
   "string"  -> "std::string"
   "f32"     -> "float"
@@ -78,8 +78,8 @@ typeString (TaggedUnion l) =
 
 enumTypeNames ts = map (("p" ++) . show) [0 .. length ts - 1]
 
-contructorToStacheObject :: (String, [Type]) -> Value
-contructorToStacheObject (n, ts) = object
+contructorToStacheObject :: (String, String, [Type]) -> Value
+contructorToStacheObject (n, _, ts) = object
   [ "cname" .= DT.pack n
   , "params"
     .= zipWith
@@ -90,34 +90,41 @@ contructorToStacheObject (n, ts) = object
          ts
   ]
 
-constructorNames :: [(String, [Type])] -> [String]
-constructorNames = map fst
+constructorNames :: [(String, String, [Type])] -> [String]
+constructorNames = map (\(x, _, _) -> x)
 
-constructors :: [(String, [Type])] -> [Value]
+constructors :: [(String, String, [Type])] -> [Value]
 constructors = map contructorToStacheObject
 
-member :: (String, Type) -> Value
-member (n, t) = object ["name" .= DT.pack n, "type" .= DT.pack (typeString t)]
+member :: (String, String, Type) -> Value
+member (n, c, t) = object
+  [ "name" .= DT.pack n
+  , "comment" .= DT.pack c
+  , "type" .= DT.pack (typeString t)
+  ]
 
-members :: [(String, Type)] -> [Value]
+members :: [(String, String, Type)] -> [Value]
 members = map member
 
 namedTypeDefinition :: Declaration -> String
 namedTypeDefinition t = case t of
-  ForwardDeclaration (NamedType n (Struct      _)) -> "class " ++ n ++ ";\n"
-  ForwardDeclaration (NamedType n (Enum        _)) -> "class " ++ n ++ ";\n"
-  ForwardDeclaration (NamedType n (TaggedUnion _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n _ (Struct      _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n _ (Enum        _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n _ (TaggedUnion _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration _ ->
     panic "Only forward declarations of Enum and Structs are supported."
-  TypeDeclaration (NamedType n t@(Struct l)) ->
+  TypeDeclaration (NamedType n c t@(Struct l)) ->
     DTL.unpack $ renderMustache structTemplate $ object
-      ["name" .= n, "members" .= members l]
-  TypeDeclaration (NamedType n t@(Enum l)) -> if isSimpleEnum l
+      ["name" .= n, "comment" .= c, "members" .= members l]
+  TypeDeclaration (NamedType n c t@(Enum l)) -> if isSimpleEnum l
     then
-      "enum class "
+      "// "
+      ++ c
+      ++ "\n"
+      ++ "enum class "
       ++ n
       ++ " {\n"
-      ++ unlines (map (\x -> "  " ++ fst x ++ ",") l)
+      ++ unlines (map (\(en, ec, _) -> "  // " ++ ec ++ "\n  " ++ en ++ ",") l)
       ++ "};\n"
     else DTL.unpack $ renderMustache enumTemplate $ object
       [ "constructors" .= constructors l
@@ -125,18 +132,20 @@ namedTypeDefinition t = case t of
         taggedUnionTemplate
         (object
           [ "name" .= DT.pack n
+          , "comment" .= DT.pack c
           , "comma_sep_types" .= DT.pack (intercalate ", " (constructorNames l))
           ]
         )
       ]
-  TypeDeclaration (NamedType n t@(TaggedUnion ts)) ->
+  TypeDeclaration (NamedType n c t@(TaggedUnion ts)) ->
     DTL.unpack $ renderMustache taggedUnionTemplate $ object
       [ "name" .= DT.pack n
+      , "comment" .= DT.pack c
       , "comma_sep_types"
         .= DT.pack (intercalate ", " [ typeString t | t <- ts ])
       ]
-  TypeDeclaration (NamedType n t) ->
-    "using " ++ n ++ " = " ++ typeString t ++ ";\n"
+  TypeDeclaration (NamedType n c t) ->
+    "// " ++ c ++ "\n" ++ "using " ++ n ++ " = " ++ typeString t ++ ";\n"
 
 toCppImmutableRefCountedSourceCode :: String -> DeclarationSequence -> String
 toCppImmutableRefCountedSourceCode namespace decls =

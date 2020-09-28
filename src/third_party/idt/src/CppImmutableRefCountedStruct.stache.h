@@ -1,8 +1,11 @@
 // {{!
 // clang-format off
 // }}
+
+// {{comment}}
 struct {{name}} {
 {{#members}}
+  // {{comment}}
   {{{type}}} {{name}};
 {{/members}}
 };
