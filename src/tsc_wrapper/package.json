@@ -17,5 +17,7 @@
     "webpack-cli": "^3.3.11",
     "raw-loader": "^0.5.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@bazel/typescript": "^2.2.1"
+  }
 }

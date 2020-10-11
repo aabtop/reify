@@ -17,3 +17,8 @@ RUN choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
 # vcvars64.bat are baked into the image.
 ADD msvc_docker_env_setup_scripts C:/msvc_env_setup_scripts
 RUN powershell C:/msvc_env_setup_scripts/setvcbuildtoolsenv.ps1
+
+# Due to a bug with Bazel getting confused between WSL's bash, we explicitly
+# specify a bash shell for it to use.  This is mainly only used by the Bazel
+# npm modules.
+ENV BAZEL_SH="C:\Program Files\Git\git-bash.exe"

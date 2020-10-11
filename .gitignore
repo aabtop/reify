@@ -21,3 +21,6 @@ docker_out/
 node_modules/
 dist/
 package-lock.json
+
+# Ignore all Bazel build output directories
+bazel-*/

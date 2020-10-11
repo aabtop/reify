@@ -1,0 +1,30 @@
+workspace(
+    name = "hypo",
+)
+
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
+http_archive(
+    name = "cgal",
+    urls = ["https://github.com/CGAL/cgal/releases/download/v5.1/CGAL-5.1.tar.xz"],
+    sha256 = "94779e80db978c01768a1b62889ddcfcf74dababa70b73d1e493823d273e0ab7",
+    build_file = "@//:src/bazel/cgal.BUILD",
+    strip_prefix = "/CGAL-5.1",
+)
+
+git_repository(
+    name = "com_github_nelhage_rules_boost",
+    commit = "1e3a69bf2d5cd10c34b74f066054cd335d033d71",
+    remote = "https://github.com/nelhage/rules_boost",
+    shallow_since = "1591047380 -0700",
+)
+
+load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
+boost_deps()
+
+local_repository(
+    name = "reify",
+    path = "../..",
+)
