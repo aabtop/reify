@@ -26,10 +26,13 @@ cc_library(
         "src/cgal/types_polygons.h",
     ],
     includes = [
-        "src/"
+        "src/",
+        "src/third_party/CLI11/include",
+    ],
+    deps = [
+        "@cgal//:cgal",
     ],
     data = [
-        "@cgal//:cgal",
         "@reify//src/tsc_wrapper",
         "@reify//src/third_party/idt"
     ],
