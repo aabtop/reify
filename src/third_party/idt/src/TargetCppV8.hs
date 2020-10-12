@@ -22,7 +22,7 @@ enumHTemplate =
   case
       compileMustacheText
         "enumHTemplate"
-        (DT.pack  $(embedStringFile "src/CppV8Enum.stache.h"))
+        (DT.pack  $(embedStringFile "src/third_party/idt/src/CppV8Enum.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -32,7 +32,7 @@ enumCCTemplate =
   case
       compileMustacheText
         "enumCCTemplate"
-        (DT.pack  $(embedStringFile "src/CppV8Enum.stache.cc"))
+        (DT.pack  $(embedStringFile "src/third_party/idt/src/CppV8Enum.stache.cc"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -42,7 +42,7 @@ simpleEnumHTemplate =
   case
       compileMustacheText
         "simpleEnumHTemplate"
-        (DT.pack $(embedStringFile "src/CppV8SimpleEnum.stache.h"))
+        (DT.pack $(embedStringFile "src/third_party/idt/src/CppV8SimpleEnum.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -52,7 +52,7 @@ taggedUnionHTemplate =
   case
       compileMustacheText
         "taggedUnionHTemplate"
-        (DT.pack  $(embedStringFile "src/CppV8TaggedUnion.stache.h"))
+        (DT.pack  $(embedStringFile "src/third_party/idt/src/CppV8TaggedUnion.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -62,7 +62,7 @@ taggedUnionCCTemplate =
   case
       compileMustacheText
         "taggedUnionCCTemplate"
-        (DT.pack  $(embedStringFile "src/CppV8TaggedUnion.stache.cc"))
+        (DT.pack  $(embedStringFile "src/third_party/idt/src/CppV8TaggedUnion.stache.cc"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -72,7 +72,7 @@ structHTemplate =
   case
       compileMustacheText
         "structHTemplate"
-        (DT.pack $(embedStringFile "src/CppV8Struct.stache.h"))
+        (DT.pack $(embedStringFile "src/third_party/idt/src/CppV8Struct.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -82,7 +82,7 @@ structCCTemplate =
   case
       compileMustacheText
         "structCCTemplate"
-        (DT.pack $(embedStringFile "src/CppV8Struct.stache.cc"))
+        (DT.pack $(embedStringFile "src/third_party/idt/src/CppV8Struct.stache.cc"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -92,7 +92,7 @@ topLevelHTemplate =
   case
       compileMustacheText
         "topLevelHTemplate"
-        (DT.pack $(embedStringFile "src/CppV8.stache.h"))
+        (DT.pack $(embedStringFile "src/third_party/idt/src/CppV8.stache.h"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -102,7 +102,7 @@ topLevelCCTemplate =
   case
       compileMustacheText
         "topLevelCCTemplate"
-        (DT.pack $(embedStringFile "src/CppV8.stache.cc"))
+        (DT.pack $(embedStringFile "src/third_party/idt/src/CppV8.stache.cc"))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template

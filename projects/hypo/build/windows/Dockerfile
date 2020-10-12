@@ -18,7 +18,18 @@ RUN choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
 ADD msvc_docker_env_setup_scripts C:/msvc_env_setup_scripts
 RUN powershell C:/msvc_env_setup_scripts/setvcbuildtoolsenv.ps1
 
-# Due to a bug with Bazel getting confused between WSL's bash, we explicitly
-# specify a bash shell for it to use.  This is mainly only used by the Bazel
-# npm modules.
-ENV BAZEL_SH="C:\Program Files\Git\git-bash.exe"
+# Install MSYS2 and ensure that we have MSYS2's bin directory in our path,
+# this is required for proper Bazel setup.
+RUN Invoke-WebRequest -UserAgent 'DockerCI' -outfile 7zsetup.exe http://www.7-zip.org/a/7z1604-x64.exe
+RUN Invoke-WebRequest -UserAgent 'DockerCI' -outfile msys2-x86_64-latest.tar.xz http://repo.msys2.org/distrib/msys2-x86_64-latest.tar.xz 
+
+RUN Start-Process .\7zsetup -ArgumentList '/S /D=c:/7zip' -Wait
+RUN C:\7zip\7z e msys2-x86_64-latest.tar.xz -Wait
+RUN C:\7zip\7z x msys2-x86_64-latest.tar -o"C:\\" 
+RUN del *
+ENV PATH="C:\msys64\usr\bin;${PATH}"
+RUN pacman -S zip unzip patch diffutils git
+
+# rules_haskell doesn't currently support beyond this version of Bazel.
+RUN choco install -y bazel --version 3.3.1
+

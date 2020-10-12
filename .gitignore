@@ -23,4 +23,4 @@ dist/
 package-lock.json
 
 # Ignore all Bazel build output directories
-bazel-*/
+bazel-*
