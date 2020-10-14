@@ -2,5 +2,7 @@ build --enable_platform_specific_config
 
 build:windows --compiler=msys-gcc
 
+build:windows --host_crosstool_top=@rules_haskell_ghc_windows_amd64//:cc_toolchain
+
 build --cxxopt=-std=c++17
 build --host_cxxopt=-std=c++17

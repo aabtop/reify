@@ -1,3 +1,18 @@
+load("@reify//src/third_party/idt:rules.bzl", "idt", "idt_as_purecpp")
+
+idt(
+    name = "hypo-idt",
+    srcs = [
+        "src/interface/ReifyInputInterface.hs",
+    ],
+    namespace = "hypo",
+)
+
+idt_as_purecpp(
+    name = "hypo-purecpp",
+    idt = ":hypo-idt",
+)
+
 cc_library(
     name = "hypo",
     srcs = [
@@ -31,9 +46,6 @@ cc_library(
     ],
     deps = [
         "@cgal//:cgal",
-    ],
-    data = [
-        "@reify//src/tsc_wrapper",
-        "@reify//src/third_party/idt"
+        ":hypo-purecpp",
     ],
 )

@@ -52,3 +52,5 @@ haskell_library(
       "@stackage//:megaparsec",
     ],
 )
+
+exports_files(["src/targets/pure_cpp/Main.hs"])

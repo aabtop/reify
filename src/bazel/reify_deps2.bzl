@@ -24,6 +24,7 @@ def reify_deps2():
           "base",
           "mtl",
           "containers",
+          "directory",
           "filepath",
           "text",
           "ghc",
@@ -32,6 +33,7 @@ def reify_deps2():
           "file-embed",
           "aeson",
           "megaparsec",
+          "process",
       ],
       # Last snapshot published for ghc-8.6.5 the default version picked up by
       # rules_haskell
