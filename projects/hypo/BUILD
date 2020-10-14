@@ -14,6 +14,14 @@ idt_as_purecpp(
 )
 
 cc_library(
+    name = "CLI11",
+    hdrs = glob(["src/third_party/CLI11/include/**/*.h"]),
+    includes = [
+        "src/third_party/CLI11/include",
+    ],
+)
+
+cc_library(
     name = "hypo",
     srcs = [
         "src/main.cc",
@@ -42,10 +50,10 @@ cc_library(
     ],
     includes = [
         "src/",
-        "src/third_party/CLI11/include",
     ],
     deps = [
         "@cgal//:cgal",
+        ":CLI11",
         ":hypo-purecpp",
     ],
 )
