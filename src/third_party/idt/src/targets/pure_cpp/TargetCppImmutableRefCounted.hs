@@ -20,7 +20,7 @@ enumTemplate =
   case
       compileMustacheText
         "enumTemplate"
-        (DT.pack  $(makeRelativeToProject "src/CppImmutableRefCountedEnum.stache.h" >>= embedStringFile))
+        (DT.pack  $(makeRelativeToProject "templates/CppImmutableRefCountedEnum.stache.h" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -31,7 +31,7 @@ taggedUnionTemplate =
       compileMustacheText
         "taggedUnionTemplate"
         (DT.pack
-           $(makeRelativeToProject "src/CppImmutableRefCountedTaggedUnion.stache.h" >>= embedStringFile))
+           $(makeRelativeToProject "templates/CppImmutableRefCountedTaggedUnion.stache.h" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -41,7 +41,7 @@ structTemplate =
   case
       compileMustacheText
         "structTemplate"
-        (DT.pack $(makeRelativeToProject "src/CppImmutableRefCountedStruct.stache.h" >>= embedStringFile))
+        (DT.pack $(makeRelativeToProject "templates/CppImmutableRefCountedStruct.stache.h" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -51,7 +51,7 @@ topLevelTemplate =
   case
       compileMustacheText
         "topLevelTemplate"
-        (DT.pack $(makeRelativeToProject "src/CppImmutableRefCounted.stache.h" >>= embedStringFile))
+        (DT.pack $(makeRelativeToProject "templates/CppImmutableRefCounted.stache.h" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template

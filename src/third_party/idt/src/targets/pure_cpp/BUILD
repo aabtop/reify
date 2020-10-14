@@ -5,6 +5,12 @@ haskell_library(
   srcs = [
     "TargetCppImmutableRefCounted.hs",
   ],
+  extra_srcs = [
+    "templates/CppImmutableRefCounted.stache.h",
+    "templates/CppImmutableRefCountedEnum.stache.h",
+    "templates/CppImmutableRefCountedStruct.stache.h",
+    "templates/CppImmutableRefCountedTaggedUnion.stache.h",
+  ],
   compiler_flags = [
     "-XDuplicateRecordFields",
     "-XStandaloneDeriving",

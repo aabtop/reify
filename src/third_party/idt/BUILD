@@ -17,10 +17,6 @@ haskell_library(
     ],
     extra_srcs = [
       # Template files.
-      "src/CppImmutableRefCounted.stache.h",
-      "src/CppImmutableRefCountedEnum.stache.h",
-      "src/CppImmutableRefCountedStruct.stache.h",
-      "src/CppImmutableRefCountedTaggedUnion.stache.h",
       "src/CppV8.stache.cc",
       "src/CppV8.stache.h",
       "src/CppV8Enum.stache.cc",
