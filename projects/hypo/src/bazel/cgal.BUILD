@@ -5,7 +5,7 @@ cc_library(
   visibility = ["//visibility:public"],
   deps = [
     "@boost//:core",
-    "@boost//:predef"
+    "@boost//:predef",
   ],
   defines = [
     # performance-todo: CGAL is supposed to be faster with GMP, but it's

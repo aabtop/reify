@@ -15,7 +15,8 @@ idt_as_purecpp(
 
 cc_library(
     name = "CLI11",
-    hdrs = glob(["src/third_party/CLI11/include/**/*.h"]),
+    hdrs = glob(["src/third_party/CLI11/include/**/*.h",
+                 "src/third_party/CLI11/include/**/*.hpp"]),
     includes = [
         "src/third_party/CLI11/include",
     ],
