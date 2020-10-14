@@ -34,7 +34,7 @@ The implementation enables efficient communication between V8 and C++ by making 
 ### Type Definitions
 
 The interface types are defined in Haskell, and the system for performing this
-generation can be found at [src/third_party/idt](src/third_party/idt). The
+generation can be found at [src/idt](src/idt). The
 subproject is called "IDT" which refers to "Interface Description Tree", expressing the preference to describe the interface's abstract syntax tree directly as opposed to using a specialized [IDL](https://en.wikipedia.org/wiki/Interface_description_language) language.  By describing the types directly in a first-class programming language, we are able to be more expressive, for example we can leverage Haskell's existing module system to create a modular definition of the interface types.
 
 While only used by Reify at the time of this writing, IDT is meant to be
@@ -42,13 +42,13 @@ independent from Reify, though I don't think that's currently reflected in the c
 
 The source IDT file (e.g. [from hypo](./projects/hypo/src/interface/ReifyInputInterface.hs)) is used to generate three target interfaces:
 
-1. The TypeScript interface, defined by [TargetTypeScript.hs](src/third_party/idt/src/TargetTypeScript.hs).
-1. The C++ V8 bindings layer, defined by [TargetCppV8.hs](src/third_party/idt/src/TargetCppV8.hs).
-1. The pure C++ interface, defined by [TargetCppImmutableRefCounted.hs](src/third_party/idt/src/TargetCppImmutableRefCounted.hs).
+1. The TypeScript interface, defined by [TargetTypeScript.hs](src/idt/src/TargetTypeScript.hs).
+1. The C++ V8 bindings layer, defined by [TargetCppV8.hs](src/idt/src/TargetCppV8.hs).
+1. The pure C++ interface, defined by [TargetCppImmutableRefCounted.hs](src/idt/src/targets/pure_cpp/TargetCppImmutableRefCounted.hs).
 
 Note that the interfaces described by the IDT are very abstract.  They can be used to generate C++ and TypeScript interfaces, but they may also be used to generate other backend targets, such as JSON and binary representations.
 
-As a bonus, a description of the IDT types themselves can be defined by IDT, as is done in [IdtIdt.hs](src/third_party/idt/src/IdtIdt.hs).
+As a bonus, a description of the IDT types themselves can be defined by IDT, as is done in [IdtIdt.hs](src/idt/src/IdtIdt.hs).
 
 ## Development environment
 

@@ -1,5 +1,5 @@
 load("@rules_haskell//haskell:defs.bzl", "haskell_binary")
-load("@reify//src/third_party/idt:rules.bzl", "IdtInfo")
+load("@reify//src/idt:rules.bzl", "IdtInfo")
 
 
 def __idt_as_purecpp_rule_impl(ctx):
@@ -47,14 +47,14 @@ def idt_as_purecpp(name, idt):
   haskell_binary(
     name=generator_name,
     srcs=[
-      "@reify//src/third_party/idt/src/targets/pure_cpp:Main.hs",
+      "@reify//src/idt/src/targets/pure_cpp:Main.hs",
     ],
     deps=[
       "@stackage//:base",
       "@stackage//:filepath",
       "@stackage//:directory",
-      "@reify//src/third_party/idt",
-      "@reify//src/third_party/idt/src/targets/pure_cpp:target_pure_cpp_library",
+      "@reify//src/idt",
+      "@reify//src/idt/src/targets/pure_cpp:target_pure_cpp_library",
       idt + "_lib",
     ],
   )

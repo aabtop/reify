@@ -8,7 +8,7 @@ let
     packageOverrides = pkgs: rec {
       haskellPackages = pkgs.haskellPackages.override {
         overrides = haskellPackagesNew: haskellPackagesOld: {
-          idt = import ../third_party/idt { haskellPackages = haskellPackagesOld; };
+          idt = import ../idt { haskellPackages = haskellPackagesOld; };
         };
       };
     };

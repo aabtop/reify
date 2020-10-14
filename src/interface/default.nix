@@ -8,7 +8,7 @@ let
     packageOverrides = pkgs: rec {
       haskellPackages = pkgs.haskellPackages.override {
         overrides = haskellPackagesNew: haskellPackagesOld: {
-          idt = import ../third_party/idt { haskellPackages = haskellPackagesOld; };
+          idt = import ../idt { haskellPackages = haskellPackagesOld; };
           reify-input-interface = import ./input_interface.nix {
             inherit pkgsFunc;
             inherit inputInterfacePath;
