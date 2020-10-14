@@ -1,6 +1,5 @@
 module ReifyInputInterface
   ( idt
-  , namespace
   , typescriptLibDir
   )
 where
@@ -309,10 +308,6 @@ idt =
             ]
   in
     [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3]
-
--- The namespace applied to all interfaces generated from |idt| above.
-namespace :: String
-namespace = "hypo"
 
 -- The directory containing typescript files which defines the interface.
 -- Within these files one may import reify_generated_interface to access the

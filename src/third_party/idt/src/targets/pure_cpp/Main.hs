@@ -8,8 +8,6 @@ import           System.IO
 
 import           IdtProcessing
 import           IdtStandardPipeline
-import           TargetCppV8
-import           TargetTypeScript
 import           TargetCppImmutableRefCounted
 
 import           ReifyInputInterface
@@ -26,7 +24,7 @@ main = do
             hPutStrLn stderr ("Usage: Expected two parameters, [" ++ namespace ++ ", " ++ outputDirectory ++ "].")
             buildTargetToFile
               (namespace ++ ".h")
-              (toCppImmutableRefCountedSourceCode ReifyInputInterface.namespace)
+              (toCppImmutableRefCountedSourceCode namespace)
             currDir <- getCurrentDirectory
             hPutStrLn stderr ("Current directory: " ++ currDir)
     _ -> do

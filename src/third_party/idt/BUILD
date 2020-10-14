@@ -11,7 +11,6 @@ haskell_library(
       "src/IdtProcessing.hs",
       "src/IdtStandardPipeline.hs",
       "src/Lib.hs",
-      "src/TargetCppImmutableRefCounted.hs",
       "src/TargetCppV8.hs",
       "src/TargetHaskell.hs",
       "src/TargetTypeScript.hs",
@@ -53,4 +52,3 @@ haskell_library(
     ],
 )
 
-exports_files(["src/targets/pure_cpp/Main.hs"])

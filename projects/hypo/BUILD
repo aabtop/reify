@@ -1,4 +1,5 @@
-load("@reify//src/third_party/idt:rules.bzl", "idt", "idt_as_purecpp")
+load("@reify//src/third_party/idt:rules.bzl", "idt")
+load("@reify//src/third_party/idt/src/targets/pure_cpp:pure_cpp.bzl", "idt_as_purecpp")
 
 idt(
     name = "hypo-idt",
