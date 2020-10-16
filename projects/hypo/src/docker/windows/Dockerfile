@@ -28,8 +28,10 @@ RUN C:\7zip\7z e msys2-x86_64-latest.tar.xz -Wait
 RUN C:\7zip\7z x msys2-x86_64-latest.tar -o"C:\\" 
 RUN del *
 ENV PATH="C:\msys64\usr\bin;${PATH}"
-RUN pacman -S zip unzip patch diffutils git gcc
+RUN pacman -S zip unzip patch diffutils git gcc python python3
 
 # rules_haskell doesn't currently support beyond this version of Bazel.
 RUN choco install -y bazel --version 3.3.1
 
+# V8
+ENV DEPOT_TOOLS_UPDATE=0

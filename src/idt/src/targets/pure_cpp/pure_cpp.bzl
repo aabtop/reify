@@ -11,7 +11,6 @@ def __idt_as_purecpp_rule_impl(ctx):
       tools = [ctx.executable.generator_binary],
       arguments = [ctx.attr.idt[IdtInfo].namespace, output_header_file.dirname],
       progress_message = "Generating pure C++ interface for IDT %s" % ctx.attr.idt.label,
-      #command = ctx.executable.generator_binary.path + ' ' + ' '.join([ctx.attr.idt[IdtInfo].namespace, output_directory.path]),
       executable=ctx.executable.generator_binary,
   )
 
