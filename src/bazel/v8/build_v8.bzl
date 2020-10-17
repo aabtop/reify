@@ -31,23 +31,26 @@ v8_enable_verify_heap = true
 #      executable = ctx.executable.gn,
 #  )
 
+  #depot_tools_prefix = "cmd.exe /c"
+
   ctx.actions.run_shell(
-      inputs = [args_gn_file] + ctx.files.srcs,
+      inputs = [args_gn_file, ctx.files.v8_src_dir[0]],
       outputs = [foo],
       tools = [ctx.executable.gn],
       command = """
-      set -eou pipefail
-      export DEPOT_TOOLS_UPDATE=0
-      export DEPOT_TOOLS_WIN_TOOLCHAIN=0
-      export PATH={depot_tools_path}:$PATH
-      export PYTHONPATH={depot_tools_path}
-      cd {root_v8_src_dir}
-      ls 1>&2
-      gn gen {outdir}
-      """.format(
-          root_v8_src_dir=ctx.files.root.path,
-          depot_tools_path=ctx.executable.gn.dirname,
-          outdir=args_gn_file.dirname),
+          set -eou pipefail
+          export DEPOT_TOOLS_UPDATE=0
+          export DEPOT_TOOLS_WIN_TOOLCHAIN=0
+          export DEPOT_TOOLS_PATH=$(realpath {depot_tools_path})
+          export PATH=$DEPOT_TOOLS_PATH:$PATH
+          export PYTHONPATH=$DEPOT_TOOLS_PATH
+          cd {v8_src_dir}
+          ls -l holyfuck* 1>&2
+          ./holyfuck.bat {outdir}
+          """.format(
+              v8_src_dir=ctx.files.v8_src_dir[0].path,
+              depot_tools_path=ctx.executable.gn.dirname,
+              outdir=args_gn_file.dirname),
   )
 
   return [
@@ -64,7 +67,7 @@ v8_enable_verify_heap = true
 v8_library = rule(
   implementation = _v8_library_impl,
   attrs = {
-    "root": attr.label(
+    "v8_src_dir": attr.label(
         doc="The list of sources used to build V8.",
         allow_files=True,
         mandatory=True,),
