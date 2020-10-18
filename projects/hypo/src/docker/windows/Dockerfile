@@ -34,4 +34,7 @@ RUN pacman -S zip unzip patch diffutils git gcc python python3
 RUN choco install -y bazel --version 3.3.1
 
 # V8
-ENV DEPOT_TOOLS_UPDATE=0
+
+# Specifically install Windows SDK version 10.0.19041.0, for the Windows that's what V8 needs.
+RUN (New-Object Net.WebClient).DownloadFile('https://download.microsoft.com/download/1/c/3/1c3d5161-d9e9-4e4b-9b43-b70fe8be268c/windowssdk/winsdksetup.exe', (Join-Path $env:TEMP 'winsdksetup.exe'))
+RUN $p = Start-Process -Wait -PassThru -FilePath (Join-Path $env:TEMP 'winsdksetup.exe') -ArgumentList "/features OptionId.WindowsDesktopDebuggers OptionId.DesktopCPPx86 OptionId.DesktopCPPx64 /Quiet /NoRestart /Log $(Join-Path $env:TEMP 'winsdksetup.log')"; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { throw ('winsdksetup.exe install failed with exit code 0x{0:x}' -f $ret) }
