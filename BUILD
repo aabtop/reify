@@ -16,6 +16,6 @@ cc_library(
     ],
     data = [
         "//src/tsc_wrapper",
-        "//src/bazel/v8",
+        "//third_party/v8",
     ],
 )
