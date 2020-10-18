@@ -35,4 +35,15 @@ haskell_library(
   visibility = ["//visibility:public"],
 )
 
-exports_files(["Main.hs"])
+# TODO: Ideally most of the code that is not IDT-specific will go here, but
+#       currently this is just providing the include directory to dependencies.
+cc_library(
+  name = "core",
+  includes=[
+    "core",
+    "core/public_include",
+  ],
+  visibility = ["//visibility:public"],
+)
+
+exports_files(["Main.hs"] + glob(["core/**"]))

@@ -20,8 +20,8 @@ main = do
             (joinPath [outputDirectory, filename])
             ReifyInputInterface.idt
           cppV8Namespace = namespace ++ "_v8"
-          cppV8HFileName = cppV8Namespace ++ ".h"
-          cppV8CCFileName = cppV8Namespace ++ ".cc"
+          cppV8HFileName = "reify_cpp_v8_interface.h"
+          cppV8CCFileName = "reify_cpp_v8_interface.cc"
           cppImmutableRefCountedFileName = (namespace ++ ".h")
       in  do
             createDirectoryIfMissing True outputDirectory

@@ -7,9 +7,9 @@ load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 def __idt_as_typescript_in_cpp_via_v8_rule_impl(ctx):
   output_directory_path = ctx.attr.idt[IdtInfo].namespace + "_typescript_in_cpp_via_v8"
   output_h_file = ctx.actions.declare_file(
-       output_directory_path + "/" + ctx.attr.idt[IdtInfo].namespace + "_v8.h")
+       output_directory_path + "/reify_cpp_v8_interface.h")
   output_cc_file = ctx.actions.declare_file(
-       output_directory_path + "/" + ctx.attr.idt[IdtInfo].namespace + "_v8.cc")
+       output_directory_path + "/reify_cpp_v8_interface.cc")
 
   ctx.actions.run(
       outputs = [output_h_file, output_cc_file],
@@ -19,7 +19,6 @@ def __idt_as_typescript_in_cpp_via_v8_rule_impl(ctx):
       executable=ctx.executable.generator_binary,
   )
 
-
   return [
       CcInfo(
           compilation_context = cc_common.create_compilation_context(
@@ -28,7 +27,9 @@ def __idt_as_typescript_in_cpp_via_v8_rule_impl(ctx):
           ),
       ),
       DefaultInfo(
-          files = depset([output_h_file, output_cc_file])
+          files = depset([
+              output_h_file,
+              output_cc_file])
       ) 
   ]
 
@@ -51,6 +52,42 @@ _idt_as_typescript_in_cpp_via_v8_rule = rule(
   },
 )
 
+
+def __generate_namespace_header_rule_impl(ctx):
+  output_namespace_header = ctx.actions.declare_file(
+      ctx.label.name + "/" + "reify_generated_project_namespace.h")
+  ctx.actions.write(
+      output = output_namespace_header,
+      content = """
+          #ifndef _REIFY_GENERATED_PROJECT_NAMESPACE_H_
+          #define _REIFY_GENERATED_PROJECT_NAMESPACE_H_
+
+          #define REIFY_GENERATED_PROJECT_NAMESPACE {namespace}
+
+          #endif  // _REIFY_GENERATED_PROJECT_NAMESPACE_H_
+      """.format(namespace=ctx.attr.idt[IdtInfo].namespace),
+  )
+  return [
+      CcInfo(
+          compilation_context = cc_common.create_compilation_context(
+              headers = depset(direct = [output_namespace_header]),
+              includes = depset(direct = [output_namespace_header.dirname]),
+          ),
+      ),
+      DefaultInfo(
+          files = depset([output_namespace_header])
+      ) 
+  ]
+
+
+_generate_namespace_header_rule = rule(
+  implementation = __generate_namespace_header_rule_impl,
+  attrs = {
+    "idt": attr.label(
+        doc="The idt target that defines the interface to generate.",
+        mandatory=True,),
+  }
+)
 
 def idt_as_typescript_in_cpp_via_v8(name, idt, purecpp):
   idt_typescript_name = name + "_typescript"
@@ -75,20 +112,48 @@ def idt_as_typescript_in_cpp_via_v8(name, idt, purecpp):
     ],
   )
 
-  interface_name = name + "_interface"
+  interface_files_name = name + "_interface_files"
   _idt_as_typescript_in_cpp_via_v8_rule(
-    name=interface_name,
+    name=interface_files_name,
     idt=idt,
     idt_typescript=":" + idt_typescript_name,
     generator_binary=generator_name,
   )
 
+  # TODO: See if we can pull out the core code that does not need to be
+  #       parameterized for each different IDT.
+  namespace_header_name = name + "_namespace_header"
+  _generate_namespace_header_rule(
+      name=namespace_header_name,
+      idt=idt,
+  )
+  core_name = name
   native.cc_library(
-    name=name,
-    srcs = [interface_name],
+    name=core_name,
+    srcs = [
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/compiler_environment.cc",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/compiled_module.cc",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/compiled_module_impl.h",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/context_environment.h",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/generic_function.cc",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/generic_function_impl.h",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/global_initialization.cc",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/global_initialization.h",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/public_include/reify.h",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/runtime_environment.cc",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/typescript_compiler.cc",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/typescript_compiler.h",
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/virtual_filesystem.cc",
+        interface_files_name,
+    ],
+    data = [
+        "@reify//src/tsc_wrapper",
+    ],
     deps = [
-      interface_name,
-      purecpp,
-      "@reify//third_party/v8",
+        purecpp,
+        ":" + interface_files_name,
+        ":" + namespace_header_name,
+        "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core",
+        "@reify//third_party/v8",
     ],
   )
