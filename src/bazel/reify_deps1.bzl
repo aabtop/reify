@@ -2,7 +2,6 @@
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
-load("@reify//:src/bazel/fetch_v8.bzl", "install_v8_repository")
 
 def reify_deps1():
   # Setup NPM repositories required to build the `tsc_wrapper`.
@@ -35,5 +34,3 @@ def reify_deps1():
       commit = "2ec2e6d715e993d96ad6222770805b5bd25399ae",
       shallow_since = "1598536904 -0400",
   )
-
-  install_v8_repository()
