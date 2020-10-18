@@ -16,6 +16,8 @@ cc_library(
     ],
     data = [
         "//src/tsc_wrapper",
-        "//third_party/v8",
     ],
+    deps = [
+        "//third_party/v8",
+    ]
 )
