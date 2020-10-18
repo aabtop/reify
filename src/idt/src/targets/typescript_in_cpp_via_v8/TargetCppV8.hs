@@ -22,7 +22,7 @@ enumHTemplate =
   case
       compileMustacheText
         "enumHTemplate"
-        (DT.pack  $(makeRelativeToProject "src/CppV8Enum.stache.h" >>= embedStringFile))
+        (DT.pack  $(makeRelativeToProject "templates/CppV8Enum.stache.h" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -32,7 +32,7 @@ enumCCTemplate =
   case
       compileMustacheText
         "enumCCTemplate"
-        (DT.pack  $(makeRelativeToProject "src/CppV8Enum.stache.cc" >>= embedStringFile))
+        (DT.pack  $(makeRelativeToProject "templates/CppV8Enum.stache.cc" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -42,7 +42,7 @@ simpleEnumHTemplate =
   case
       compileMustacheText
         "simpleEnumHTemplate"
-        (DT.pack $(makeRelativeToProject "src/CppV8SimpleEnum.stache.h" >>= embedStringFile))
+        (DT.pack $(makeRelativeToProject "templates/CppV8SimpleEnum.stache.h" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -52,7 +52,7 @@ taggedUnionHTemplate =
   case
       compileMustacheText
         "taggedUnionHTemplate"
-        (DT.pack  $(makeRelativeToProject "src/CppV8TaggedUnion.stache.h" >>= embedStringFile))
+        (DT.pack  $(makeRelativeToProject "templates/CppV8TaggedUnion.stache.h" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -62,7 +62,7 @@ taggedUnionCCTemplate =
   case
       compileMustacheText
         "taggedUnionCCTemplate"
-        (DT.pack  $(makeRelativeToProject "src/CppV8TaggedUnion.stache.cc" >>= embedStringFile))
+        (DT.pack  $(makeRelativeToProject "templates/CppV8TaggedUnion.stache.cc" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -72,7 +72,7 @@ structHTemplate =
   case
       compileMustacheText
         "structHTemplate"
-        (DT.pack $(makeRelativeToProject "src/CppV8Struct.stache.h" >>= embedStringFile))
+        (DT.pack $(makeRelativeToProject "templates/CppV8Struct.stache.h" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -82,7 +82,7 @@ structCCTemplate =
   case
       compileMustacheText
         "structCCTemplate"
-        (DT.pack $(makeRelativeToProject "src/CppV8Struct.stache.cc" >>= embedStringFile))
+        (DT.pack $(makeRelativeToProject "templates/CppV8Struct.stache.cc" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -92,7 +92,7 @@ topLevelHTemplate =
   case
       compileMustacheText
         "topLevelHTemplate"
-        (DT.pack $(makeRelativeToProject "src/CppV8.stache.h" >>= embedStringFile))
+        (DT.pack $(makeRelativeToProject "templates/CppV8.stache.h" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
@@ -102,7 +102,7 @@ topLevelCCTemplate =
   case
       compileMustacheText
         "topLevelCCTemplate"
-        (DT.pack $(makeRelativeToProject "src/CppV8.stache.cc" >>= embedStringFile))
+        (DT.pack $(makeRelativeToProject "templates/CppV8.stache.cc" >>= embedStringFile))
     of
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template

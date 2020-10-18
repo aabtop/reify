@@ -1,15 +1,20 @@
 load("@rules_haskell//haskell:defs.bzl", "haskell_library")
 
 haskell_library(
-  name = "pure_cpp",
+  name = "target_logic",
   srcs = [
-    "TargetCppImmutableRefCounted.hs",
+    "TargetCppV8.hs",
   ],
   extra_srcs = [
-    "templates/CppImmutableRefCounted.stache.h",
-    "templates/CppImmutableRefCountedEnum.stache.h",
-    "templates/CppImmutableRefCountedStruct.stache.h",
-    "templates/CppImmutableRefCountedTaggedUnion.stache.h",
+    "templates/CppV8Enum.stache.h",
+    "templates/CppV8Enum.stache.cc",
+    "templates/CppV8SimpleEnum.stache.h",
+    "templates/CppV8TaggedUnion.stache.h",
+    "templates/CppV8TaggedUnion.stache.cc",
+    "templates/CppV8Struct.stache.h",
+    "templates/CppV8Struct.stache.cc",
+    "templates/CppV8.stache.h",
+    "templates/CppV8.stache.cc",
   ],
   compiler_flags = [
     "-XDuplicateRecordFields",

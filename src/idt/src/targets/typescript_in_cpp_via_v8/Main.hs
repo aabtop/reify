@@ -1,5 +1,6 @@
 module Main where
 
+import           System.Directory
 import           System.Environment
 import           System.Exit
 import           System.FilePath
@@ -8,44 +9,38 @@ import           System.IO
 import           IdtProcessing
 import           IdtStandardPipeline
 import           TargetCppV8
-import           TargetTypeScript
-import           TargetCppImmutableRefCounted
 
 import           ReifyInputInterface
-
-cppV8Namespace = ReifyInputInterface.namespace ++ "_v8"
-
-cppImmutableRefCountedFileName = ReifyInputInterface.namespace ++ ".h"
-typescriptFileName = "reify_generated_interface.ts"
-cppV8HFileName = "reify_cpp_v8_interface.h"
-cppV8CCFileName = "reify_cpp_v8_interface.cc"
 
 main = do
   args <- getArgs
   case args of
-    [outputDirectory] ->
+    [namespace, outputDirectory] ->
       let buildTargetToFile filename = buildTargetToFilePath
             (joinPath [outputDirectory, filename])
             ReifyInputInterface.idt
+          cppV8Namespace = namespace ++ "_v8"
+          cppV8HFileName = cppV8Namespace ++ ".h"
+          cppV8CCFileName = cppV8Namespace ++ ".cc"
+          cppImmutableRefCountedFileName = (namespace ++ ".h")
       in  do
+            createDirectoryIfMissing True outputDirectory
+            hPutStrLn stderr ("cppV8CCFileName: " ++ outputDirectory ++ "/" ++ cppV8CCFileName)
             buildTargetToFile
               cppV8HFileName
               (toCppV8SourceCodeH cppV8Namespace
                                   cppImmutableRefCountedFileName
-                                  ReifyInputInterface.namespace
+                                  namespace
               )
             buildTargetToFile
               cppV8CCFileName
               (toCppV8SourceCodeCC cppV8Namespace
                                    cppV8HFileName
                                    cppImmutableRefCountedFileName
-                                   ReifyInputInterface.namespace
+                                   namespace
               )
-            buildTargetToFile
-              cppImmutableRefCountedFileName
-              (toCppImmutableRefCountedSourceCode ReifyInputInterface.namespace)
-            buildTargetToFile typescriptFileName toTypeScriptSourceCode
     _ -> do
-      hPutStrLn stderr "Usage: Expected a single output directory parameter."
+      hPutStrLn stderr "Usage: Expected two parameters, [namespace, outputDirectory]."
+      hPutStrLn stderr ("Args: " ++ (show args))
       exitFailure
 

@@ -1,5 +1,6 @@
 load("@reify//src/idt:rules.bzl", "idt")
 load("@reify//src/idt/src/targets/pure_cpp:pure_cpp.bzl", "idt_as_purecpp")
+load("@reify//src/idt/src/targets/typescript_in_cpp_via_v8:typescript_in_cpp_via_v8.bzl", "idt_as_typescript_in_cpp_via_v8")
 
 idt(
     name = "hypo-idt",
@@ -12,6 +13,12 @@ idt(
 idt_as_purecpp(
     name = "hypo-purecpp",
     idt = ":hypo-idt",
+)
+
+idt_as_typescript_in_cpp_via_v8(
+    name = "hypo-v8",
+    idt = ":hypo-idt",
+    purecpp = ":hypo-purecpp",
 )
 
 cc_library(
@@ -57,5 +64,6 @@ cc_library(
         "@cgal//:cgal",
         ":CLI11",
         ":hypo-purecpp",
+        ":hypo-v8",
     ],
 )

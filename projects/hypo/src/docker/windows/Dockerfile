@@ -33,6 +33,9 @@ RUN pacman -S zip unzip patch diffutils git gcc python python3
 # rules_haskell doesn't currently support beyond this version of Bazel.
 RUN choco install -y bazel --version 3.3.1
 
+# Enable long file path support, required by Bazel.
+RUN Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Value 1
+
 # V8
 
 # Specifically install Windows SDK version 10.0.19041.0, for the Windows that's what V8 needs.

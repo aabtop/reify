@@ -11,21 +11,7 @@ haskell_library(
       "src/IdtProcessing.hs",
       "src/IdtStandardPipeline.hs",
       "src/Lib.hs",
-      "src/TargetCppV8.hs",
       "src/TargetHaskell.hs",
-      "src/TargetTypeScript.hs",
-    ],
-    extra_srcs = [
-      # Template files.
-      "src/CppV8.stache.cc",
-      "src/CppV8.stache.h",
-      "src/CppV8Enum.stache.cc",
-      "src/CppV8Enum.stache.h",
-      "src/CppV8SimpleEnum.stache.h",
-      "src/CppV8Struct.stache.cc",
-      "src/CppV8Struct.stache.h",
-      "src/CppV8TaggedUnion.stache.cc",
-      "src/CppV8TaggedUnion.stache.h",
     ],
     compiler_flags = [
       "-XDuplicateRecordFields",
