@@ -57,7 +57,7 @@ void GetSourceFile(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::HandleScope handle_scope(isolate);
 
   if (args.Length() < 1 || !args[0]->IsString()) {
-    isolate->ThrowException(v8::String::NewFromUtf8(
+    isolate->ThrowException(v8::String::NewFromUtf8Literal(
         isolate, "Expected a string for the first argument."));
     return;
   }
@@ -71,7 +71,7 @@ void GetSourceFile(const v8::FunctionCallbackInfo<v8::Value>& args) {
           std::get_if<VirtualFilesystem::Error>(&maybe_file_contents)) {
     isolate->ThrowException(v8::String::NewFromUtf8(
         isolate,
-        ("Error reading data from " + file.diagnostics_path + ".").c_str()));
+        ("Error reading data from " + file.diagnostics_path + ".").c_str()).ToLocalChecked());
     return;
   }
   auto& file_contents = std::get<std::string>(maybe_file_contents);
@@ -92,7 +92,7 @@ void FileExists(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::HandleScope handle_scope(isolate);
 
   if (args.Length() < 1 || !args[0]->IsString()) {
-    isolate->ThrowException(v8::String::NewFromUtf8(
+    isolate->ThrowException(v8::String::NewFromUtf8Literal(
         isolate, "Expected a string for the first argument."));
     return;
   }
@@ -256,7 +256,7 @@ void TypeScriptCompiler::LocateTranspileFunction() {
   v8::Context::Scope context_scope(context);
   v8::TryCatch try_catch(isolate_);
 
-  auto namespace_name = v8::String::NewFromUtf8(isolate_, "tsc_wrapper");
+  auto namespace_name = v8::String::NewFromUtf8Literal(isolate_, "tsc_wrapper");
   auto tsc_wrapper_object = context->Global()
                                 ->Get(context, namespace_name)
                                 .ToLocalChecked()
@@ -265,7 +265,7 @@ void TypeScriptCompiler::LocateTranspileFunction() {
 
   // The script compiled and ran correctly.  Now we fetch out the
   // Process function from the global object.
-  auto function_name = v8::String::NewFromUtf8(isolate_, "TranspileModule");
+  auto function_name = v8::String::NewFromUtf8Literal(isolate_, "TranspileModule");
 
   // If there is no Process function, or if it is not a function,
   // bail out.
@@ -516,7 +516,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
 
   // Record the exported symbols from the module.
   auto primary_module_exports =
-      output->Get(context, v8::String::NewFromUtf8(isolate_, "module_exports"))
+      output->Get(context, v8::String::NewFromUtf8Literal(isolate_, "module_exports"))
           .ToLocalChecked()
           .As<v8::Array>();
   assert(primary_module_exports->IsArray());
@@ -528,14 +528,14 @@ auto TypeScriptCompiler::TranspileToJavaScript(
 
     auto symbol_name =
         module_export
-            ->Get(context, v8::String::NewFromUtf8(isolate_, "symbol_name"))
+            ->Get(context, v8::String::NewFromUtf8Literal(isolate_, "symbol_name"))
             .ToLocalChecked()
             .As<v8::String>();
     auto symbol_name_str = ToStdString(isolate_, symbol_name);
 
     auto type_string =
         module_export
-            ->Get(context, v8::String::NewFromUtf8(isolate_, "type_string"))
+            ->Get(context, v8::String::NewFromUtf8Literal(isolate_, "type_string"))
             .ToLocalChecked()
             .As<v8::String>();
     auto type_string_str = ToStdString(isolate_, type_string);

@@ -11,7 +11,7 @@ class {{name}} : public v8::Object {
   }
 
 {{#members}}
-  v8::Local<{{{type}}}> {{memberName}}();
+  v8::Local<{{{type}}}> {{memberName}}(v8::Local<v8::Context> context);
 {{/members}}
 
  private:

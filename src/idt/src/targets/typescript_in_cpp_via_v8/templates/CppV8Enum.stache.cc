@@ -16,15 +16,17 @@ auto {{name}}::kind() -> Kind {
 }
 
 {{#unionMembers}}
-v8::MaybeLocal<{{{firstParam.type}}}> {{name}}::As{{__kind}}() {
+v8::MaybeLocal<{{{firstParam.type}}}> {{name}}::As{{__kind}}(
+    v8::Local<v8::Context> context) {
   if (kind() != Kind_{{__kind}}) {
     return v8::MaybeLocal<{{{firstParam.type}}}>();
   }
 
   v8::Local<v8::String> key_name =
-      v8::String::NewFromUtf8(GetIsolate(), "{{firstParam.name}}");
+      v8::String::NewFromUtf8Literal(GetIsolate(), "{{firstParam.name}}");
 
-  return Get(key_name).template As<{{{firstParam.type}}}>();
+  return Get(context, key_name).ToLocalChecked()
+      .template As<{{{firstParam.type}}}>();
 }
 {{/unionMembers}}
 
@@ -37,7 +39,8 @@ v8::MaybeLocal<{{{firstParam.type}}}> {{name}}::As{{__kind}}() {
       assert(false);
 {{#unionMembers}}
     case {{name}}::Kind_{{__kind}}:
-      return Value(isolate, x->As{{__kind}}().ToLocalChecked());
+      return Value(isolate, x->As{{__kind}}(isolate->GetCurrentContext())
+                .ToLocalChecked());
 {{/unionMembers}}
   }
 }

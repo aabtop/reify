@@ -25,7 +25,9 @@ genrule(
     outs = ["src_gen/tsc_wrapper.h"],
     cmd = """
         mkdir -p src_gen
-        xxd -i $< > $@
+        cp $< $$(basename $<)
+        xxd -i $$(basename $<) > $@
+        rm $$(basename $<)
     """,
 )
 cc_library(

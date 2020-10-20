@@ -19,7 +19,7 @@ class {{name}} : public v8::Object {
   Kind kind();
 
 {{#unionMembers}}
-  v8::MaybeLocal<{{{firstParam.type}}}> As{{__kind}}();
+  v8::MaybeLocal<{{{firstParam.type}}}> As{{__kind}}(v8::Local<v8::Context> context);
 {{/unionMembers}}
 
 
