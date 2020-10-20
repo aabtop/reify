@@ -18,3 +18,19 @@ webpack(
     ],
     visibility = ["//visibility:public"],
 )
+
+genrule(
+    name = "tsc_wrapper_convert_to_header",
+    srcs = [":tsc_wrapper"],
+    outs = ["src_gen/tsc_wrapper.h"],
+    cmd = """
+        mkdir -p src_gen
+        xxd -i $< > $@
+    """,
+)
+cc_library(
+    name = "tsc_wrapper_as_header",
+    hdrs = [":tsc_wrapper_convert_to_header"],
+    includes = ["."],
+    visibility = ["//visibility:public"],
+)

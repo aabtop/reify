@@ -16,7 +16,7 @@ def __idt_as_typescript_impl(ctx):
 
   return [
       DefaultInfo(
-          files = depset([output_ts_file])
+          files = depset([output_ts_file, ctx.files.library_file[0]])
       ) 
   ]
 
@@ -33,11 +33,16 @@ _idt_as_typescript_rule = rule(
         allow_files = True,
         executable = True,
         cfg = "exec",),
+    "library_file": attr.label(
+        doc="File representing TypeScript logic that should accompany the generated type definitions.",
+        mandatory=True,
+        allow_files = True,
+    )
   },
 )
 
 
-def idt_as_typescript(name, idt):
+def idt_as_typescript(name, idt, library_file):
   generator_name = name + "_generator"
   haskell_binary(
     name=generator_name,
@@ -57,4 +62,5 @@ def idt_as_typescript(name, idt):
     name=name,
     idt=idt,
     generator_binary=generator_name,
+    library_file=library_file,
   )

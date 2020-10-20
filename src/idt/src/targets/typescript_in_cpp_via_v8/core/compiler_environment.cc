@@ -14,9 +14,9 @@ namespace {
 #include "src_gen/reify_generated_interface_ts.h"
 }  // namespace
 
-#define TS_LIB_TS_FROM_NAMESPACE2(x) ts_##x##_ts
+#define TS_LIB_TS_FROM_NAMESPACE2(x) x##_ts
 #define TS_LIB_TS_FROM_NAMESPACE(x) TS_LIB_TS_FROM_NAMESPACE2(x)
-#define TS_LIB_TS_LEN_FROM_NAMESPACE2(x) ts_##x##_ts_len
+#define TS_LIB_TS_LEN_FROM_NAMESPACE2(x) x##_ts_len
 #define TS_LIB_TS_LEN_FROM_NAMESPACE(x) TS_LIB_TS_LEN_FROM_NAMESPACE2(x)
 
 #define TS_LIB_TS TS_LIB_TS_FROM_NAMESPACE(REIFY_GENERATED_PROJECT_NAMESPACE)
@@ -69,8 +69,8 @@ namespace {
 const TypeScriptCompiler::InputModule REIFY_GENERATED_INTERFACE_MODULE = {
     "/reify_generated_interface.ts",
     std::string_view(
-        reinterpret_cast<const char*>(ts_reify_generated_interface_ts),
-        ts_reify_generated_interface_ts_len)};
+        reinterpret_cast<const char*>(reify_generated_interface_ts),
+        reify_generated_interface_ts_len)};
 const TypeScriptCompiler::InputModule LIB_INTERFACE_MODULE = {
     "/" xstr(REIFY_GENERATED_PROJECT_NAMESPACE) ".ts",
     std::string_view(reinterpret_cast<const char*>(TS_LIB_TS), TS_LIB_TS_LEN)};

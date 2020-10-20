@@ -19,6 +19,7 @@ idt_as_typescript_in_cpp_via_v8(
     name = "hypo-v8",
     idt = ":hypo-idt",
     purecpp = ":hypo-purecpp",
+    ts_library_file = "src/interface/typescript/hypo.ts",
 )
 
 cc_library(

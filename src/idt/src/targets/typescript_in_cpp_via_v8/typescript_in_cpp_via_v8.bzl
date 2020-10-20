@@ -89,11 +89,44 @@ _generate_namespace_header_rule = rule(
   }
 )
 
-def idt_as_typescript_in_cpp_via_v8(name, idt, purecpp):
+def idt_as_typescript_in_cpp_via_v8(name, idt, purecpp, ts_library_file):
   idt_typescript_name = name + "_typescript"
   idt_as_typescript(
     name=idt_typescript_name,
     idt=idt,
+    library_file=ts_library_file,
+  )
+
+  typescript_to_header_name = name + "_typescript_to_header"
+  native.genrule(
+    name = typescript_to_header_name,
+    srcs = [":" + idt_typescript_name],
+    outs = ["src_gen/lib_ts.h", "src_gen/reify_generated_interface_ts.h"],
+    cmd = """
+        mkdir -p src_gen
+        for f in $(SRCS)
+        do
+          echo $$(basename $$f) 1>&2
+          case $$(basename $$f) in
+            reify_generated_interface.ts)
+              cp $$f $$(basename $$f)
+              xxd -i $$(basename $$f) > $(RULEDIR)/src_gen/reify_generated_interface_ts.h
+              rm $$(basename $$f)
+              ;;
+            *)
+              cp $$f $$(basename $$f)
+              xxd -i $$(basename $$f) > $(RULEDIR)/src_gen/lib_ts.h
+              rm $$(basename $$f)
+              ;;
+          esac
+        done    
+    """,
+  )
+  typescript_to_header_lib_name = name + "_typescript_to_header_lib"
+  native.cc_library(
+    name = typescript_to_header_lib_name,
+    hdrs = [":" + typescript_to_header_name],
+    #data = [":" + typescript_to_header_name],
   )
 
   generator_name = name + "_generator"
@@ -146,14 +179,13 @@ def idt_as_typescript_in_cpp_via_v8(name, idt, purecpp):
         "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core/virtual_filesystem.cc",
         interface_files_name,
     ],
-    data = [
-        "@reify//src/tsc_wrapper",
-    ],
     deps = [
         purecpp,
         ":" + interface_files_name,
         ":" + namespace_header_name,
+        ":" + typescript_to_header_lib_name,
         "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core",
+        "@reify//src/tsc_wrapper:tsc_wrapper_as_header",
         "@reify//third_party/v8",
     ],
   )

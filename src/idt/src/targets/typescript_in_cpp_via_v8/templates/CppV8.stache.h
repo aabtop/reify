@@ -29,10 +29,12 @@ namespace internal {
 inline std::string GetPropertyAsString(
     v8::Object* object, const char* key) {
   v8::Local<v8::String> key_name =
-      v8::String::NewFromUtf8(object->GetIsolate(), key);
+      v8::String::NewFromUtf8(object->GetIsolate(), key).ToLocalChecked();
 
   v8::String::Utf8Value utf8_kind_value(
-      object->GetIsolate(), object->Get(key_name).template As<v8::String>());
+      object->GetIsolate(),
+      object->Get(object->CreationContext(), key_name)
+          .ToLocalChecked().template As<v8::String>());
 
   return std::string(*utf8_kind_value, utf8_kind_value.length());
 }
@@ -139,12 +141,12 @@ class List : public v8::Array {
     return static_cast<List<T>*>(obj);
   }
 
-  v8::MaybeLocal<T> Get(uint32_t index) {
+  v8::MaybeLocal<T> Get(v8::Local<v8::Context> context, uint32_t index) {
     if (index >= Length()) {
       return v8::MaybeLocal<T>();
     }
 
-    return v8::Array::Get(index).template As<T>();
+    return v8::Array::Get(context, index).ToLocalChecked().template As<T>();
   }
 
  private:
@@ -156,7 +158,8 @@ auto Value(v8::Isolate* isolate, v8::Local<List<T>> x) {
   std::vector<decltype(Value(isolate, std::declval<v8::Local<T>>()))> ret;
   ret.reserve(length);
   for (int i = 0; i < length; ++i) {
-    ret.push_back(Value(isolate, x->Get(i).ToLocalChecked()));
+    ret.push_back(Value(
+        isolate, x->Get(isolate->GetCurrentContext(), i).ToLocalChecked()));
   }
   return ret;
 }
@@ -182,9 +185,9 @@ class FixedSizeArray : public v8::Array {
     return static_cast<FixedSizeArray<T, S>*>(obj);
   }
 
-  v8::Local<T> Get(uint32_t index) {
+  v8::Local<T> Get(v8::Local<v8::Context> context, uint32_t index) {
     assert(index < S && index >= 0);
-    return v8::Array::Get(index).template As<T>();
+    return v8::Array::Get(context, index).ToLocalChecked().template As<T>();
   }
 
  private:
@@ -199,7 +202,8 @@ template <typename T, int S, std::size_t... Indices>
 auto Value(v8::Isolate* isolate, v8::Local<FixedSizeArray<T, S>> x,
            indices<Indices...>) {
   return std::array<decltype({{namespace}}::Value(isolate, std::declval<v8::Local<T>>())), S>{
-      {{namespace}}::Value(isolate, x->Get(Indices))...};
+      {{namespace}}::Value(
+          isolate, x->Get(isolate->GetCurrentContext(), Indices))...};
 }
 }  // namespace internal
 
@@ -236,8 +240,8 @@ class Tuple : public v8::Array {
   }
 
   template <int N>
-  v8::Local<internal::NthTypeOf<N, Types...>> Get() {
-    return v8::Array::Get(N).template As<internal::NthTypeOf<N, Types...>>();
+  v8::Local<internal::NthTypeOf<N, Types...>> Get(v8::Local<v8::Context> context) {
+    return v8::Array::Get(context, N).ToLocalChecked().template As<internal::NthTypeOf<N, Types...>>();
   }
 
  private:

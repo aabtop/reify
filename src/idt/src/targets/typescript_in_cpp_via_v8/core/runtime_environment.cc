@@ -26,11 +26,13 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
 v8::MaybeLocal<v8::Module> InstantiateModule(
     v8::Local<v8::Context> context, const TypeScriptCompiler::Module& module) {
   auto isolate = context->GetIsolate();
-  auto source_text = v8::String::NewFromUtf8(isolate, module.content.c_str());
+  auto source_text =
+      v8::String::NewFromUtf8(isolate, module.content.c_str()).ToLocalChecked();
 
   v8::ScriptOrigin origin(
-      v8::String::NewFromUtf8(isolate,
-                              module.path.c_str()),  // specifier
+      v8::String::NewFromUtf8(
+          isolate,
+          module.path.c_str()).ToLocalChecked(),     // specifier
       v8::Integer::New(isolate, 0),                  // line offset
       v8::Integer::New(isolate, 0),                  // column offset
       False(isolate),                                // is cross origin
@@ -93,7 +95,8 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
     std::string error_str =
         "Could not locate module \"" + specifier_as_str + "\".";
     context->GetIsolate()->ThrowException(
-        v8::String::NewFromUtf8(context->GetIsolate(), error_str.c_str()));
+        v8::String::NewFromUtf8(
+            context->GetIsolate(), error_str.c_str()).ToLocalChecked());
     return v8::MaybeLocal<v8::Module>();
   }
 
@@ -139,7 +142,7 @@ void WithInternalField(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
 
   if (args.Length() < 1 || !args[0]->IsObject()) {
-    isolate->ThrowException(v8::String::NewFromUtf8(
+    isolate->ThrowException(v8::String::NewFromUtf8Literal(
         isolate, "Expected an object for the first argument."));
     return;
   }
