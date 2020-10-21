@@ -404,7 +404,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
 
   context->SetAlignedPointerInEmbedderData(1, nullptr);
 
-  auto success_field_name = v8::String::NewFromUtf8(isolate_, "success");
+  auto success_field_name = v8::String::NewFromUtf8Literal(isolate_, "success");
   v8::Local<v8::Boolean> success = result->Get(context, success_field_name)
                                        .ToLocalChecked()
                                        .As<v8::Boolean>();
@@ -412,26 +412,26 @@ auto TypeScriptCompiler::TranspileToJavaScript(
 
   if (!success->Value()) {
     auto error =
-        result->Get(context, v8::String::NewFromUtf8(isolate_, "error"))
+        result->Get(context, v8::String::NewFromUtf8Literal(isolate_, "error"))
             .ToLocalChecked()
             .As<v8::Object>();
     assert(error->IsObject());
 
-    auto path = error->Get(context, v8::String::NewFromUtf8(isolate_, "path"))
+    auto path = error->Get(context, v8::String::NewFromUtf8Literal(isolate_, "path"))
                     .ToLocalChecked()
                     .As<v8::String>();
     assert(path->IsString());
-    auto line = error->Get(context, v8::String::NewFromUtf8(isolate_, "line"))
+    auto line = error->Get(context, v8::String::NewFromUtf8Literal(isolate_, "line"))
                     .ToLocalChecked()
                     .As<v8::Number>();
     assert(line->IsNumber());
     auto column =
-        error->Get(context, v8::String::NewFromUtf8(isolate_, "column"))
+        error->Get(context, v8::String::NewFromUtf8Literal(isolate_, "column"))
             .ToLocalChecked()
             .As<v8::Number>();
     assert(column->IsNumber());
     auto message =
-        error->Get(context, v8::String::NewFromUtf8(isolate_, "message"))
+        error->Get(context, v8::String::NewFromUtf8Literal(isolate_, "message"))
             .ToLocalChecked()
             .As<v8::String>();
     assert(message->IsString());
@@ -445,7 +445,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
         .message = ToStdString(isolate_, message)};
   }
 
-  auto output_field_name = v8::String::NewFromUtf8(isolate_, "output");
+  auto output_field_name = v8::String::NewFromUtf8Literal(isolate_, "output");
   v8::Local<v8::Object> output =
       result->Get(context, output_field_name).ToLocalChecked().As<v8::Object>();
   assert(output->IsObject());
@@ -453,14 +453,14 @@ auto TypeScriptCompiler::TranspileToJavaScript(
   TranspileResults return_value;
 
   auto primary_module_field_name =
-      v8::String::NewFromUtf8(isolate_, "primary_module");
+      v8::String::NewFromUtf8Literal(isolate_, "primary_module");
   auto primary_module = output->Get(context, primary_module_field_name)
                             .ToLocalChecked()
                             .As<v8::String>();
   return_value.primary_module = ToStdString(isolate_, primary_module);
 
   auto declaration_files_field_name =
-      v8::String::NewFromUtf8(isolate_, "declaration_files");
+      v8::String::NewFromUtf8Literal(isolate_, "declaration_files");
   v8::Local<v8::Object> declaration_files =
       output->Get(context, declaration_files_field_name)
           .ToLocalChecked()
@@ -486,7 +486,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
          .content = declaration_file_conents_str});
   }
 
-  auto js_modules_field_name = v8::String::NewFromUtf8(isolate_, "js_modules");
+  auto js_modules_field_name = v8::String::NewFromUtf8Literal(isolate_, "js_modules");
   v8::Local<v8::Object> js_modules = output->Get(context, js_modules_field_name)
                                          .ToLocalChecked()
                                          .As<v8::Object>();
