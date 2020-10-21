@@ -66,8 +66,8 @@ IF NOT EXIST "%V8_GCLIENT_DIR%" (
     echo ]
   ) > .gclient
 
-  echo Running "gclient sync --no-history --shallow --jobs 16"
-  CALL gclient sync --no-history --shallow --jobs 16
+  echo Running "gclient sync --no-history --shallow"
+  CALL gclient sync --no-history --shallow
   IF %ERRORLEVEL% NEQ 0 EXIT 1
 )
 
