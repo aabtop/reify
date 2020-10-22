@@ -31,7 +31,7 @@ cc_library(
     ],
 )
 
-cc_library(
+cc_binary(
     name = "hypo",
     srcs = [
         "src/main.cc",
@@ -66,5 +66,9 @@ cc_library(
         ":CLI11",
         ":hypo-purecpp",
         ":hypo-v8",
+    ],
+    linkstatic = 1,
+    features = [
+        "fully_static_link",
     ],
 )

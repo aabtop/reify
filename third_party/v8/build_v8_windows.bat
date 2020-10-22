@@ -82,6 +82,7 @@ IF NOT EXIST "%OUT_DIR%" (
     echo v8_enable_object_print = true
     echo v8_enable_verify_heap = true
     echo v8_static_library = true
+    echo is_clang = false
   ) > %OUT_DIR%\args.gn
 
   cd %V8_SRC_DIR%
