@@ -77,11 +77,14 @@ IF NOT EXIST "%OUT_DIR%" (
   (
     echo is_component_build = false
     echo is_debug = false
+    echo is_official_build = true
     echo v8_enable_backtrace = true
     echo v8_enable_disassembler = true
     echo v8_enable_object_print = true
     echo v8_enable_verify_heap = true
     echo v8_static_library = true
+    echo v8_enable_i18n_support = false
+    echo v8_use_external_startup_data = false
     echo is_clang = false
   ) > %OUT_DIR%\args.gn
 
@@ -108,12 +111,7 @@ IF NOT EXIST "%PACKAGE_DIR%" (
   xcopy /E /I %V8_SRC_DIR%\include include
 
   mkdir lib
-  FOR %%f in (^
-      v8_libbase.lib^
-      v8_init.lib^
-      ) DO (
-    xcopy %OUT_DIR%\obj\%%f lib\ 
-  )
+  xcopy %OUT_DIR%\obj\*.lib lib\ 
 )
 
 echo Done.  Find the final results in %PACKAGE_DIR% .
