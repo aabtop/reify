@@ -88,6 +88,14 @@ class VirtualFilesystem {
     std::string message;
   };
   struct FilePath {
+    FilePath(
+        const std::string& diagnostics_path,
+        const std::function<bool()>& exists,
+        const std::function<std::variant<Error, std::string>()>& get_content)
+        : diagnostics_path(diagnostics_path),
+          exists(exists),
+          get_content(get_content) {}
+
     // The path that will represent this file for the sake of diagnostics,
     // for example this is the path that will be displayed to the user when
     // an error occurs.  By letting this differ from the virtual file path,

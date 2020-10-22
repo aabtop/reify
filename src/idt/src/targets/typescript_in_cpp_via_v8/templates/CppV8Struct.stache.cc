@@ -5,7 +5,7 @@
     v8::Isolate* isolate, v8::Local<{{name}}> x) {
   return {{immRefCntNamespace}}::{{name}}({
   {{#members}}
-    .{{memberName}} = Value(isolate, x->{{memberName}}(isolate->GetCurrentContext())),
+    /*.{{memberName}} = */Value(isolate, x->{{memberName}}(isolate->GetCurrentContext())),
   {{/members}}
   });
 }

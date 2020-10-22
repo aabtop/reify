@@ -83,10 +83,9 @@ CompilerEnvironment::Impl::Compile(
     GenerateDeclarationFiles generate_declaration_files) {
   return tsc_.TranspileToJavaScript(
       virtual_absolute_path,
-      {.system_modules = {REIFY_GENERATED_INTERFACE_MODULE,
+      {{REIFY_GENERATED_INTERFACE_MODULE,
                           LIB_INTERFACE_MODULE},
-       .generate_declaration_files =
-           (generate_declaration_files == GenerateDeclarationFiles::Yes)});
+       (generate_declaration_files == GenerateDeclarationFiles::Yes)});
 }
 
 namespace {

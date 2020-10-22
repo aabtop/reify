@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <numeric>
+#include <sstream>
 
 #include "public_include/reify.h"
 
@@ -19,12 +20,10 @@ MountedHostFolderFilesystem::FilePath MountedHostFolderFilesystem::GetPath(
     std::string_view virtual_absolute_path) {
   std::filesystem::path host_path = TranslateToHostPath(virtual_absolute_path);
 
-  return FilePath{
-      .diagnostics_path = host_path,
-      .exists = [host_path]() -> bool {
-        return std::filesystem::exists(host_path);
-      },
-      .get_content = [host_path]() -> std::variant<Error, std::string> {
+  return FilePath(
+      host_path.string(),
+      [host_path]() -> bool { return std::filesystem::exists(host_path); },
+      [host_path]() -> std::variant<Error, std::string> {
         if (!std::filesystem::exists(host_path)) {
           return Error{"File '" + host_path.string() + "' could not be found."};
         }
@@ -34,15 +33,14 @@ MountedHostFolderFilesystem::FilePath MountedHostFolderFilesystem::GetPath(
           return Error{"Error opening file '" + host_path.string() +
                        "' for reading."};
         }
-        std::stringstream buffer;
+        std::ostringstream buffer;
         buffer << in.rdbuf();
         if (in.fail()) {
           return Error{"Error while reading file '" + host_path.string() +
                        "'."};
         }
         return buffer.str();
-      },
-  };
+      });
 }
 
 std::optional<std::string> MountedHostFolderFilesystem::HostPathToVirtualPath(
@@ -83,17 +81,16 @@ InMemoryFilesystem::FilePath InMemoryFilesystem::GetPath(
     contents_ptr = &(found->second);
   }
 
-  return FilePath{
-      .diagnostics_path = std::string(virtual_absolute_path),
-      .exists = [contents_ptr] { return contents_ptr; },
-      .get_content = [contents_ptr,
-                      path_as_string]() -> std::variant<Error, std::string> {
+  return FilePath(
+      std::string(virtual_absolute_path),
+      [contents_ptr] { return contents_ptr; },
+      [contents_ptr, path_as_string]() -> std::variant<Error, std::string> {
         if (contents_ptr) {
           return *contents_ptr;
         } else {
           return Error{"File '" + path_as_string + "' not found."};
         }
-      }};
+      });
 }
 
 }  // namespace reify

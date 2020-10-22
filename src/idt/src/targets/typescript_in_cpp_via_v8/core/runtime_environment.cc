@@ -29,18 +29,17 @@ v8::MaybeLocal<v8::Module> InstantiateModule(
   auto source_text =
       v8::String::NewFromUtf8(isolate, module.content.c_str()).ToLocalChecked();
 
-  v8::ScriptOrigin origin(
-      v8::String::NewFromUtf8(
-          isolate,
-          module.path.c_str()).ToLocalChecked(),     // specifier
-      v8::Integer::New(isolate, 0),                  // line offset
-      v8::Integer::New(isolate, 0),                  // column offset
-      False(isolate),                                // is cross origin
-      v8::Local<v8::Integer>(),                      // script id
-      v8::Local<v8::Value>(),                        // source map URL
-      v8::False(isolate),                            // is opaque
-      v8::False(isolate),                            // is WASM
-      v8::True(isolate));                            // is ES6 module
+  v8::ScriptOrigin origin(v8::String::NewFromUtf8(isolate,
+                                                  module.path.c_str())
+                              .ToLocalChecked(),         // specifier
+                          v8::Integer::New(isolate, 0),  // line offset
+                          v8::Integer::New(isolate, 0),  // column offset
+                          False(isolate),                // is cross origin
+                          v8::Local<v8::Integer>(),      // script id
+                          v8::Local<v8::Value>(),        // source map URL
+                          v8::False(isolate),            // is opaque
+                          v8::False(isolate),            // is WASM
+                          v8::True(isolate));            // is ES6 module
   v8::ScriptCompiler::Source source(source_text, origin);
   v8::Local<v8::Module> v8_module;
   if (!v8::ScriptCompiler::CompileModule(isolate, &source)
@@ -82,7 +81,9 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
             *context_environment->source_file_import_stack.back())
             .parent_path();
     module = transpile_results.LookupPath(
-        (importer_directory / (specifier_as_str + ".js")).lexically_normal());
+        (importer_directory / (specifier_as_str + ".js"))
+            .lexically_normal()
+            .string());
   } else if (!specifier_as_str.empty() && specifier_as_str[0] == '/') {
     // Lookup a TypeScript "relative module" via an absolute path.
     module = transpile_results.LookupPath(specifier_as_str + ".js");
@@ -95,8 +96,8 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
     std::string error_str =
         "Could not locate module \"" + specifier_as_str + "\".";
     context->GetIsolate()->ThrowException(
-        v8::String::NewFromUtf8(
-            context->GetIsolate(), error_str.c_str()).ToLocalChecked());
+        v8::String::NewFromUtf8(context->GetIsolate(), error_str.c_str())
+            .ToLocalChecked());
     return v8::MaybeLocal<v8::Module>();
   }
 
@@ -237,9 +238,9 @@ RuntimeEnvironment::Impl::Impl(const std::shared_ptr<CompiledModule>& module)
     InstallRootFunctions(isolate_, global_template);
 
     context_environment_ = ContextEnvironment{
-        .compiled_module = module_,
-        .blank_object_with_internal_field = v8::Persistent<v8::ObjectTemplate>(
-            isolate_, blank_object_with_internal_field),
+        module_,
+        v8::Persistent<v8::ObjectTemplate>(isolate_,
+                                           blank_object_with_internal_field),
     };
 
     // Create a new context.

@@ -69,9 +69,11 @@ void GetSourceFile(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
   if (auto* error =
           std::get_if<VirtualFilesystem::Error>(&maybe_file_contents)) {
-    isolate->ThrowException(v8::String::NewFromUtf8(
-        isolate,
-        ("Error reading data from " + file.diagnostics_path + ".").c_str()).ToLocalChecked());
+    isolate->ThrowException(
+        v8::String::NewFromUtf8(
+            isolate,
+            ("Error reading data from " + file.diagnostics_path + ".").c_str())
+            .ToLocalChecked());
     return;
   }
   auto& file_contents = std::get<std::string>(maybe_file_contents);
@@ -265,7 +267,8 @@ void TypeScriptCompiler::LocateTranspileFunction() {
 
   // The script compiled and ran correctly.  Now we fetch out the
   // Process function from the global object.
-  auto function_name = v8::String::NewFromUtf8Literal(isolate_, "TranspileModule");
+  auto function_name =
+      v8::String::NewFromUtf8Literal(isolate_, "TranspileModule");
 
   // If there is no Process function, or if it is not a function,
   // bail out.
@@ -365,10 +368,10 @@ auto TypeScriptCompiler::TranspileToJavaScript(
   if (auto error =
           std::get_if<VirtualFilesystem::Error>(&maybe_input_typescript)) {
     return Error{
-        .path = diagnostics_path,
-        .line = 0,
-        .column = 0,
-        .message = "Could not open file.",
+        diagnostics_path,
+        0,
+        0,
+        "Could not open file.",
     };
   }
   auto& input_typescript = std::get<std::string>(maybe_input_typescript);
@@ -379,8 +382,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
                               input_typescript.size())
           .ToLocalChecked();
 
-  TranspileContextEnvironment context_environment{.virtual_filesystem =
-                                                      virtual_filesystem_};
+  TranspileContextEnvironment context_environment{virtual_filesystem_};
   context->SetAlignedPointerInEmbedderData(1, &context_environment);
 
   v8::Local<v8::Value> parameters[] = {
@@ -393,10 +395,10 @@ auto TypeScriptCompiler::TranspileToJavaScript(
       !call_return_value->IsObject()) {
     context->SetAlignedPointerInEmbedderData(1, nullptr);
     return Error{
-        .path = diagnostics_path,
-        .line = 0,
-        .column = 0,
-        .message = ToStdString(isolate_, try_catch.Exception()),
+        diagnostics_path,
+        0,
+        0,
+        ToStdString(isolate_, try_catch.Exception()),
     };
   }
 
@@ -417,13 +419,15 @@ auto TypeScriptCompiler::TranspileToJavaScript(
             .As<v8::Object>();
     assert(error->IsObject());
 
-    auto path = error->Get(context, v8::String::NewFromUtf8Literal(isolate_, "path"))
-                    .ToLocalChecked()
-                    .As<v8::String>();
+    auto path =
+        error->Get(context, v8::String::NewFromUtf8Literal(isolate_, "path"))
+            .ToLocalChecked()
+            .As<v8::String>();
     assert(path->IsString());
-    auto line = error->Get(context, v8::String::NewFromUtf8Literal(isolate_, "line"))
-                    .ToLocalChecked()
-                    .As<v8::Number>();
+    auto line =
+        error->Get(context, v8::String::NewFromUtf8Literal(isolate_, "line"))
+            .ToLocalChecked()
+            .As<v8::Number>();
     assert(line->IsNumber());
     auto column =
         error->Get(context, v8::String::NewFromUtf8Literal(isolate_, "column"))
@@ -438,11 +442,10 @@ auto TypeScriptCompiler::TranspileToJavaScript(
 
     std::string virtual_path = ToStdString(isolate_, path);
 
-    return Error{
-        .path = virtual_filesystem_->GetPath(virtual_path).diagnostics_path,
-        .line = static_cast<int>(line->Value()),
-        .column = static_cast<int>(column->Value()),
-        .message = ToStdString(isolate_, message)};
+    return Error{virtual_filesystem_->GetPath(virtual_path).diagnostics_path,
+                 static_cast<int>(line->Value()),
+                 static_cast<int>(column->Value()),
+                 ToStdString(isolate_, message)};
   }
 
   auto output_field_name = v8::String::NewFromUtf8Literal(isolate_, "output");
@@ -482,11 +485,11 @@ auto TypeScriptCompiler::TranspileToJavaScript(
     std::string declaration_file_conents_str =
         ToStdString(isolate_, declaration_file_contents);
     return_value.declaration_files.push_back(
-        {.path = declaration_file_path_str,
-         .content = declaration_file_conents_str});
+        {declaration_file_path_str, declaration_file_conents_str});
   }
 
-  auto js_modules_field_name = v8::String::NewFromUtf8Literal(isolate_, "js_modules");
+  auto js_modules_field_name =
+      v8::String::NewFromUtf8Literal(isolate_, "js_modules");
   v8::Local<v8::Object> js_modules = output->Get(context, js_modules_field_name)
                                          .ToLocalChecked()
                                          .As<v8::Object>();
@@ -501,22 +504,21 @@ auto TypeScriptCompiler::TranspileToJavaScript(
     auto module_contents =
         js_modules->Get(context, module_path).ToLocalChecked().As<v8::String>();
     std::string module_conents_str = ToStdString(isolate_, module_contents);
-    return_value.modules.push_back(
-        {.path = module_path_str, .content = module_conents_str});
+    return_value.modules.push_back({module_path_str, module_conents_str});
   }
 
   if (!return_value.LookupPath(return_value.primary_module)) {
-    return Error{.path = diagnostics_path,
-                 .line = 0,
-                 .column = 0,
-                 .message = "Could not find the primary output module, '" +
-                            return_value.primary_module +
-                            "', in the emitted results."};
+    return Error{diagnostics_path, 0, 0,
+                 "Could not find the primary output module, '" +
+                     return_value.primary_module +
+                     "', in the emitted results."};
   }
 
   // Record the exported symbols from the module.
   auto primary_module_exports =
-      output->Get(context, v8::String::NewFromUtf8Literal(isolate_, "module_exports"))
+      output
+          ->Get(context,
+                v8::String::NewFromUtf8Literal(isolate_, "module_exports"))
           .ToLocalChecked()
           .As<v8::Array>();
   assert(primary_module_exports->IsArray());
@@ -526,22 +528,21 @@ auto TypeScriptCompiler::TranspileToJavaScript(
                              .As<v8::Object>();
     assert(module_export->IsObject());
 
-    auto symbol_name =
-        module_export
-            ->Get(context, v8::String::NewFromUtf8Literal(isolate_, "symbol_name"))
-            .ToLocalChecked()
-            .As<v8::String>();
+    auto symbol_name = module_export
+                           ->Get(context, v8::String::NewFromUtf8Literal(
+                                              isolate_, "symbol_name"))
+                           .ToLocalChecked()
+                           .As<v8::String>();
     auto symbol_name_str = ToStdString(isolate_, symbol_name);
 
-    auto type_string =
-        module_export
-            ->Get(context, v8::String::NewFromUtf8Literal(isolate_, "type_string"))
-            .ToLocalChecked()
-            .As<v8::String>();
+    auto type_string = module_export
+                           ->Get(context, v8::String::NewFromUtf8Literal(
+                                              isolate_, "type_string"))
+                           .ToLocalChecked()
+                           .As<v8::String>();
     auto type_string_str = ToStdString(isolate_, type_string);
 
-    return_value.exported_symbols.push_back(
-        {.name = symbol_name_str, .typescript_type_string = type_string_str});
+    return_value.exported_symbols.push_back({symbol_name_str, type_string_str});
   }
   return return_value;
 }

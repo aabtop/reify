@@ -52,7 +52,7 @@ using Triangulation_data_structure_2 =
                                          Constrained_triangulation_face_base_2>;
 using Constrained_Delaunay_triangulation_2 =
     CGAL::Constrained_Delaunay_triangulation_2<
-        Kernel, Triangulation_data_structure_2, CGAL::No_intersection_tag>;
+        Kernel, Triangulation_data_structure_2>;
 
 void AddPolygonWithHolesToTriangulation(
     const Polygon_with_holes_2& polygon_with_holes,

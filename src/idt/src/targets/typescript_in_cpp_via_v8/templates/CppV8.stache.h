@@ -277,7 +277,8 @@ template <typename T>
 class Ref : public T {
  public:
   using DerefValueType = const decltype(
-      Value(std::declval<v8::Isolate*>(), std::declval<v8::Local<T>>()));
+      hypo_v8::Value(std::declval<v8::Isolate*>(),
+                     std::declval<v8::Local<T>>()));
   using RefValueType = std::shared_ptr<DerefValueType>;
 
   V8_INLINE static Ref<T>* Cast(v8::Value* obj) {
@@ -286,13 +287,17 @@ class Ref : public T {
 };
 
 template <typename T>
-auto ConstructRefValue(v8::Isolate* isolate, v8::Local<Ref<T>> x) {
+typename Ref<T>::RefValueType ConstructRefValue(
+    v8::Isolate* isolate, v8::Local<Ref<T>> x) {
   return std::make_shared<typename Ref<T>::DerefValueType>(
       Value(isolate, v8::Local<T>::Cast(x)));
 }
 
 template <typename T>
 struct WeakCallbackData {
+  WeakCallbackData(v8::Isolate* isolate, v8::Local<Ref<T>> x)
+      : persistent(isolate, x), ptr_data(ConstructRefValue(isolate, x)) {}
+
   // Unfortunately, we can't setup a floating callback without also keeping
   // a v8::Persistent object alive, so we bundle it here with the data.
   v8::Persistent<Ref<T>> persistent;
@@ -310,10 +315,7 @@ auto Value(v8::Isolate* isolate, v8::Local<Ref<T>> x) {
       auto internal_field = static_cast<WeakCallbackData<T>*>(
           x->GetAlignedPointerFromInternalField(0));
       if (!internal_field) {
-        internal_field =
-            new WeakCallbackData<T>
-                {.persistent = v8::Persistent<Ref<T>>(isolate, x),
-                  .ptr_data = RefValueType(ConstructRefValue(isolate, x))};
+        internal_field = new WeakCallbackData<T>(isolate, x);
 
         x->SetAlignedPointerInInternalField(0, internal_field);
 

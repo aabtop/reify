@@ -61,10 +61,10 @@ std::optional<CallAndExportResults> CallFunctionAndExportOutput(
   }
 
   return std::optional<CallAndExportResults>(
-      {.call_time = call_time,
-       .build_time = results->build_time,
-       .export_time = results->export_time,
-       .output_filepath = results->output_filepath});
+      {/*.call_time = */ call_time,
+       /*.build_time = */ results->build_time,
+       /*.export_time = */ results->export_time,
+       /*.output_filepath = */ results->output_filepath});
 }
 
 // A non-templated wrapper function around CallFunctionAndExportOutput().
@@ -264,7 +264,7 @@ int Build(const BuildCommandLineParameters& clp) {
   // hypo::Region3 type, these are the only types that we support.  If we do
   // find a supported type, run the function and export the output to a file.
   auto build_results = BuildOutputAndSaveToFile(
-      runtime_env, entry_point_function, clp.output_file_basepath);
+      runtime_env, entry_point_function, clp.output_file_basepath.string());
 
   if (!build_results) {
     return 1;
