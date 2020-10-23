@@ -21,10 +21,7 @@ cc_library(
     "@boost//:dynamic_bitset",
     "@boost//:tribool",
     "@boost//:heap",
-  ],
-  defines = [
-    # performance-todo: CGAL is supposed to be faster with GMP, but it's
-    # trickier to setup on Windows.
-    "CGAL_DISABLE_GMP=1",
+    "@mpir//:package",
+    "@mpfr//:package",
   ],
 )

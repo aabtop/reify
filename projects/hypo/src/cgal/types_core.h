@@ -2,13 +2,13 @@
 #define _HYPO_CGAL_TYPES_CORE_H_
 
 #include <CGAL/Aff_transformation_3.h>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Simple_cartesian.h>
 
 namespace hypo {
 namespace cgal {
 
-using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
+using Kernel = CGAL::Exact_predicates_exact_constructions_kernel;
 
 using Point_2 = Kernel::Point_2;
 using Vector_2 = Kernel::Vector_2;
