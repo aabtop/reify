@@ -21,7 +21,7 @@ cc_library(
     "@boost//:dynamic_bitset",
     "@boost//:tribool",
     "@boost//:heap",
-    "@mpir//:package",
-    "@mpfr//:package",
+    "@vcpkg_mpir//:package",
+    "@vcpkg_mpfr//:package",
   ],
 )
