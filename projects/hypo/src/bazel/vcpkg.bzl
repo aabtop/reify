@@ -11,16 +11,16 @@ def _vcpkg_impl(repository_ctx):
   repository_ctx.execute(
     ["vcpkg/bootstrap-vcpkg.bat"],
   )
-  repository_ctx.report_progress("Calling `vcpkg install {}`...".format(repository_ctx.attr.package))
+  repository_ctx.report_progress("Calling vcpkg install...")
   repository_ctx.execute(
-    ["vcpkg/vcpkg", "install", repository_ctx.attr.package + ":x64-windows-static"],
+    ["vcpkg/vcpkg", "install"] + [x + ":x64-windows-static" for x in repository_ctx.attr.packages],
   )
 
   repository_ctx.file(
     "BUILD",
-    content="""
+    content="\n".join(["""
 cc_library(
-  name = "package",
+  name = "{package}",
   hdrs = glob([
     "{package_directory}/include/**/*.h",
   ]),
@@ -28,12 +28,18 @@ cc_library(
   includes = ["{package_directory}/include"],
   visibility = ["//visibility:public"],
 )
-    """.format(package_directory="vcpkg/packages/{}_x64-windows-static".format(repository_ctx.attr.package)),
+    """.format(
+            package=x,
+            package_directory="vcpkg/packages/{}_x64-windows-static".format(x)) for x in repository_ctx.attr.packages]),
   )
 
 vcpkg = repository_rule(
   implementation = _vcpkg_impl,
   attrs = {
-    "package": attr.string(mandatory=True),
+    "packages": attr.string_list(
+        mandatory=True,
+        allow_empty=False,
+        doc="List of packages to install via vcpkgs.  These will become available as Bazel targets in the root of the new repository."
+    ),
   }
 )

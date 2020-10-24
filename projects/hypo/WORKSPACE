@@ -8,12 +8,11 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("//:src/bazel/vcpkg.bzl", "vcpkg")
 
 vcpkg(
-    name = "vcpkg_mpir",
-    package = "mpir",
-)
-vcpkg(
-    name = "vcpkg_mpfr",
-    package = "mpfr",
+    name = "vcpkg",
+    packages = [
+        "mpir",
+        "mpfr",
+    ],
 )
 
 http_archive(

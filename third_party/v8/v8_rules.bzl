@@ -8,8 +8,8 @@ def v8_library(name, visibility):
     srcs=native.glob([package_dir + "/lib/**"]),
     linkopts = select({
         "@bazel_tools//src/conditions:windows": [
-            "-DEFAULTLIB:dbghelp.lib",
-            "-DEFAULTLIB:winmm.lib"
+            "/DEFAULTLIB:dbghelp.lib",
+            "/DEFAULTLIB:winmm.lib"
         ],
         "//conditions:default": [],
     }),
