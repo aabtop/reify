@@ -25,7 +25,6 @@ main = do
           cppImmutableRefCountedFileName = (namespace ++ ".h")
       in  do
             createDirectoryIfMissing True outputDirectory
-            hPutStrLn stderr ("cppV8CCFileName: " ++ outputDirectory ++ "/" ++ cppV8CCFileName)
             buildTargetToFile
               cppV8HFileName
               (toCppV8SourceCodeH cppV8Namespace
