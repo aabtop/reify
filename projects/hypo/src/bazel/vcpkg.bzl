@@ -18,13 +18,34 @@ def _vcpkg_impl(repository_ctx):
 
   repository_ctx.file(
     "BUILD",
-    content="\n".join(["""
+    content="""
+config_setting(
+    name = "dbg_mode",
+    values = {
+        "compilation_mode": "dbg",
+    },
+)
+    """ + "\n".join(["""
+
 cc_library(
   name = "{package}",
   hdrs = glob([
     "{package_directory}/include/**/*.h",
   ]),
-  srcs = glob(["{package_directory}/**/*.lib","{package_directory}/**/*.pdb"]),
+  srcs = select({{
+    ":dbg_mode": glob([
+        "{package_directory}/debug/lib/**/*.lib",
+        "{package_directory}/lib/**/*.pdb",
+    ]),
+    "//conditions:default": glob([
+        "{package_directory}/lib/**/*.lib",
+    ]),
+  }}),
+  linkopts = select({{
+    ":dbg_mode": [],
+    # No PDB data available in release mode.
+    "//conditions:default": ["/ignore:4099"],
+  }}),
   includes = ["{package_directory}/include"],
   visibility = ["//visibility:public"],
 )
