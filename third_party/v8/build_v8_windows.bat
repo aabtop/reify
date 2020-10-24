@@ -1,4 +1,5 @@
 @echo off
+SETLOCAL EnableDelayedExpansion
 
 SET START_DIRECTORY=%CD%
 
@@ -21,6 +22,10 @@ REM DEPOT_TOOLS_WIN_TOOLCHAIN needs to be set before we `gclient sync` V8, or
 REM else it gives us an error. The variable tells depot_tools that we will
 REM provide our own toolchain.
 SET DEPOT_TOOLS_WIN_TOOLCHAIN=0
+
+REM List of supported builds.  Each build is customized by if statements later
+REM in this file.
+SET BUILDS=win-debug-x64-msvc win-release-x64-msvc
 
 IF NOT EXIST %WORK_DIR% mkdir %WORK_DIR%
 IF NOT EXIST %FETCH_DIR% mkdir %FETCH_DIR%
@@ -73,45 +78,64 @@ IF NOT EXIST "%V8_GCLIENT_DIR%" (
 
 IF NOT EXIST "%OUT_DIR%" (
   mkdir %OUT_DIR%
-  echo Writing args.gn file...
-  (
-    echo is_component_build = false
-    echo is_debug = false
-    echo is_official_build = true
-    echo v8_enable_backtrace = true
-    echo v8_enable_disassembler = true
-    echo v8_enable_object_print = true
-    echo v8_enable_verify_heap = true
-    echo v8_static_library = true
-    echo v8_enable_i18n_support = false
-    echo v8_use_external_startup_data = false
-    echo is_clang = false
-  ) > %OUT_DIR%\args.gn
+  
+  FOR %%B IN (%BUILDS%) DO (
+    SET BUILD_DIR="%OUT_DIR%\%%B"
+    IF NOT EXIST "!BUILD_DIR!" (
+      mkdir !BUILD_DIR!
+      echo Writing args.gn file for %%B...
+      (
+        echo is_component_build = false
+        echo v8_enable_backtrace = true
+        echo v8_enable_disassembler = true
+        echo v8_enable_object_print = true
+        echo v8_enable_verify_heap = true
+        echo v8_static_library = true
+        echo v8_enable_i18n_support = false
+        echo v8_use_external_startup_data = false
+        echo is_clang = false
+      ) > !BUILD_DIR!\args.gn
 
-  cd %V8_SRC_DIR%
+      IF %%B EQU win-debug-x64-msvc (
+        echo is_debug = true
+        echo is_official_build = false
+      ) >> !BUILD_DIR!\args.gn
 
-  SET DEPOT_TOOLS_UPDATE=0
+      IF %%B EQU win-release-x64-msvc (
+        echo is_debug = false
+        echo is_official_build = true
+      ) >> !BUILD_DIR!\args.gn
 
-  echo Running "gn gen %OUT_DIR%"...
-  CALL gn gen %OUT_DIR%
-  IF %ERRORLEVEL% NEQ 0 EXIT 1
+      cd %V8_SRC_DIR%
 
-  echo Running "ninja -C %OUT_DIR%"...
-  CALL ninja -C %OUT_DIR%
-  IF %ERRORLEVEL% NEQ 0 EXIT 1
+      SET DEPOT_TOOLS_UPDATE=0
+
+      echo Running "gn gen !BUILD_DIR!"...
+      CALL gn gen !BUILD_DIR!
+      IF %ERRORLEVEL% NEQ 0 EXIT 1
+
+      echo Running "ninja -C !BUILD_DIR!"...
+      CALL ninja -C !BUILD_DIR!
+      IF %ERRORLEVEL% NEQ 0 EXIT 1
+    )
+  )
 )
 
 IF NOT EXIST "%PACKAGE_DIR%" (
   mkdir %PACKAGE_DIR%
-  echo Packaging results from build...
 
-  mkdir %PACKAGE_DIR%\win-release-x64-msvc
-  cd %PACKAGE_DIR%\win-release-x64-msvc
+  FOR %%B IN (%BUILDS%) DO (
+    echo Packaging results from build %%B...
 
-  xcopy /E /I %V8_SRC_DIR%\include include
+    mkdir %PACKAGE_DIR%\%%B
+    cd %PACKAGE_DIR%\%%B
 
-  mkdir lib
-  xcopy %OUT_DIR%\obj\*.lib lib\ 
+    xcopy /E /I %V8_SRC_DIR%\include include
+
+    mkdir lib
+    xcopy %OUT_DIR%\%%B\obj\*.lib lib\
+    xcopy %OUT_DIR%\%%B\obj\*.pdb pdb\
+  )
 )
 
 echo Done.  Find the final results in %PACKAGE_DIR% .
