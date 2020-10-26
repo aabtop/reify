@@ -10,6 +10,9 @@ webpack(
         "$(location tsc_wrapper.js)",
     ],
     data = glob(["src/**/*.ts"]) + [
+        "package.json",
+        "tsconfig.json",
+        "yarn.lock",
         "webpack.config.js",
         "@npm//@types/node",
         "@npm//typescript",

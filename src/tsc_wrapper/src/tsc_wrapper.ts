@@ -1,9 +1,9 @@
-import lib_es2015_collection from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.collection.d.ts'
-import lib_es2015_core from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.core.d.ts'
-import lib_es2015_generator from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.generator.d.ts'
-import lib_es2015_iterable from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.iterable.d.ts'
-import lib_es2015_symbol from 'raw-loader!./../node_modules/typescript/lib/lib.es2015.symbol.d.ts'
-import lib_es5 from 'raw-loader!./../node_modules/typescript/lib/lib.es5.d.ts'
+import lib_es2015_collection from 'raw-loader!typescript/lib/lib.es2015.collection.d.ts'
+import lib_es2015_core from 'raw-loader!typescript/lib/lib.es2015.core.d.ts'
+import lib_es2015_generator from 'raw-loader!typescript/lib/lib.es2015.generator.d.ts'
+import lib_es2015_iterable from 'raw-loader!typescript/lib/lib.es2015.iterable.d.ts'
+import lib_es2015_symbol from 'raw-loader!typescript/lib/lib.es2015.symbol.d.ts'
+import lib_es5 from 'raw-loader!typescript/lib/lib.es5.d.ts'
 import * as ts from 'typescript';
 
 // Injected by the embedder.
@@ -11,8 +11,8 @@ declare function externalGetSourceFile(path: string): string;
 declare function externalFileExists(path: string): boolean;
 
 function getSystemFileContent(
-    sourceMap: {[key: string]: ts.SourceFile}, path: string): ts.SourceFile|
-    null {
+  sourceMap: { [key: string]: ts.SourceFile }, path: string): ts.SourceFile |
+  null {
   const trimmedPath = path.trim();
   if (trimmedPath in sourceMap) {
     return sourceMap[trimmedPath];
@@ -36,19 +36,19 @@ const LIB_SOURCE_FILES = LIB_MODULES.map(x => {
 // We don't make use of the default lib and instead just set it to blank.
 const defaultLibFilename = '/lib.d.ts';
 const defaultLibSourceFile =
-    ts.createSourceFile(defaultLibFilename, '', ts.ScriptTarget.Latest);
+  ts.createSourceFile(defaultLibFilename, '', ts.ScriptTarget.Latest);
 
 export type ModuleExport = {
   symbol_name: string; type_string: string;
-  location: {path: string; line: number; column: number;};
+  location: { path: string; line: number; column: number; };
 };
 
 export type TranspilationOutput = {
   // Mapping from a JS file path to file contents.
-  js_modules: {[key: string]: string};
+  js_modules: { [key: string]: string };
 
   // Mapping from declarations
-  declaration_files: {[key: string]: string};
+  declaration_files: { [key: string]: string };
 
   // The file path of the primary module, e.g. the transpiled input source
   // module.  This can be used to index into |js_modules| above.
@@ -71,8 +71,8 @@ export type TranspileResults = {
   output?: TranspilationOutput;
 };
 
-function GetDiagnosticsMessage(diagnostic: string|ts.DiagnosticMessageChain|
-                               undefined): string {
+function GetDiagnosticsMessage(diagnostic: string | ts.DiagnosticMessageChain |
+  undefined): string {
   if (typeof diagnostic === 'string') {
     return diagnostic;
   } else if (diagnostic === undefined) {
@@ -90,8 +90,8 @@ function GetDiagnosticsError(diagnostic: ts.Diagnostic): TranspileError {
     message: GetDiagnosticsMessage(diagnostic.messageText),
   };
   if (diagnostic.file) {
-    let {line, character} =
-        diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
+    let { line, character } =
+      diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
     transpile_error.line = line;
     transpile_error.column = character;
     transpile_error.path = diagnostic.file.fileName;
@@ -100,8 +100,8 @@ function GetDiagnosticsError(diagnostic: ts.Diagnostic): TranspileError {
 }
 
 export function TranspileModule(
-    path: string, text: string, systemModules: {[key: string]: string;},
-    generate_declarations: boolean): TranspileResults {
+  path: string, text: string, systemModules: { [key: string]: string; },
+  generate_declarations: boolean): TranspileResults {
   let results: TranspilationOutput = {
     js_modules: {},
     declaration_files: {},
@@ -110,7 +110,7 @@ export function TranspileModule(
   };
 
   let input_source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest);
-  let sourceMap: {[key: string]: ts.SourceFile} = {
+  let sourceMap: { [key: string]: ts.SourceFile } = {
     [defaultLibFilename]: defaultLibSourceFile,
   };
   for (var i = 0; i < LIB_MODULES.length; ++i) {
@@ -118,7 +118,7 @@ export function TranspileModule(
   }
   for (var key in systemModules) {
     sourceMap[key] =
-        ts.createSourceFile(key, systemModules[key], ts.ScriptTarget.Latest);
+      ts.createSourceFile(key, systemModules[key], ts.ScriptTarget.Latest);
   }
 
   const DECLARATIONS_DIRECTORY = 'declarations';
@@ -139,8 +139,8 @@ export function TranspileModule(
   const host: ts.CompilerHost = {
     fileExists: filePath => {
       return (getSystemFileContent(sourceMap, filePath) != null) ||
-          filePath.trim() === path.trim() ||
-          externalFileExists(filePath.trim());
+        filePath.trim() === path.trim() ||
+        externalFileExists(filePath.trim());
     },
     directoryExists: dirPath => true,
     getCurrentDirectory: () => '/',
@@ -158,8 +158,8 @@ export function TranspileModule(
         return input_source;
       } else {
         return ts.createSourceFile(
-            filePath, externalGetSourceFile(filePath.trim()),
-            ts.ScriptTarget.Latest);
+          filePath, externalGetSourceFile(filePath.trim()),
+          ts.ScriptTarget.Latest);
       }
     },
     readFile: filePath => {
@@ -170,13 +170,13 @@ export function TranspileModule(
       const DECLARATIONS_PREFIX = DECLARATIONS_DIRECTORY + '/';
       if (name.startsWith(DECLARATIONS_PREFIX)) {
         results.declaration_files[name.substring(DECLARATIONS_PREFIX.length)] =
-            contents;
+          contents;
       } else {
         results.js_modules[name] = contents;
       }
     }
   };
-  const program = ts.createProgram({options, rootNames: [path], host});
+  const program = ts.createProgram({ options, rootNames: [path], host });
 
   let diagnostics = ts.getPreEmitDiagnostics(program);
   if (diagnostics.length > 0) {
@@ -190,7 +190,7 @@ export function TranspileModule(
     if (Object.keys(results.js_modules).length == 0) {
       return {
         success: false,
-        error: {message: 'No output generated.', line: 0, column: 0, path: ''},
+        error: { message: 'No output generated.', line: 0, column: 0, path: '' },
       };
     } else {
       let sourceFile = program.getSourceFile(path)!;
@@ -203,16 +203,16 @@ export function TranspileModule(
 
         const declaration = exportedSymbol.declarations![0];
         const sourceFile = declaration.getSourceFile();
-        const {fileName} = sourceFile;
-        const {line, character} =
-            sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
+        const { fileName } = sourceFile;
+        const { line, character } =
+          sourceFile.getLineAndCharacterOfPosition(declaration.getStart());
         const type_string = checker.typeToString(
-            checker.getTypeOfSymbolAtLocation(exportedSymbol, declaration));
+          checker.getTypeOfSymbolAtLocation(exportedSymbol, declaration));
 
         return {
           symbol_name: exportedSymbol.getName(),
           type_string: type_string,
-          location: {path: fileName, line: line, column: character}
+          location: { path: fileName, line: line, column: character }
         };
       });
 
