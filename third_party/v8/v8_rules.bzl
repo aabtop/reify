@@ -53,7 +53,7 @@ def v8_library(name, visibility):
   native.alias(
     name=name,
     actual=select({
-      "@bazel_tools//src/conditions:windows_msvc": name + "_win",
+      "@bazel_tools//src/conditions:windows": name + "_win",
       "//conditions:default": name + "_linux",
     }),
     visibility=visibility,
