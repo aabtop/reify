@@ -13,6 +13,7 @@ cc_library(
     "@boost//:array",
     "@boost//:iterator",
     "@boost//:lexical_cast",
+    "@boost//:multiprecision",
     "@boost//:property_map",
     "@boost//:random",
     "@boost//:variant",

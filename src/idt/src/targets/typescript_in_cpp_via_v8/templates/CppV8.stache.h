@@ -306,7 +306,6 @@ struct WeakCallbackData {
 
 template <typename T>
 auto Value(v8::Isolate* isolate, v8::Local<Ref<T>> x) {
-  using RefValueType = typename Ref<T>::RefValueType;
   if constexpr (std::is_base_of<v8::Object, T>::value) {
     if (x->InternalFieldCount() > 0) {
       // If we have an internal field (i.e. we were created from an object
