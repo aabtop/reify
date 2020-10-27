@@ -166,7 +166,7 @@ void WithInternalField(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // construction.
   v8::Local<v8::Array> source_property_names =
       source_object->GetOwnPropertyNames(context).ToLocalChecked();
-  for (int i = 0; i < source_property_names->Length(); ++i) {
+  for (size_t i = 0; i < source_property_names->Length(); ++i) {
     auto property_name = source_property_names->Get(context, i)
                              .ToLocalChecked()
                              .As<v8::String>();

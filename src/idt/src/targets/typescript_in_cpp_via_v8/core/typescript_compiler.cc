@@ -72,8 +72,8 @@ void GetSourceFile(const v8::FunctionCallbackInfo<v8::Value>& args) {
     isolate->ThrowException(
         v8::String::NewFromUtf8(
             isolate,
-            ("Error reading data from " + file.diagnostics_path + ".").c_str())
-            .ToLocalChecked());
+            ("Error reading data from " + file.diagnostics_path + ": " +
+             error->message).c_str()).ToLocalChecked());
     return;
   }
   auto& file_contents = std::get<std::string>(maybe_file_contents);
@@ -371,7 +371,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
         diagnostics_path,
         0,
         0,
-        "Could not open file.",
+        "Could not open file: " + error->message,
     };
   }
   auto& input_typescript = std::get<std::string>(maybe_input_typescript);
@@ -472,7 +472,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
 
   v8::Local<v8::Array> declaration_file_paths =
       declaration_files->GetOwnPropertyNames(context).ToLocalChecked();
-  for (int i = 0; i < declaration_file_paths->Length(); ++i) {
+  for (size_t i = 0; i < declaration_file_paths->Length(); ++i) {
     auto declaration_file_path = declaration_file_paths->Get(context, i)
                                      .ToLocalChecked()
                                      .As<v8::String>();
@@ -497,7 +497,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
 
   v8::Local<v8::Array> module_paths =
       js_modules->GetOwnPropertyNames(context).ToLocalChecked();
-  for (int i = 0; i < module_paths->Length(); ++i) {
+  for (size_t i = 0; i < module_paths->Length(); ++i) {
     auto module_path =
         module_paths->Get(context, i).ToLocalChecked().As<v8::String>();
     std::string module_path_str = ToStdString(isolate_, module_path);
@@ -522,7 +522,7 @@ auto TypeScriptCompiler::TranspileToJavaScript(
           .ToLocalChecked()
           .As<v8::Array>();
   assert(primary_module_exports->IsArray());
-  for (int i = 0; i < primary_module_exports->Length(); ++i) {
+  for (size_t i = 0; i < primary_module_exports->Length(); ++i) {
     auto module_export = primary_module_exports->Get(context, i)
                              .ToLocalChecked()
                              .As<v8::Object>();

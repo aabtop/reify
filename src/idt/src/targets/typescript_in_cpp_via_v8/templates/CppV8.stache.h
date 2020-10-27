@@ -273,12 +273,16 @@ struct TypeMatchesTypeScriptString<std::tuple<Ts...>> {
   }
 };
 
+{{#declarationSequence}}
+{{{.}}}
+{{/declarationSequence}}
+
 template <typename T>
 class Ref : public T {
  public:
   using DerefValueType = const decltype(
-      hypo_v8::Value(std::declval<v8::Isolate*>(),
-                     std::declval<v8::Local<T>>()));
+      {{namespace}}::Value(std::declval<v8::Isolate*>(),
+                           std::declval<v8::Local<T>>()));
   using RefValueType = std::shared_ptr<DerefValueType>;
 
   V8_INLINE static Ref<T>* Cast(v8::Value* obj) {
@@ -350,10 +354,6 @@ struct TypeMatchesTypeScriptString<std::shared_ptr<const T>> {
     return TypeMatchesTypeScriptString<T>::Result(ts);
   }
 };
-
-{{#declarationSequence}}
-{{{.}}}
-{{/declarationSequence}}
 
 }  // {{namespace}}
 
