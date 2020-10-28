@@ -6,7 +6,7 @@ LABEL description="Linux development environment for building Reify."
 # Install some basic tools to enable us to get nix installed.
 RUN apt-get update --fix-missing && apt-get -y install \
     curl perl sudo locales bzip2 bash xz-utils git wget vim man \
-    libncurses5 libgmp-dev libtinfo-dev pkg-config yasm m4
+    libncurses5 libgmp-dev libtinfo-dev pkg-config yasm m4 clang
 
 RUN apt-get clean && apt-get purge && apt-get autoremove --purge -y && \
     rm -rf /var/lib/apt/lists/*

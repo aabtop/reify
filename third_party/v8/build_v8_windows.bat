@@ -94,6 +94,8 @@ IF NOT EXIST "%OUT_DIR%" (
         echo v8_enable_i18n_support = false
         echo v8_use_external_startup_data = false
         echo is_clang = false
+        echo v8_monolithic = true
+        echo target_cpu = "x64"
       ) > !BUILD_DIR!\args.gn
 
       IF %%B EQU win-debug-x64-msvc (
@@ -115,7 +117,7 @@ IF NOT EXIST "%OUT_DIR%" (
       IF %ERRORLEVEL% NEQ 0 EXIT 1
 
       echo Running "ninja -C !BUILD_DIR!"...
-      CALL ninja -C !BUILD_DIR!
+      CALL ninja -C !BUILD_DIR! v8_monolith
       IF %ERRORLEVEL% NEQ 0 EXIT 1
     )
   )

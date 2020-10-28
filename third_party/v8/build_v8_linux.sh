@@ -61,6 +61,10 @@ v8_static_library = true
 v8_enable_i18n_support = false
 v8_use_external_startup_data = false
 is_clang = true
+clang_use_chrome_plugins = false
+v8_monolithic = true
+target_cpu = "x64"
+use_custom_libcxx=false
 EOM
 
     if [ $B == linux-debug-x64-clang ]; then (
@@ -82,7 +86,7 @@ EOM
     export DEPOT_TOOLS_UPDATE=0
     gn gen ${BUILD_DIR}
 
-    ninja -C ${BUILD_DIR}
+    ninja -C ${BUILD_DIR} v8_monolith
   done
 ) fi
 
@@ -96,6 +100,11 @@ if [ ! -d ${PACKAGE_DIR} ]; then (
 
     cp -r ${V8_SRC_DIR}/include include
     mkdir lib
-    cp ${OUT_DIR}/${B}/obj/*.a lib/
+
+    cp ${OUT_DIR}/${B}/obj/libv8_monolith.a lib/
+
+    #cd ${OUT_DIR}/${B}/obj/
+    #find . -name '*.a' | cpio -pdm ${PACKAGE_DIR}/${B}/lib
+    #find . -name '*.o' | cpio -pdm ${PACKAGE_DIR}/${B}/lib
   done
 ) fi

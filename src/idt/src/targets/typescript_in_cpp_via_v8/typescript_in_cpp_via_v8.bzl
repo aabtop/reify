@@ -106,7 +106,6 @@ def idt_as_typescript_in_cpp_via_v8(name, idt, purecpp, ts_library_file):
         mkdir -p src_gen
         for f in $(SRCS)
         do
-          echo $$(basename $$f) 1>&2
           case $$(basename $$f) in
             reify_generated_interface.ts)
               cp $$f $$(basename $$f)
