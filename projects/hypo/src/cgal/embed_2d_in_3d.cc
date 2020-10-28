@@ -12,29 +12,6 @@ namespace hypo {
 namespace cgal {
 
 namespace {
-Nef_polyhedron_3 EmbedPolygonIn3DXYPlane(const Polygon_2& polygon) {
-  std::vector<Point_3> point_3s;
-  point_3s.reserve(polygon.size());
-  for (auto iter = polygon.vertices_begin(); iter != polygon.vertices_end();
-       ++iter) {
-    point_3s.emplace_back(iter->x(), iter->y(), 0);
-  }
-  return Nef_polyhedron_3(point_3s.begin(), point_3s.end());
-}
-
-Nef_polyhedron_3 EmbedPolygonWithHolesIn3DXYPlane(
-    const Polygon_with_holes_2& polygon_with_holes) {
-  Nef_polyhedron_3 output(
-      EmbedPolygonIn3DXYPlane(polygon_with_holes.outer_boundary()));
-  for (auto iter = polygon_with_holes.holes_begin();
-       iter != polygon_with_holes.holes_end(); ++iter) {
-    output ^= EmbedPolygonIn3DXYPlane(*iter);
-  }
-  return output;
-}
-}  // namespace
-
-namespace {
 struct FaceInfo2 {
   int nesting_level;
 

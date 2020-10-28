@@ -108,7 +108,7 @@ members = map member
 
 namedTypeDefinition :: Declaration -> String
 namedTypeDefinition t = case t of
-  ForwardDeclaration (NamedType n _ (Struct      _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n _ (Struct      _)) -> "struct " ++ n ++ ";\n"
   ForwardDeclaration (NamedType n _ (Enum        _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration (NamedType n _ (TaggedUnion _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration _ ->

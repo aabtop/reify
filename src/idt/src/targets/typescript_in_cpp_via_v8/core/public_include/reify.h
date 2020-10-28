@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
+#include <unordered_map>
 
 #include "reify_cpp_v8_interface.h"
 #include "reify_generated_project_namespace.h"
@@ -50,7 +51,7 @@ class GenericFunction {
 
   std::unique_ptr<Impl> impl_;
 
-  friend class CallContext;
+  friend struct CallContext;
   friend class RuntimeEnvironment;
 };
 

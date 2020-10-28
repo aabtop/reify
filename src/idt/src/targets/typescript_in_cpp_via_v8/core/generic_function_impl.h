@@ -16,7 +16,7 @@ class GenericFunction::Impl {
   v8::Persistent<v8::Context> context_;
   v8::Persistent<v8::Function> function_;
 
-  friend class GenericFunction::CallContext;
+  friend struct GenericFunction::CallContext;
 };
 
 }  // namespace reify
