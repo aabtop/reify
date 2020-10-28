@@ -1,3 +1,22 @@
+load("@rules_foreign_cc//tools/build_defs:configure.bzl", "configure_make")
+
+configure_make(
+    name = "gmp",
+    lib_source = "@gmp//:all",
+    #shared_libraries = ["libgmp.so"],
+    static_libraries = ["libgmp.a"],
+    visibility = ["//visibility:public"],
+)
+
+configure_make(
+    name = "mpfr",
+    lib_source = "@mpfr//:all",
+    #shared_libraries = ["libmpfr.so"],
+    static_libraries = ["libmpfr.a"],
+    visibility = ["//visibility:public"],
+    deps = [":gmp"],
+)
+
 cc_library(
   name = "cgal",
   hdrs = glob([
@@ -22,7 +41,14 @@ cc_library(
     "@boost//:dynamic_bitset",
     "@boost//:tribool",
     "@boost//:heap",
-    "@vcpkg//:mpir",
-    "@vcpkg//:mpfr",
-  ],
+  ] + select({
+    "@bazel_tools//src/conditions:windows": [
+        "@vcpkg//:mpir",
+        "@vcpkg//:mpfr",
+    ],
+    "//conditions:default": [
+      ":gmp",
+      ":mpfr",
+    ],
+  }),
 )

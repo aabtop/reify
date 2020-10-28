@@ -20,10 +20,6 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
   return hypo::cgal::ConstructRegion3(x);
 }
 
-Point_3 ToPoint3(const hypo::Vec3& vec3) {
-  return Point_3(vec3[0], vec3[1], vec3[2]);
-}
-
 Nef_polyhedron_3 ConstructRegion3(const hypo::TriangleList3& x) {
   Surface_mesh mesh;
   CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(

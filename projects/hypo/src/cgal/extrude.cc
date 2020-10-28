@@ -156,7 +156,7 @@ std::vector<surface_mesh_halfedge_descriptor> CreateSliceEdges(
     slice_bottom_halfedges.push_back(halfedge);
   }
 
-  return std::move(slice_bottom_halfedges);
+  return slice_bottom_halfedges;
 }
 
 void CreateInnerSlice(

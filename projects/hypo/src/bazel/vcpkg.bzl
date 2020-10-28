@@ -8,13 +8,31 @@ def _vcpkg_impl(repository_ctx):
     stripPrefix="vcpkg-{}/".format(release),
   )
   repository_ctx.report_progress("Executing vcpkg bootstrap script...")
-  repository_ctx.execute(
-    ["vcpkg/bootstrap-vcpkg.bat"],
+
+  BOOTSTRAP_SCRIPT = None
+  if "windows" in repository_ctx.os.name:
+    BOOTSTRAP_SCRIPT = "vcpkg/bootstrap-vcpkg.bat"
+  else:
+    BOOTSTRAP_SCRIPT = "vcpkg/bootstrap-vcpkg.sh"
+  result = repository_ctx.execute(
+    [BOOTSTRAP_SCRIPT],
   )
+  if result.return_code:
+    fail("Error executing vcpkg bootstrap script.")
+
+  triplet_os = None
+  if "windows" in repository_ctx.os.name:
+    triplet_os = "windows-static"
+  else:
+    triplet_os = "linux"
+
   repository_ctx.report_progress("Calling vcpkg install...")
-  repository_ctx.execute(
-    ["vcpkg/vcpkg", "install"] + [x + ":x64-windows-static" for x in repository_ctx.attr.packages],
+  print("execute: " + str(["vcpkg/vcpkg", "install"] + [x + ":x64-{os}".format(os=triplet_os) for x in repository_ctx.attr.packages]))
+  result = repository_ctx.execute(
+    ["vcpkg/vcpkg", "install"] + [x + ":x64-{os}".format(os=triplet_os) for x in repository_ctx.attr.packages],
   )
+  if result.return_code:
+    fail("Error executing vcpkg install step.")
 
   repository_ctx.file(
     "BUILD",
