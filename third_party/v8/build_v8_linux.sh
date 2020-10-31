@@ -78,6 +78,7 @@ EOM
       cat <<EOM >> ${BUILD_DIR}/args.gn
 is_debug = false
 is_official_build = true
+is_cfi = false  # Without this, the linker will produce many unresolved symbols.
 EOM
     ) fi
 

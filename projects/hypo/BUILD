@@ -1,5 +1,5 @@
-load("@reify//src/idt:rules.bzl", "idt")
 load("@reify//src/idt/src/targets/pure_cpp:pure_cpp.bzl", "idt_as_purecpp")
+load("@reify//src/idt:rules.bzl", "idt")
 load("@reify//src/idt/src/targets/typescript_in_cpp_via_v8:typescript_in_cpp_via_v8.bzl", "idt_as_typescript_in_cpp_via_v8")
 
 idt(
@@ -68,7 +68,4 @@ cc_binary(
         ":hypo-v8",
     ],
     linkstatic = 1,
-    features = [
-        "fully_static_link",
-    ],
 )
