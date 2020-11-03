@@ -57,15 +57,16 @@ IF NOT EXIST "%V8_GCLIENT_DIR%" (
   mkdir %V8_GCLIENT_DIR%
   cd %V8_GCLIENT_DIR%
 
+  CALL git clone --branch 8.6.395.10 https://github.com/v8/v8.git --depth 1
+
   echo Writing V8 .gclient file...
   (
     echo solutions = [
     echo   { "name"        : 'v8',
-    echo     "url"         : 'https://github.com/v8/v8.git@8.6.395.10',
+    echo     "url"         : 'https://github.com/v8/v8.git',
     echo     "deps_file"   : 'DEPS',
-    echo     "managed"     : True,
-    echo     "custom_deps" : {
-    echo     },
+    echo     "managed"     : False,
+    echo     "custom_deps" : {},
     echo     "custom_vars": {},
     echo   },
     echo ]

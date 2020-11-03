@@ -7,9 +7,6 @@
 	// Set *default* container specific settings.json values on container create.
 	"settings": {
 		"terminal.integrated.shell.linux": "/bin/bash",
-		"nixEnvSelector.nixShellConfig": "${workspaceRoot}/projects/hypo/src",
-		"cmake.buildDirectory": "/cmake_out",
-		"cmake.sourceDirectory": "${workspaceRoot}/projects/hypo/src",
 		"editor.formatOnSave": true,
 		"files.associations": {
 			"*.hs": "haskell",
@@ -29,14 +26,11 @@
 	},
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
-		"arrterian.nix-env-selector",
 		"ms-vscode.cpptools",
 		"xaver.clang-format",
-		"twxs.cmake",
 		"justusadam.language-haskell",
 		"maxgabriel.brittany",
 		"hoovercj.haskell-linter",
-		"bbenoist.nix",
 		"ms-vscode.vscode-typescript-next",
 		"mervin.markdown-formatter"
 	],
@@ -54,9 +48,7 @@
 	"mounts": [
 		"source=reify-vscode-extensions,target=/root/.vscode-server/extensions,type=volume",
 		"source=reify-bashhistory,target=/commandhistory,type=volume",
-		"source=nix,target=/nix,type=volume",
-		"source=reify-cmake_out,target=/cmake_out,type=volume",
-		"source=reify-src,target=/src,type=volume",
+		"source=reify-bazel-cache,target=/root/.cache/bazel,type=volume",
 	],
 	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
 	// "remoteUser": "vscode"

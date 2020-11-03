@@ -27,14 +27,15 @@ if [ ! -d ${V8_GCLIENT_DIR} ]; then (
   mkdir -p ${V8_GCLIENT_DIR}
   cd ${V8_GCLIENT_DIR}
 
+  git clone --branch 8.6.395.10 https://github.com/v8/v8.git --depth 1
+
   cat <<EOM > .gclient
 solutions = [
   { "name"        : 'v8',
-    "url"         : 'https://github.com/v8/v8.git@8.6.395.10',
+    "url"         : 'https://github.com/v8/v8.git',
     "deps_file"   : 'DEPS',
-    "managed"     : True,
-    "custom_deps" : {
-    },
+    "managed"     : False,
+    "custom_deps" : {},
     "custom_vars": {},
   },
 ]
@@ -103,9 +104,5 @@ if [ ! -d ${PACKAGE_DIR} ]; then (
     mkdir lib
 
     cp ${OUT_DIR}/${B}/obj/libv8_monolith.a lib/
-
-    #cd ${OUT_DIR}/${B}/obj/
-    #find . -name '*.a' | cpio -pdm ${PACKAGE_DIR}/${B}/lib
-    #find . -name '*.o' | cpio -pdm ${PACKAGE_DIR}/${B}/lib
   done
 ) fi
