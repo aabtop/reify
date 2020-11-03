@@ -1,1 +1,4 @@
 * text=auto
+
+*.bzl text eol=lf
+BUILD text eol=lf
