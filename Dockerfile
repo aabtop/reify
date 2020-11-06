@@ -23,6 +23,9 @@ RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 
+# Install Bazel Buildifier so that we can use source code Bazel formatting.
+RUN curl -L https://github.com/bazelbuild/buildtools/releases/download/3.5.0/buildifier > /usr/bin/buildifier && chmod +x /usr/bin/buildifier
+
 # Remember our console history between sessions.
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
     && mkdir -p /commandhistory \

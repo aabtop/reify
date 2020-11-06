@@ -185,6 +185,6 @@ def idt_as_typescript_in_cpp_via_v8(name, idt, purecpp, ts_library_file):
         ":" + typescript_to_header_lib_name,
         "@reify//src/idt/src/targets/typescript_in_cpp_via_v8:core",
         "@reify//src/tsc_wrapper:tsc_wrapper_as_header",
-        "@reify//third_party/v8",
+        "@v8//:v8",
     ],
   )

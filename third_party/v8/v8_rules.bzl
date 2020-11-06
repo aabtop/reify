@@ -1,60 +1,38 @@
-def def_v8_library_config(name, package_name):
-  if "win" in package_name:
-    package_dir = "build_win/package/" + package_name
-  elif "linux" in package_name:
-    package_dir = "build_linux/package/" + package_name
-  else:
-    fail(msg="Couldn't find operating system in package name.")
+def _v8_library_impl(ctx):
+    ctx.actions.run(
+        outputs = [ctx.outputs.lib],
+        inputs = ctx.files.data,
+        tools = [ctx.executable._build_script],
+        arguments = [ctx.files.depot_tools_dir[0].path, ctx.files.v8_src_dir[0].path, ctx.attr.build_config, ctx.outputs.lib.path],
+        progress_message = "Building V8",
+        executable = ctx.executable._build_script,
+        execution_requirements = {"no-sandbox": "1"},
+    )
 
-  native.cc_library(
-    name=name + "_" + package_name,
-    includes=[package_dir + "/include"],
-    hdrs=native.glob([package_dir + "/include/**/*.h"]),
-    srcs=native.glob([package_dir + "/lib/**"]),
-    linkopts = select({
-        "@bazel_tools//src/conditions:windows": [
-            "/DEFAULTLIB:dbghelp.lib",
-            "/DEFAULTLIB:winmm.lib"
-        ],
-        "//conditions:default": [],
-    }),
-    defines = [
-      "V8_COMPRESS_POINTERS",
-    ] + select({
-          "@bazel_tools//src/conditions:windows": ["_ITERATOR_DEBUG_LEVEL=0",],
-          "//conditions:default": [],
-    }),
-  )
+    return [
+        DefaultInfo(
+            files = depset([ctx.outputs.lib]),
+        ),
+    ]
 
-
-def v8_library(name, visibility):
-  def_v8_library_config(name, "win-debug-x64-msvc")
-  def_v8_library_config(name, "win-release-x64-msvc") 
-  native.alias(
-    name=name + "_win",
-    actual=select({
-      ":dbg_mode": name + "_win-debug-x64-msvc",
-      "//conditions:default": name + "_win-release-x64-msvc",
-    }),
-    visibility=visibility,
-  )
-
-  def_v8_library_config(name, "linux-debug-x64-clang")
-  def_v8_library_config(name, "linux-release-x64-clang")
-  native.alias(
-    name=name + "_linux",
-    actual=select({
-      ":dbg_mode": name + "_linux-debug-x64-clang",
-      "//conditions:default": name + "_linux-release-x64-clang",
-    }),
-    visibility=visibility,
-  )
-
-  native.alias(
-    name=name,
-    actual=select({
-      "@bazel_tools//src/conditions:windows": name + "_win",
-      "//conditions:default": name + "_linux",
-    }),
-    visibility=visibility,
-  )
+v8_library = rule(
+    implementation = _v8_library_impl,
+    attrs = {
+        "_build_script": attr.label(
+            default = "@reify//third_party/v8:build_linux.sh",
+            allow_single_file = True,
+            executable = True,
+            cfg = "exec",
+        ),
+        "data": attr.label_list(
+            mandatory = True,
+        ),
+        "depot_tools_dir": attr.label(mandatory = True, allow_single_file = True),
+        "v8_src_dir": attr.label(mandatory = True, allow_single_file = True),
+        "build_config": attr.string(mandatory = True),
+        "os": attr.string(mandatory = True),
+    },
+    outputs = {
+        "lib": "libv8_monolith.a",
+    },
+)
