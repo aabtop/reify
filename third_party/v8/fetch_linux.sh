@@ -7,9 +7,9 @@ V8_BRANCH=${3}
 V8_SRC_DIR=${V8_GCLIENT_DIR}/v8
 
 # These can be convenient for debuggin the fetching process
-ln -s /v8/depot_tools ${DEPOT_TOOLS_DIR}
-ln -s /v8/v8 ${V8_GCLIENT_DIR}
-exit 0
+#ln -s /v8/depot_tools ${DEPOT_TOOLS_DIR}
+#ln -s /v8/v8 ${V8_GCLIENT_DIR}
+#exit 0
 
 if [ ! -d ${DEPOT_TOOLS_DIR} ]; then (
   git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git ${DEPOT_TOOLS_DIR}
