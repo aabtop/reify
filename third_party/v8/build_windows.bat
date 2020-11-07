@@ -39,8 +39,6 @@ IF NOT EXIST "%OUT_DIR%" (
     echo is_official_build = true
   ) >> %OUT_DIR%\args.gn
 
-  cd %V8_SRC_DIR%
-
   SET "PATH=%DEPOT_TOOLS_DIR%;%PATH%"
 
   REM DEPOT_TOOLS_WIN_TOOLCHAIN needs to be set before we `gclient sync` V8, or
@@ -49,6 +47,12 @@ IF NOT EXIST "%OUT_DIR%" (
   SET DEPOT_TOOLS_WIN_TOOLCHAIN=0
 
   SET DEPOT_TOOLS_UPDATE=0
+
+  REM This is supposed to be done when `gclient sync` is called and the runhooks
+  REM are called, but that seems to not always happen :(.
+  cd %V8_SRC_DIR%\build\util
+  CALL python lastchange.py -o LASTCHANGE
+  cd %V8_SRC_DIR%
 
   echo Running "gn gen %OUT_DIR%"...
   CALL gn gen %OUT_DIR%

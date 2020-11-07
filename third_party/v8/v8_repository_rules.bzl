@@ -9,6 +9,7 @@ def _fetch_v8_impl(repository_ctx):
 
     result = repository_ctx.execute(
         [fetch_script, depot_tools_subdir, v8_subdir, repository_ctx.attr.branch],
+        timeout=1500,
     )
     if result.return_code:
         print(result.stdout)
