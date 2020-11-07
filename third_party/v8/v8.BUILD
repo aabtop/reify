@@ -7,7 +7,7 @@ filegroup(
 
 filegroup(
     name = "v8_src_files",
-    srcs = glob(["v8/v8/**"]),
+    srcs = glob(["v8/v8/**"], exclude = ["v8/v8/tools/swarming_client/example/**"]),
 )
 
 config_setting(
@@ -22,6 +22,10 @@ v8_library(
     build_config = select({
         ":dbg_mode": "debug",
         "//conditions:default": "release",
+    }),
+    build_script = select({
+        "@bazel_tools//src/conditions:windows": "@reify//third_party/v8:build_windows.bat",
+        "//conditions:default": "@reify//third_party/v8:build_linux.sh",
     }),
     data = [
         ":depot_tools_files",
@@ -44,4 +48,17 @@ cc_library(
     includes = ["v8/v8/include"],
     linkstatic = 1,
     visibility = ["//visibility:public"],
+    linkopts = select({
+        "@bazel_tools//src/conditions:windows": [
+            "/DEFAULTLIB:dbghelp.lib",
+            "/DEFAULTLIB:winmm.lib"
+        ],
+        "//conditions:default": [],
+    }),
+    defines = [
+      "V8_COMPRESS_POINTERS",
+    ] + select({
+          "@bazel_tools//src/conditions:windows": ["_ITERATOR_DEBUG_LEVEL=0",],
+          "//conditions:default": [],
+    }),
 )

@@ -2,8 +2,13 @@ def _fetch_v8_impl(repository_ctx):
     depot_tools_subdir = "depot_tools"
     v8_subdir = "v8"
 
+    if "windows" in repository_ctx.os.name:
+        fetch_script = repository_ctx.path(repository_ctx.attr._fetch_windows)
+    else:
+        fetch_script = repository_ctx.path(repository_ctx.attr._fetch_linux)
+
     result = repository_ctx.execute(
-        [repository_ctx.path(repository_ctx.attr._fetch_script), depot_tools_subdir, v8_subdir, repository_ctx.attr.branch],
+        [fetch_script, depot_tools_subdir, v8_subdir, repository_ctx.attr.branch],
     )
     if result.return_code:
         print(result.stdout)
@@ -19,7 +24,8 @@ fetch_v8 = repository_rule(
     implementation = _fetch_v8_impl,
     attrs = {
         "branch": attr.string(mandatory = True, doc = "The tag or branch of the V8 repository to clone."),
-        "_fetch_script": attr.label(default = "@reify//:third_party/v8/fetch_linux.sh"),
+        "_fetch_linux": attr.label(default = "@reify//:third_party/v8/fetch_linux.sh"),
+        "_fetch_windows": attr.label(default = "@reify//:third_party/v8/fetch_windows.bat"),
         "_build_template": attr.label(default = "@reify//third_party/v8:v8.BUILD"),
     },
 )

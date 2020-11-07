@@ -27,7 +27,7 @@ def _vcpkg_impl(repository_ctx):
     triplet_os = "linux"
 
   repository_ctx.report_progress("Calling vcpkg install...")
-  print("execute: " + str(["vcpkg/vcpkg", "install"] + [x + ":x64-{os}".format(os=triplet_os) for x in repository_ctx.attr.packages]))
+
   result = repository_ctx.execute(
     ["vcpkg/vcpkg", "install"] + [x + ":x64-{os}".format(os=triplet_os) for x in repository_ctx.attr.packages],
   )
