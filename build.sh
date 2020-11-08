@@ -9,7 +9,7 @@ DOCKERFILE_DIRECTORY=${THIS_SCRIPT_LOCATION}/dockerdev/linux
 # Make sure the host output directory exists.
 mkdir -p $HOST_OUT_DIR
 
-RUN_COMMAND="/src/src/build_in_docker.sh"
+RUN_COMMAND="/src/dockerdev/linux/build_in_docker.sh"
 
 # Enable the user to override some default settings via command line parameters.
 while getopts r: option
