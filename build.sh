@@ -3,8 +3,8 @@
 THIS_SCRIPT_LOCATION="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 HOST_SRC_DIR=${THIS_SCRIPT_LOCATION}
-HOST_OUT_DIR=${THIS_SCRIPT_LOCATION}/docker_out
-DOCKERFILE_DIRECTORY=${THIS_SCRIPT_LOCATION}
+HOST_OUT_DIR=${THIS_SCRIPT_LOCATION}/docker_out_linux
+DOCKERFILE_DIRECTORY=${THIS_SCRIPT_LOCATION}/dockerdev/linux
 
 # Make sure the host output directory exists.
 mkdir -p $HOST_OUT_DIR
@@ -35,6 +35,6 @@ docker run \
     -it \
     --mount type=bind,source=${HOST_SRC_DIR},target=/src,readonly \
     --mount type=bind,source=${HOST_OUT_DIR},target=/out \
-    --mount type=volume,source=nix,target=/nix \
+    --mount type=volume,source=reify-bazel-cache-linux,target=/root/.cache/bazel \
     reify-build-env \
     ${RUN_COMMAND}
