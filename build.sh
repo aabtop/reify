@@ -1,13 +1,15 @@
 #!/bin/bash
+set -euo pipefail
 
 THIS_SCRIPT_LOCATION="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 HOST_SRC_DIR=${THIS_SCRIPT_LOCATION}
-HOST_OUT_DIR=${THIS_SCRIPT_LOCATION}/docker_out_linux
+HOST_OUT_DIR=${1}
 DOCKERFILE_DIRECTORY=${THIS_SCRIPT_LOCATION}/dockerdev/linux
 
 # Make sure the host output directory exists.
-mkdir -p $HOST_OUT_DIR
+mkdir -p ${HOST_OUT_DIR}
+HOST_OUT_DIR=$(realpath ${HOST_OUT_DIR})
 
 RUN_COMMAND="/src/dockerdev/linux/build_in_docker.sh"
 
@@ -28,12 +30,14 @@ fi
 
 # Make sure the Docker container image containing the build environment is
 # up to date and then run the actual build command inside the container.
-docker build -t reify-build-env ${DOCKERFILE_DIRECTORY} && \
+docker build -t reify-build-env ${DOCKERFILE_DIRECTORY}
+
+echo "Entering container..."
+
 docker run \
     --rm \
     --name reify-build-env-instance \
-    -it \
-    --mount type=bind,source=${HOST_SRC_DIR},target=/src,readonly \
+    --mount type=bind,source=${HOST_SRC_DIR},target=/src \
     --mount type=bind,source=${HOST_OUT_DIR},target=/out \
     --mount type=volume,source=reify-bazel-cache-linux,target=/root/.cache/bazel \
     reify-build-env \

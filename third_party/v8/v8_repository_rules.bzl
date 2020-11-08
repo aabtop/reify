@@ -16,9 +16,19 @@ def _fetch_v8_impl(repository_ctx):
         print(result.stderr)
         fail("Error fetching V8 repository")
 
+    if "BAZEL_VC" in repository_ctx.os.environ:
+        bazel_vc = repository_ctx.os.environ["BAZEL_VC"]
+    else:
+        bazel_vc = ""
+
     repository_ctx.template(
         "BUILD",
         repository_ctx.attr._build_template,
+        substitutions={
+            "{depot_tools_subdir}": depot_tools_subdir,
+            "{v8_subdir}": v8_subdir,
+            "{bazel_vc}": bazel_vc,
+        },
     )
 
 fetch_v8 = repository_rule(

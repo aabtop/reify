@@ -48,6 +48,11 @@ IF NOT EXIST "%OUT_DIR%" (
 
   SET DEPOT_TOOLS_UPDATE=0
 
+  REM V8's GN setup enables overriding of the default MSVC path by setting the
+  REM environment variable GYP_MSVS_OVERRIDE_PATH, so we do that here if
+  REM %BAZEL_VC% is set in order to forward it on to GN.
+  IF DEFINED BAZEL_VC SET GYP_MSVS_OVERRIDE_PATH=%BAZEL_VC%\..
+
   REM This is supposed to be done when `gclient sync` is called and the runhooks
   REM are called, but that seems to not always happen :(.
   cd %V8_SRC_DIR%\build\util

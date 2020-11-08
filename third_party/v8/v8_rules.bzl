@@ -6,6 +6,10 @@ def _v8_library_impl(ctx):
             "ProgramFiles(x86)": "C:\\Program Files (x86)",
             "WINDIR": "C:\\Windows",
         })
+        if ctx.attr.bazel_vc != "":
+            build_script_env.update({
+                "BAZEL_VC": ctx.attr.bazel_vc,
+            })
     else:
         output_filenames = ["libv8_monolith.a"]
         build_script_env = {}
@@ -44,5 +48,6 @@ v8_library = rule(
         "v8_src_dir": attr.label(mandatory = True, allow_single_file = True),
         "build_config": attr.string(mandatory = True),
         "os": attr.string(mandatory = True),
+        "bazel_vc": attr.string(),
     },
 )

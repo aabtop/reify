@@ -4,15 +4,30 @@ LABEL description="Environment for building the project in Windows."
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
+
+# Specifically install Windows SDK version 10.0.19041.0, for the Windows that's what V8 needs.
+RUN (New-Object Net.WebClient).DownloadFile('https://download.microsoft.com/download/1/c/3/1c3d5161-d9e9-4e4b-9b43-b70fe8be268c/windowssdk/winsdksetup.exe', 'winsdksetup.exe')
+RUN $p = Start-Process -Wait -PassThru -FilePath 'winsdksetup.exe' -ArgumentList '/features OptionId.WindowsDesktopDebuggers OptionId.DesktopCPPx86 OptionId.DesktopCPPx64 /Quiet /NoRestart /Ceip on'; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { throw ('winsdksetup.exe install failed with exit code 0x{0:x}' -f $ret) }
+
+# Download the Build Tools bootstrapper.  We install it to C:\2019\BuildTools
+# instead of the default directory because the base image already has a few
+# things installed in the default directory, and that really messes with the
+# installer :(.  We just steer clear of that.  We also need to ensure that
+# "2019" appears in the path, or else Bazel doesn't look for 2019 paths.
+RUN Invoke-WebRequest -UserAgent 'DockerCI' -outfile vs_buildtools.exe https://aka.ms/vs/16/release/vs_buildtools.exe
+RUN $p = Start-Process -Wait -PassThru -FilePath '.\vs_buildtools.exe' -ArgumentList ' \
+  --quiet --wait --norestart --nocache \
+  --add Microsoft.Component.MSBuild \
+  --add Microsoft.VisualStudio.Workload.VCTools \
+  --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 \
+  --installPath=C:\2019\BuildTools \
+  '; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { throw ('winsdksetup.exe install failed with exit code 0x{0:x}' -f $ret) }
+ENV BAZEL_VC=C:/2019/BuildTools/VC
+
 # Install Chocolatey
 RUN iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
-# This is a big one, be careful when it gets rebuilt, it can take 15 minutes.
-RUN choco install -y visualstudio2019-workload-vctools
-
 RUN choco install -y python3
-RUN choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
-
 
 # Install MSYS2 and ensure that we have MSYS2's bin directory in our path,
 # this is required for proper Bazel setup.  Some of this setup code is taken
@@ -42,11 +57,10 @@ RUN pacman --noconfirm -S zip unzip patch diffutils git gcc python python3
 # rules_haskell doesn't currently support beyond this version of Bazel.
 RUN choco install -y bazel --version 3.3.1
 
-# Enable long file path support, required by Bazel.
+# Enable long file path support.  This actually doesn't do anything for the
+# container because a restart is required, however it's good for documentation
+# at least if you're setting up your host environment.  We work around it in
+# the container by setting the Bazel --output_user_root=C:/_bzl command line
+# parameter.
 RUN Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Value 1
 
-# V8
-
-# Specifically install Windows SDK version 10.0.19041.0, for the Windows that's what V8 needs.
-RUN (New-Object Net.WebClient).DownloadFile('https://download.microsoft.com/download/1/c/3/1c3d5161-d9e9-4e4b-9b43-b70fe8be268c/windowssdk/winsdksetup.exe', 'winsdksetup.exe')
-RUN $p = Start-Process -Wait -PassThru -FilePath 'winsdksetup.exe' -ArgumentList '/features OptionId.WindowsDesktopDebuggers OptionId.DesktopCPPx86 OptionId.DesktopCPPx64 /Quiet /NoRestart /Ceip on'; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { throw ('winsdksetup.exe install failed with exit code 0x{0:x}' -f $ret) }

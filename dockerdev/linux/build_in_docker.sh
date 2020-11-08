@@ -1,6 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "In container, building..."
+
+export BUILD_CONFIG=opt
+
 cd /src
 
 cd projects/hypo
-bazel build //:hypo -c opt --symlink_prefix=/
+bazel build //:hypo -c $BUILD_CONFIG --symlink_prefix=/bazel- --verbose_failures
 
-cp bazel-bin/hypo /out
+# Strip symbols from the output executable and place the results in the
+# output directory.
+strip -s /bazel-bin/hypo -o /out/hypo

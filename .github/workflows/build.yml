@@ -1,0 +1,27 @@
+name: Build
+
+on: [push]
+
+jobs:
+  build:
+    name: Build
+    strategy:
+      matrix:
+        os: [ubuntu, windows]
+        include:
+          - os: ubuntu
+            runs-on: ubuntu-20.04
+            build-script: ./build.sh
+          - os: windows
+            runs-on: windows-2019
+            build-script: ./build.bat
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: ${{ matrix.build-script }} hypo_out_${{ matrix.os }}_x64
+      - name: Archive resulting executable
+        uses: actions/upload-artifact@v2
+        with:
+          name: hypo-${{ matrix.os }}-x64
+          path: hypo_out_${{ matrix.os }}_x64

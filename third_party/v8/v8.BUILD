@@ -2,12 +2,12 @@ load("@reify//third_party/v8:v8_rules.bzl", "v8_library")
 
 filegroup(
     name = "depot_tools_files",
-    srcs = glob(["depot_tools/**"]),
+    srcs = glob(["{depot_tools_subdir}/**"]),
 )
 
 filegroup(
     name = "v8_src_files",
-    srcs = glob(["v8/v8/**"], exclude = ["v8/v8/tools/swarming_client/example/**"]),
+    srcs = glob(["{v8_subdir}/v8/**"], exclude = ["v8/v8/tools/swarming_client/example/**"]),
 )
 
 config_setting(
@@ -31,12 +31,13 @@ v8_library(
         ":depot_tools_files",
         ":v8_src_files",
     ],
-    depot_tools_dir = "depot_tools",
+    depot_tools_dir = "{depot_tools_subdir}",
     os = select({
         "@bazel_tools//src/conditions:windows": "windows",
         "//conditions:default": "linux",
     }),
-    v8_src_dir = "v8/v8",
+    v8_src_dir = "{v8_subdir}/v8",
+    bazel_vc = "{bazel_vc}",
 )
 
 cc_library(
@@ -44,8 +45,8 @@ cc_library(
     srcs = [
         ":v8_lib_files",
     ],
-    hdrs = glob(["v8/v8/include/**"]),
-    includes = ["v8/v8/include"],
+    hdrs = glob(["{v8_subdir}/v8/include/**"]),
+    includes = ["{v8_subdir}/v8/include"],
     linkstatic = 1,
     visibility = ["//visibility:public"],
     linkopts = select({
