@@ -5,23 +5,23 @@
       "name": "Launch Main",
       "type": "cppdbg",
       "request": "launch",
-      "program": "/cmake_out/hypo",
+      "program": "${workspaceFolder}/projects/hypo/bazel-bin/hypo",
       "args": [
-        "projects/hypo/src/playground_workspace/example_scripts/multifile.ts",
+        "build",
+        "${workspaceFolder}/projects/hypo/src/playground_workspace/example_scripts/multifile.ts",
         "Main",
         "foo",
         "-r",
-        "projects/hypo/src/playground_workspace"
+        "${workspaceFolder}/projects/hypo/src/playground_workspace"
       ],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
-      "environment": [],
-      "externalConsole": false,
+      "cwd": "${workspaceFolder}/projects/hypo",
+      "preLaunchTask": "build",
       "MIMode": "gdb",
       "setupCommands": [
         {
           "description": "Test",
-          "text": "python import sys;sys.path.insert(0, '/usr/share/gcc-8/python');from libstdcxx.v6.printers import register_libstdcxx_printers;register_libstdcxx_printers(None)",
+          "text": "python import sys;sys.path.insert(0, '/usr/share/gcc-10/python');from libstdcxx.v6.printers import register_libstdcxx_printers;register_libstdcxx_printers(None)",
           "ignoreFailures": false
         },
         {
@@ -30,7 +30,7 @@
           "ignoreFailures": false
         }
       ],
-      "preLaunchTask": "build"
+      "externalConsole": false
     }
   ]
 }
