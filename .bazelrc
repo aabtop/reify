@@ -1,9 +1,16 @@
 build --enable_platform_specific_config
 
+# A few timeouts have been experienced when building over CI.
+build --experimental_scale_timeouts=2.0
+
 build:windows --cxxopt=/std:c++17
 build:windows --features=static_link_msvcrt
 
 build:windows --host_crosstool_top=@rules_haskell_ghc_windows_amd64//:cc_toolchain
 
 build:linux --cxxopt=-std=c++17
-#build --host_cxxopt=-std=c++17
+#build:linux --incompatible_linkopts_to_linklibs
+build:linux --linkopt=-pthread
+build:linux --action_env=BAZEL_LINKLIBS=-l%:libstdc++.a:-lm:-ldl
+build:linux --action_env=BAZEL_LINKOPTS=-static-libgcc
+build:linux --repo_env=CC=clang

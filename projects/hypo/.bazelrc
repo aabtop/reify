@@ -1,5 +1,8 @@
 build --enable_platform_specific_config
 
+# A few timeouts have been experienced when building over CI.
+build --experimental_scale_timeouts=2.0
+
 build:windows --cxxopt=/std:c++17
 build:windows --features=static_link_msvcrt
 
