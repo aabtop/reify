@@ -6,11 +6,6 @@
     {
       "label": "build",
       "type": "shell",
-      // First open a nix-shell, which will ensure that the CMake project is
-      // built.  Then we rsync the CMake project using checkums and *not*
-      // preserving timestamps (because nix store files have no time stamps)
-      // into a known directory (/src) from which we then setup a standard cmake
-      // out folder at /cmake_out where we do the build.
       "command": "cd projects/hypo && bazel build //:hypo -c dbg",
       "problemMatcher": [
         "$gcc"

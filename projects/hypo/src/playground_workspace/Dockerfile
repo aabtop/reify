@@ -3,8 +3,7 @@ FROM ubuntu:20.04
 
 LABEL description="Playground for building Hypo projects."
 
-# Install some basic tools to enable us to get nix installed.
-#RUN apt-get update --fix-missing && apt-get -y install \
+# Install some basic development tools.
 RUN apt-get update --fix-missing && \
     DEBIAN_FRONTEND=noninteractive apt-get -y install \
         curl perl sudo locales bzip2 bash xz-utils git wget vim man jq npm \

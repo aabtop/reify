@@ -3,7 +3,7 @@ FROM ubuntu:20.04
 
 LABEL description="Linux development environment for building Reify."
 
-# Install some basic tools to enable us to get nix installed.
+# Install some basic development tools.
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update --fix-missing && apt-get -y install \
     curl perl sudo locales bzip2 bash xz-utils git wget vim man \

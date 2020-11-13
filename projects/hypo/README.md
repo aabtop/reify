@@ -51,6 +51,7 @@ export function Main() {
 When we call the hypo with a reference to the exported function `Main` via:
 
 ``` 
+
 hypo eyes.ts Main out
 ```
 
@@ -97,6 +98,7 @@ export function Main() {
 When we call the hypo with a reference to the exported function `Main` via:
 
 ``` 
+
 hypo spiral_beams.ts Main out
 ```
 
@@ -110,63 +112,53 @@ Other examples can be found in the [example_scripts](./src/example_scripts) dire
 
 ## Implementation Details
 
-The core interface types for Hypo are defined in [ReifyInputInterface.hs](./src/interface/ReifyInputInterface.hs).  In addition to the core types defined there, a pure-TypeScript layer of convenience functionality is provided as well in [hypo.ts](./src/interface/typescript/hypo.ts).
+The core interface types for Hypo are defined in
+[ReifyInputInterface.hs](./src/interface/ReifyInputInterface.hs).  In addition
+to the core types defined there, a pure-TypeScript layer of convenience
+functionality is provided as well in
+[hypo.ts](./src/interface/typescript/hypo.ts).
 
 ## Building
 
-### Nix
+### Bazel
 
-To build Reify, [Nix](https://nixos.org/nix/) is required.
-
-#### Installing Nix
-
-From [Getting Nix](https://nixos.org/download.html):
+To build Hypo, you will need [Bazel](https://bazel.build/).  Enter the directory
+that contains this readme file and type:
 
 ``` 
-curl -L https://nixos.org/nix/install | sh
+
+bazel build //:hypo
 ```
 
-In order to get a properly configured `PATH` , you may need to restart your shell or, as is suggested by the installer above, run:
+Note that there are some prerequisites for setting up your environment.  The
+best source of truth for what that is are the Dockerfiles:
 
-``` 
-. /home/${USER}/.nix-profile/etc/profile.
-```
+ * [Linux Dev Environment Dockerfile](/dockerdev/linux/Dockerfile)
+ * [Windows Dev Environment Dockerfile](/dockerdev/linux/Dockerfile)
 
-If you get an error about `nixpkgs` not being installed when you run `nix-build` , run:
-
-``` 
-nix-channel --update nixpkgs
-```
-
-and try running `nix-build` again.
-
-#### Building with Nix
-
-After Nix is installed, you can build Hypo with (assuming you are at the root of the Reify repository, of which Hypo is a subdirectory of):
-
-``` 
-nix-build projects/hypo/src
-```
-
-The resulting hypo executable will be located at the path `result/bin/hypo` , in the Reify repository's root where you ran `nix-build` .
+Once built, you can find the binary at `bazel-bin/hypo` and run it directly, or
+you can run it through Bazel with `bazel run //:hypo -- ...` .
 
 ### Build with Docker
 
-If you have Docker installed, you can build entirely within a container without installing anything else (e.g. you don't need to install Nix).  To do this, enter the Reify repository's (e.g. the git repository that contains Hypo) root directory and type:
+If you have Docker installed, you can build entirely within a container without
+installing anything else (e.g. you don't need to install Bazel).  To do this, 
+call:
 
-``` 
-./build.sh
-```
+ * Linux: [build.sh](/build.sh)
+ * Windows: [build.bat](/build.bat)
 
-The resulting binary will have the path `docker_out/hypo` from the Reify repository's root.
+And pass in an output directory as a parameter.  These are the scripts that CI
+calls.
 
-### Building for Windows
+### CI
 
-While currently building only Linux binaries is supported, there are future
-plans to enable native Windows builds as well.  In essence, Nix is only *really* needed for generating the Reify CMake project.  After that is generated, we
-have a standard CMake project.  So a Windows build script would likely involve
-running the Reify project generation build through Nix in a [Docker for Desktop on Windows](https://www.docker.com/products/docker-desktop) container, and then building the resulting CMake project together with the Hypo CMake project.
+GitHub Actions are configured to run each push.  If a tag is uploaded that
+whose name begins with `v` , a draft release is automatically created with
+artifacts associated with it.  You can find this configuration at
+[/.github/workflows/build.yml](/.github/workflows/build.yml).
 
 ## Licensing
 
-Note that Hypo, unlike Reify, is licensed under the GPL.  This is because it depends on [CGAL](https://www.cgal.org/) which is licensed under the GPL.
+Note that Hypo, unlike Reify, is licensed under the GPL.  This is because it
+depends on [CGAL](https://www.cgal.org/) which is licensed under the GPL.

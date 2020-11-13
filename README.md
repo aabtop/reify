@@ -14,7 +14,7 @@ value output of the function calls as runtime-independent C++ objects, and then 
 
 ## Example Usage
 
-A great example of Reify usage can be seen in the [Hypo project](https://github.com/aabtop/reify/tree/master/projects/hypo), which generates 2D and 3D geometry data files (e.g. it supports [SVG](https://en.wikipedia.org/wiki/Scalable_Vector_Graphics) for 2D output and [STL](https://en.wikipedia.org/wiki/STL_(file_format)) for 3D output) when given TypeScript that describes the geometry. As an example, the file [eyes.ts](./projects/hypo/src/example_scripts/eyes.ts) generates the following SVG output:
+A great example of Reify usage can be seen in the [Hypo project](https://github.com/aabtop/reify/tree/master/projects/hypo), which generates 2D and 3D geometry data files (e.g. it supports [SVG](https://en.wikipedia.org/wiki/Scalable_Vector_Graphics) for 2D output and [STL](https://en.wikipedia.org/wiki/STL_(file_format)) for 3D output) when given TypeScript that describes the geometry. As an example, the file [eyes.ts](./projects/hypo/src/playground_workspace/example_scripts/eyes.ts) generates the following SVG output:
 
 ![Output of eyes.ts](./projects/hypo/readme_assets/eyes.svg)
 
@@ -25,6 +25,7 @@ Hypo's interaction with the Reify-generated static library is entirely confined 
 ## Implementation Details
 
 ### TypeScript/JavaScript Environment
+
 Reify internally uses the [V8 engine](https://v8.dev/) (the JavaScript engine which powers Chrome) to execute the compiled TypeScript.  The TypeScript compiler is written in TypeScript itself, and so the compiled-to-JavaScript TypeScript compiler is embedded within the C++ static library and executed through V8.
 
 ### Data Representation
@@ -37,13 +38,10 @@ The interface types are defined in Haskell, and the system for performing this
 generation can be found at [src/idt](src/idt). The
 subproject is called "IDT" which refers to "Interface Description Tree", expressing the preference to describe the interface's abstract syntax tree directly as opposed to using a specialized [IDL](https://en.wikipedia.org/wiki/Interface_description_language) language.  By describing the types directly in a first-class programming language, we are able to be more expressive, for example we can leverage Haskell's existing module system to create a modular definition of the interface types.
 
-While only used by Reify at the time of this writing, IDT is meant to be
-independent from Reify, though I don't think that's currently reflected in the codebase :(. The folder [src/interface](src/interface) contains the Reify-specific code that interacts with IDT.
-
 The source IDT file (e.g. [from hypo](./projects/hypo/src/interface/ReifyInputInterface.hs)) is used to generate three target interfaces:
 
-1. The TypeScript interface, defined by [TargetTypeScript.hs](src/idt/src/TargetTypeScript.hs).
-1. The C++ V8 bindings layer, defined by [TargetCppV8.hs](src/idt/src/TargetCppV8.hs).
+1. The TypeScript interface, defined by [TargetTypeScript.hs](src/idt/src/targets/typescript/TargetTypeScript.hs).
+1. The C++ V8 bindings layer, defined by [TargetCppV8.hs](src/idt/src/targets/typescript_in_cpp_via_v8/TargetCppV8.hs).
 1. The pure C++ interface, defined by [TargetCppImmutableRefCounted.hs](src/idt/src/targets/pure_cpp/TargetCppImmutableRefCounted.hs).
 
 Note that the interfaces described by the IDT are very abstract.  They can be used to generate C++ and TypeScript interfaces, but they may also be used to generate other backend targets, such as JSON and binary representations.
@@ -52,65 +50,11 @@ As a bonus, a description of the IDT types themselves can be defined by IDT, as 
 
 ## Development environment
 
-The root [Dockerfile](Dockerfile) in this repository defines the basic Linux development environment setup, and so the project can always be built from within that container.  Outside of that though, all you need to have installed is [Nix](https://nixos.org/nix/).  From [Getting Nix](https://nixos.org/download.html):
+The best source of truth for what that is are the Dockerfiles:
 
-``` 
-curl -L https://nixos.org/nix/install | sh
-```
+ * [Linux Dev Environment Dockerfile](/dockerdev/linux/Dockerfile)
+ * [Windows Dev Environment Dockerfile](/dockerdev/linux/Dockerfile)
 
-In order to get a properly configured `PATH`, you may need to restart or, as is suggested by the installer above, run:
-
-```
-. /home/${USER}/.nix-profile/etc/profile.
-```
-
-If you get an error about `nixpkgs` not being installed when you run `nix-build`, run:
-
-```
-nix-channel --update nixpkgs
-```
-
-and try running `nix-build` again.
-
-### Building the project
-
-Reify heavily depends on [Nix](https://nixos.org/nix/) for its high-level build
-process.  When Reify generates a project, it is output as a [CMake](https://cmake.org/) project tree.
-
-As a "library generator", Reify is ultimately defined by a Nix function whose
-input is the path to the interface description (for example [ReifyInputInterface.hs](./projects/hypo/src/interface/ReifyInputInterface.hs) in Hypo).  Thus, there is nothing to actually build until an interface description is provided, at which point a library can be generated and built.
-
-The primary Nix file which acts as the highest level Reify build function is defined in [src/nix/project.nix](project.nix), whose output is a directory tree that represents a CMake project which is the static library.  The generated CMake project can be built and referenced like any regular CMake project.
-
-For an example of how to interact with the Reify project generator, see [default.nix from the Hypo project](projects/hypo/src/default.nix) which calls the
-Reify function passing into it the Hypo interface.  It then sets up its own
-CMake project to refer to the generated Reify CMake project, and then builds that.
-
-Reify itself is a library generator so there is nothing to build until you give it an interface.  An example client however is the Hypo project which can be built with:
-
-``` 
-cd projects/hypo/src
-nix-build
-```
-
-after which the output binary `projects/hypo/src/result/bin/hypo` will have been produced.
-
-#### Build with Docker
-
-If you have Docker installed, you can build entirely within a container without installing anything else (e.g. you don't need to install Nix).  To do this, enter this repository's root directory and type:
-
-```
-./build.sh
-```
-
-The scripts are configured to build the Hypo project, so the resulting binary will have the path `docker_out/hypo` from the repository root directory.
-
-### Visual Studio Code
-
-A [.devcontainer.json](.devcontainer.json) file exists to let you open the project folder in Visual Studio Code and instantly start [developing inside a container](https://code.visualstudio.com/docs/remote/containers), without any environment setup.  The only pre-requisites for this are that you have Docker and VS Code installed.  This will not only enable you to instantly hit `CTRL+SHIFT+B` to build the project (it's currently configured to build Hypo), but GDB is configured within that environment so you can also set breakpoints and hit `F5` to start the debugger and step through the code.
-
-Additionally, it is verified to work well with [Visual Studio Codespaces](https://visualstudio.microsoft.com/services/visual-studio-codespaces/) (and presumably [GitHub Codespaces](https://github.com/features/codespaces/)), so you can develop Reify in the cloud!
-
-### Developing on/for Windows
-
-Reify depends heavily on Nix, but Nix is Linux-only. As a result, you cannot build Reify natively on Windows.  Hope is not lost though!  Using [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop), you can spin up a Linux development environment from the provided [Dockerfile](Dockerfile) and start running the usual Nix commands.  The resulting output of Reify is a CMake project source tree, and so once this is obtained it can be pulled out into a Windows environment and built there for Windows.
+Projects depend on Reify via the [Bazel](https://bazel.build/) build system. Bazel offers the ability
+to specify at build time which targets you would like generated, and how they
+should be parameterized.

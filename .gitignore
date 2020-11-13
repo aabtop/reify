@@ -7,16 +7,6 @@
 
 *.code-workspace
 
-# Ignore artifacts from nix-build.
-result
-src/result
-
-# Ignore cmake artifacts.
-cmake_out/
-
-# Ignore artifacts from the docker build scripts.
-docker_out/
-
 # Let's not take our installed dependencies with us!
 node_modules/
 dist/
