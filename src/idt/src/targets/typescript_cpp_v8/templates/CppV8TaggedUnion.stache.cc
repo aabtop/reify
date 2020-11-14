@@ -19,7 +19,7 @@ auto {{name}}::kind() -> Kind {
 
 }  // namespace {{namespace}}
 
-{{immRefCntNamespace}}::{{name}} Value(
+{{immRefCntNamespace}}::{{name}} Value<{{namespace}}::{{name}}>::Call(
     v8::Isolate* isolate, v8::Local<{{namespace}}::{{name}}> x) {
   switch (x->kind()) {
     default:
@@ -28,7 +28,8 @@ auto {{name}}::kind() -> Kind {
       assert(false);
 {{#unionMembers}}
     case {{namespace}}::{{name}}::Kind_{{__kind}}:
-      return Value(isolate, x.template As<{{{firstParam.type}}}>());
+      return Value<{{{firstParam.type}}}>::Call(
+          isolate, x.template As<{{{firstParam.type}}}>());
 {{/unionMembers}}
   }
 }

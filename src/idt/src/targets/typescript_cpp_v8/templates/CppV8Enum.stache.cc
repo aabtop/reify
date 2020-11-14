@@ -34,7 +34,7 @@ v8::MaybeLocal<{{{firstParam.type}}}> {{name}}::As{{__kind}}(
 
 }  // namespace {{namespace}}
 
-{{immRefCntNamespace}}::{{name}} Value(
+{{immRefCntNamespace}}::{{name}} Value<{{namespace}}::{{name}}>::Call(
     v8::Isolate* isolate, v8::Local<{{namespace}}::{{name}}> x) {
   switch (x->kind()) {
     default:
@@ -43,8 +43,8 @@ v8::MaybeLocal<{{{firstParam.type}}}> {{name}}::As{{__kind}}(
       assert(false);
 {{#unionMembers}}
     case {{namespace}}::{{name}}::Kind_{{__kind}}:
-      return Value(isolate, x->As{{__kind}}(isolate->GetCurrentContext())
-                .ToLocalChecked());
+      return Value<{{{firstParam.type}}}>::Call(
+          isolate, x->As{{__kind}}(isolate->GetCurrentContext())
+              .ToLocalChecked());
 {{/unionMembers}}
-  }
 }

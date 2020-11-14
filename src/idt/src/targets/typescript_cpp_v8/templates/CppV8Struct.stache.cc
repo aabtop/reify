@@ -15,11 +15,12 @@ v8::Local<{{{type}}}> {{name}}::{{memberName}}(v8::Local<v8::Context> context) {
 
 }  // {{namespace}}
 
-{{immRefCntNamespace}}::{{name}} Value(
+{{immRefCntNamespace}}::{{name}} Value<{{namespace}}::{{name}}>::Call(
     v8::Isolate* isolate, v8::Local<{{namespace}}::{{name}}> x) {
   return {{immRefCntNamespace}}::{{name}}({
   {{#members}}
-    /*.{{memberName}} = */Value(isolate, x->{{memberName}}(isolate->GetCurrentContext())),
+    /*.{{memberName}} = */Value<{{{type}}}>::Call(
+                              isolate, x->{{memberName}}(isolate->GetCurrentContext())),
   {{/members}}
   });
 }

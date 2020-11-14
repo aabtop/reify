@@ -23,10 +23,12 @@ class {{name}} : public I32 {
 
 }  // {{namespace}}
 
-inline {{immRefCntNamespace}}::{{name}} Value(
-    v8::Isolate* isolate, v8::Local<{{namespace}}::{{name}}> x) {
-  return x->Value();
-}
+template <>
+struct Value<{{namespace}}::{{name}}> {
+  static {{immRefCntNamespace}}::{{name}} Call(v8::Isolate* isolate, v8::Local<{{namespace}}::{{name}}> x) {
+    return x->Value();
+  }
+};
 template <>
 struct FromImmRefCnt<{{immRefCntNamespace}}::{{name}}> {
   using type = {{namespace}}::{{name}};

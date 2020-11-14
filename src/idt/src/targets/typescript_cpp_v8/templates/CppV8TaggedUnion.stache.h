@@ -27,8 +27,10 @@ class {{name}} : public v8::Object {
 
 }  // namespace {{namespace}}
 
-{{immRefCntNamespace}}::{{name}} Value(
-    v8::Isolate* isolate, v8::Local<{{namespace}}::{{name}}> x);
+template <>
+struct Value<{{namespace}}::{{name}}> {
+  static {{immRefCntNamespace}}::{{name}} Call(v8::Isolate* isolate, v8::Local<{{namespace}}::{{name}}> x);
+};
 template <>
 struct FromImmRefCnt<{{immRefCntNamespace}}::{{name}}> {
   using type = {{namespace}}::{{name}};

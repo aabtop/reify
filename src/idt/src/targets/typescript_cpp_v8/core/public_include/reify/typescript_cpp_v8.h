@@ -71,7 +71,7 @@ class Function<R()> {
       return *error;
     }
 
-    return reify_v8::Value(
+    return reify_v8::Value<typename reify_v8::FromImmRefCnt<R>::type>::Call(
         call_context.isolate,
         v8::Local<typename reify_v8::FromImmRefCnt<R>::type>::Cast(
             std::get<1>(result_or_error)));
