@@ -1,6 +1,5 @@
-#include "public_include/reify.h"
+#include "public_include/reify/typescript_cpp_v8.h"
 
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 class GenericFunction::Impl {
@@ -20,4 +19,3 @@ class GenericFunction::Impl {
 };
 
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE

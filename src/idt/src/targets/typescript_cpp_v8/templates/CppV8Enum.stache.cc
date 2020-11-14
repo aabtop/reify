@@ -2,6 +2,8 @@
 // clang-format off
 // }}
 
+namespace {{namespace}} {
+
 auto {{name}}::kind() -> Kind {
   std::string kind_value = internal::GetPropertyAsString(this, "__kind");
   if (false) {
@@ -30,15 +32,17 @@ v8::MaybeLocal<{{{firstParam.type}}}> {{name}}::As{{__kind}}(
 }
 {{/unionMembers}}
 
+}  // namespace {{namespace}}
+
 {{immRefCntNamespace}}::{{name}} Value(
-    v8::Isolate* isolate, v8::Local<{{name}}> x) {
+    v8::Isolate* isolate, v8::Local<{{namespace}}::{{name}}> x) {
   switch (x->kind()) {
     default:
       {{! // This lets us not only assert an impossibility, but fall through
           // to validly return something and avoid a compiler warning. }}
       assert(false);
 {{#unionMembers}}
-    case {{name}}::Kind_{{__kind}}:
+    case {{namespace}}::{{name}}::Kind_{{__kind}}:
       return Value(isolate, x->As{{__kind}}(isolate->GetCurrentContext())
                 .ToLocalChecked());
 {{/unionMembers}}

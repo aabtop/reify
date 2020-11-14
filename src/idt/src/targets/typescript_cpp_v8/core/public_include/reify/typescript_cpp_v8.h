@@ -1,5 +1,5 @@
-#ifndef _REIFY_REIFY_H_
-#define _REIFY_REIFY_H_
+#ifndef _REIFY_TYPESCRIPT_CPP_V8_H_
+#define _REIFY_TYPESCRIPT_CPP_V8_H_
 
 #include <cassert>
 #include <filesystem>
@@ -8,15 +8,14 @@
 #include <optional>
 #include <string_view>
 #include <unordered_map>
-
-#include "reify_cpp_v8_interface.h"
-#include "reify_generated_project_namespace.h"
+#include <variant>
 
 // We need to include V8 in this header file in order to translate project
 // interface template types into V8 template types.
 #include <v8.h>
 
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
+#include "public_include/reify/common_types.h"
+
 namespace reify {
 
 using RuntimeException = std::string;
@@ -72,9 +71,9 @@ class Function<R()> {
       return *error;
     }
 
-    return hypo_v8::Value(
+    return reify_v8::Value(
         call_context.isolate,
-        v8::Local<typename hypo_v8::FromImmRefCnt<R>::type>::Cast(
+        v8::Local<typename reify_v8::FromImmRefCnt<R>::type>::Cast(
             std::get<1>(result_or_error)));
   }
 
@@ -192,7 +191,7 @@ class CompiledModule {
 
     template <typename T>
     bool HasType() const {
-      return hypo_v8::TypeMatchesTypeScriptString<T>::Result(
+      return reify_v8::TypeMatchesTypeScriptString<T>::Result(
           typescript_type_string);
     }
   };
@@ -232,6 +231,11 @@ class CompilerEnvironment {
     kNoSnapshot,
   };
 
+  struct InputModule {
+    std::string_view path;
+    std::string_view content;
+  };
+
   CompilerEnvironment(
       VirtualFilesystem* virtual_filesystem,
       SnapshotOptions snapshot_options = SnapshotOptions::kNoSnapshot);
@@ -240,7 +244,8 @@ class CompilerEnvironment {
   ~CompilerEnvironment();
 
   std::variant<CompileError, std::shared_ptr<CompiledModule>> Compile(
-      std::string_view virtual_absolute_path);
+      std::string_view virtual_absolute_path,
+      const std::vector<InputModule>& initial_modules);
 
   // Creates a directory at the specified path containing the root of a
   // TypeScript project setup to recognize the Reify types.  For example,
@@ -248,7 +253,8 @@ class CompilerEnvironment {
   // the `.d.ts` TypeScript declaration files.
   // Returns true on success and false on failure.
   static bool CreateWorkspaceDirectory(
-      const std::filesystem::path& out_dir_path);
+      const std::filesystem::path& out_dir_path,
+      const std::vector<InputModule>& initial_modules);
 
  private:
   class Impl;
@@ -256,26 +262,22 @@ class CompilerEnvironment {
 };
 
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE
 
-#define WITH_V8_(x) x##_v8
-#define WITH_V8(x) WITH_V8_(x)
-
-namespace WITH_V8(REIFY_GENERATED_PROJECT_NAMESPACE) {
-  template <typename R>
-  struct TypeMatchesTypeScriptString<
-      REIFY_GENERATED_PROJECT_NAMESPACE::reify::Function<R()>> {
-    static bool Result(std::string_view ts) {
-      const std::string_view kParameterlessSignature("() => ");
-      if (ts.substr(0, kParameterlessSignature.size()) !=
-          kParameterlessSignature) {
-        return false;
-      }
-      std::string_view return_value(ts);
-      return_value.remove_prefix(kParameterlessSignature.size());
-      return hypo_v8::TypeMatchesTypeScriptString<R>::Result(return_value);
+namespace reify_v8 {
+template <typename R>
+struct TypeMatchesTypeScriptString<reify::Function<R()>> {
+  static bool Result(std::string_view ts) {
+    const std::string_view kParameterlessSignature("() => ");
+    if (ts.substr(0, kParameterlessSignature.size()) !=
+        kParameterlessSignature) {
+      return false;
     }
-  };
-}  // namespace )
+    std::string_view return_value(ts);
+    return_value.remove_prefix(kParameterlessSignature.size());
+    return reify_v8::TypeMatchesTypeScriptString<R>::Result(return_value);
+  }
+};
 
-#endif  // _REIFY_REIFY_H_
+}  // namespace reify_v8
+
+#endif  // _REIFY_TYPESCRIPT_CPP_V8_H_

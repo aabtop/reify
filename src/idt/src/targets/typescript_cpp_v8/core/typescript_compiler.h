@@ -9,9 +9,8 @@
 #include <vector>
 
 #include "global_initialization.h"
-#include "public_include/reify.h"
+#include "public_include/reify/typescript_cpp_v8.h"
 
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 class TypeScriptCompiler {
@@ -30,10 +29,7 @@ class TypeScriptCompiler {
     std::string content;
   };
 
-  struct InputModule {
-    std::string_view path;
-    std::string_view content;
-  };
+  using InputModule = CompilerEnvironment::InputModule;
 
   struct CompileOptions {
     std::vector<InputModule> system_modules;
@@ -88,6 +84,5 @@ class TypeScriptCompiler {
 };
 
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE
 
 #endif  // TYPESCRIPT_COMPILER_TYPESCRIPT_COMPILER_H_

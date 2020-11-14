@@ -6,7 +6,6 @@
 #include <cassert>
 #include <memory>
 
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 namespace {
@@ -50,4 +49,3 @@ GlobalV8InitializationEnsurer::~GlobalV8InitializationEnsurer() {
 }
 
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE

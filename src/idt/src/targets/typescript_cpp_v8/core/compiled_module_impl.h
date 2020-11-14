@@ -1,10 +1,9 @@
 #ifndef _REIFY_COMPILED_MODULE_IMPL_H_
 #define _REIFY_COMPILED_MODULE_IMPL_H_
 
-#include "public_include/reify.h"
+#include "public_include/reify/typescript_cpp_v8.h"
 #include "typescript_compiler.h"
 
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 class CompiledModule::Impl {
@@ -21,6 +20,5 @@ class CompiledModule::Impl {
 };
 
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE
 
 #endif  // _REIFY_COMPILED_MODULE_IMPL_H_

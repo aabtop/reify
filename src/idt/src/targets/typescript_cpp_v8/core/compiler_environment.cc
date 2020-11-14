@@ -3,27 +3,9 @@
 #include <string_view>
 
 #include "compiled_module_impl.h"
-#include "public_include/reify.h"
+#include "public_include/reify/typescript_cpp_v8.h"
 #include "typescript_compiler.h"
 
-#define xstr(s) str(s)
-#define str(s) #s
-
-namespace {
-#include "src_gen/lib_ts.h"
-#include "src_gen/reify_generated_interface_ts.h"
-}  // namespace
-
-#define TS_LIB_TS_FROM_NAMESPACE2(x) x##_ts
-#define TS_LIB_TS_FROM_NAMESPACE(x) TS_LIB_TS_FROM_NAMESPACE2(x)
-#define TS_LIB_TS_LEN_FROM_NAMESPACE2(x) x##_ts_len
-#define TS_LIB_TS_LEN_FROM_NAMESPACE(x) TS_LIB_TS_LEN_FROM_NAMESPACE2(x)
-
-#define TS_LIB_TS TS_LIB_TS_FROM_NAMESPACE(REIFY_GENERATED_PROJECT_NAMESPACE)
-#define TS_LIB_TS_LEN \
-  TS_LIB_TS_LEN_FROM_NAMESPACE(REIFY_GENERATED_PROJECT_NAMESPACE)
-
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 class CompilerEnvironment::Impl {
@@ -38,6 +20,7 @@ class CompilerEnvironment::Impl {
   enum class GenerateDeclarationFiles { Yes, No };
   std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
   Compile(std::string_view virtual_absolute_path,
+          const std::vector<InputModule>& initial_modules,
           GenerateDeclarationFiles generate_declaration_files);
 
  private:
@@ -51,9 +34,11 @@ CompilerEnvironment::CompilerEnvironment(VirtualFilesystem* virtual_filesystem,
 CompilerEnvironment::~CompilerEnvironment() {}
 
 std::variant<CompileError, std::shared_ptr<CompiledModule>>
-CompilerEnvironment::Compile(std::string_view virtual_absolute_path) {
+CompilerEnvironment::Compile(std::string_view virtual_absolute_path,
+                             const std::vector<InputModule>& initial_modules) {
   auto transpile_results_or_error =
-      impl_->Compile(virtual_absolute_path, Impl::GenerateDeclarationFiles::No);
+      impl_->Compile(virtual_absolute_path, initial_modules,
+                     Impl::GenerateDeclarationFiles::No);
   if (auto error =
           std::get_if<TypeScriptCompiler::Error>(&transpile_results_or_error)) {
     return *error;
@@ -65,26 +50,14 @@ CompilerEnvironment::Compile(std::string_view virtual_absolute_path) {
               transpile_results_or_error)))));
 }
 
-namespace {
-const TypeScriptCompiler::InputModule REIFY_GENERATED_INTERFACE_MODULE = {
-    "/reify_generated_interface.ts",
-    std::string_view(
-        reinterpret_cast<const char*>(reify_generated_interface_ts),
-        reify_generated_interface_ts_len)};
-const TypeScriptCompiler::InputModule LIB_INTERFACE_MODULE = {
-    "/" xstr(REIFY_GENERATED_PROJECT_NAMESPACE) ".ts",
-    std::string_view(reinterpret_cast<const char*>(TS_LIB_TS), TS_LIB_TS_LEN)};
-
-}  // namespace
-
 std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
 CompilerEnvironment::Impl::Compile(
     std::string_view virtual_absolute_path,
+    const std::vector<InputModule>& initial_modules,
     GenerateDeclarationFiles generate_declaration_files) {
   return tsc_.TranspileToJavaScript(
       virtual_absolute_path,
-      {{REIFY_GENERATED_INTERFACE_MODULE,
-                          LIB_INTERFACE_MODULE},
+      {initial_modules,
        (generate_declaration_files == GenerateDeclarationFiles::Yes)});
 }
 
@@ -118,13 +91,15 @@ const char* TSCONFIG_JSON_CONTENT = R"json(
 }  // namespace
 
 bool CompilerEnvironment::CreateWorkspaceDirectory(
-    const std::filesystem::path& out_dir_path) {
-  InMemoryFilesystem filesystem(InMemoryFilesystem::FileMap(
-      {{std::string(LIB_INTERFACE_MODULE.path),
-        std::string(LIB_INTERFACE_MODULE.content)}}));
+    const std::filesystem::path& out_dir_path,
+    const std::vector<InputModule>& initial_modules) {
+  InMemoryFilesystem filesystem(
+      InMemoryFilesystem::FileMap({{std::string(initial_modules[0].path),
+                                    std::string(initial_modules[0].content)}}));
   CompilerEnvironment compiler_environment(&filesystem);
   auto transpile_results_or_error = compiler_environment.impl_->Compile(
-      LIB_INTERFACE_MODULE.path, Impl::GenerateDeclarationFiles::Yes);
+      initial_modules[0].path, initial_modules,
+      Impl::GenerateDeclarationFiles::Yes);
   if (std::holds_alternative<TypeScriptCompiler::Error>(
           transpile_results_or_error)) {
     // We shouldn't have any errors here since we're just compiling a
@@ -163,4 +138,3 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
 }
 
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE

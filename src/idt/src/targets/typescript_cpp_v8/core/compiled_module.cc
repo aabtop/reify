@@ -1,7 +1,6 @@
 #include "compiled_module_impl.h"
-#include "public_include/reify.h"
+#include "public_include/reify/typescript_cpp_v8.h"
 
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 CompiledModule::CompiledModule(std::unique_ptr<Impl> impl)
@@ -24,4 +23,3 @@ const CompiledModule::ExportedSymbol* CompiledModule::GetExportedSymbol(
 }
 
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE

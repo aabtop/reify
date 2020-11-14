@@ -1,7 +1,6 @@
 #include "generic_function_impl.h"
-#include "public_include/reify.h"
+#include "public_include/reify/typescript_cpp_v8.h"
 
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 GenericFunction::Impl::Impl(v8::Local<v8::Context> context,
@@ -44,4 +43,3 @@ GenericFunction::GenericFunction(GenericFunction&&) = default;
 GenericFunction::~GenericFunction() {}
 
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE

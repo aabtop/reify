@@ -6,9 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "reify.h"
+#include "public_include/reify/typescript_cpp_v8.h"
 
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 struct ContextEnvironment {
@@ -22,6 +21,5 @@ struct ContextEnvironment {
 };
 
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE
 
 #endif  // REIFY_CONTEXT_ENVIRONMENT_H_

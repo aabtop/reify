@@ -176,11 +176,14 @@ templateObjectForDecl namespace immRefCntNamespace (NamedType n _ t) =
          TaggedUnion l -> ["unionMembers" .= taggedUnionMembers l]
          _             -> panic "Unexpected object in templateObjectForDecl."
 
+wrapWithNamespace :: String -> String -> String
+wrapWithNamespace namespace text = "namespace " ++ namespace ++ " {\n" ++ text ++ "}  // namespace " ++ namespace ++ "\n"
+
 namedTypeDefinition :: String -> String -> Declaration -> String
 namedTypeDefinition namespace immRefCntNamespace t = case t of
-  ForwardDeclaration (NamedType n _ (Struct      _)) -> "class " ++ n ++ ";\n"
-  ForwardDeclaration (NamedType n _ (Enum        _)) -> "class " ++ n ++ ";\n"
-  ForwardDeclaration (NamedType n _ (TaggedUnion _)) -> "class " ++ n ++ ";\n"
+  ForwardDeclaration (NamedType n _ (Struct      _)) -> wrapWithNamespace namespace ("class " ++ n ++ ";\n")
+  ForwardDeclaration (NamedType n _ (Enum        _)) -> wrapWithNamespace namespace ("class " ++ n ++ ";\n")
+  ForwardDeclaration (NamedType n _ (TaggedUnion _)) -> wrapWithNamespace namespace ("class " ++ n ++ ";\n")
   ForwardDeclaration _ ->
     panic
       "Only forward declarations of Enum, Structs and TaggedUnions are supported."
@@ -192,7 +195,7 @@ namedTypeDefinition namespace immRefCntNamespace t = case t of
   TypeDeclaration nt@(NamedType _ _ (TaggedUnion _)) ->
     DTL.unpack $ renderMustache taggedUnionHTemplate $ templateObject nt
   TypeDeclaration (NamedType n _ t) ->
-    "using " ++ n ++ " = " ++ typeString t ++ ";\n"
+    wrapWithNamespace namespace ("using " ++ n ++ " = " ++ typeString t ++ ";\n")
   where templateObject = templateObjectForDecl namespace immRefCntNamespace
 
 toCppV8SourceCodeH

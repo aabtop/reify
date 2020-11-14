@@ -8,7 +8,8 @@
 #include "CLI/CLI.hpp"
 #include "cgal/export_to_file.h"
 #include "hypo.h"
-#include "reify.h"
+#include "reify/typescript_cpp_v8.h"
+#include "reify_cpp_v8_interface.h"
 
 using namespace std::chrono;
 
@@ -30,14 +31,13 @@ struct CallAndExportResults {
 // be opened by an STL file viewer.
 template <typename T>
 std::optional<CallAndExportResults> CallFunctionAndExportOutput(
-    hypo::reify::RuntimeEnvironment* runtime_env,
-    const std::string& function_name,
+    reify::RuntimeEnvironment* runtime_env, const std::string& function_name,
     const std::string& output_base_file_path) {
   high_resolution_clock::time_point start_call_time =
       high_resolution_clock::now();
 
   auto entrypoint_or_error =
-      runtime_env->GetExport<hypo::reify::Function<T()>>(function_name);
+      runtime_env->GetExport<reify::Function<T()>>(function_name);
   if (auto error = std::get_if<0>(&entrypoint_or_error)) {
     std::cerr << "Problem finding entrypoint function: " << *error << std::endl;
     return std::nullopt;
@@ -69,14 +69,14 @@ std::optional<CallAndExportResults> CallFunctionAndExportOutput(
 
 // A non-templated wrapper function around CallFunctionAndExportOutput().
 std::optional<CallAndExportResults> BuildOutputAndSaveToFile(
-    hypo::reify::RuntimeEnvironment* runtime_env,
-    const hypo::reify::CompiledModule::ExportedSymbol* entry_point_function,
+    reify::RuntimeEnvironment* runtime_env,
+    const reify::CompiledModule::ExportedSymbol* entry_point_function,
     const std::string& output_base_file_path) {
-  if (entry_point_function->HasType<hypo::reify::Function<hypo::Region2()>>()) {
+  if (entry_point_function->HasType<reify::Function<hypo::Region2()>>()) {
     return CallFunctionAndExportOutput<hypo::Region2>(
         runtime_env, entry_point_function->name, output_base_file_path);
   } else if (entry_point_function
-                 ->HasType<hypo::reify::Function<hypo::Region3()>>()) {
+                 ->HasType<reify::Function<hypo::Region3()>>()) {
     return CallFunctionAndExportOutput<hypo::Region3>(
         runtime_env, entry_point_function->name, output_base_file_path);
   } else {
@@ -211,8 +211,7 @@ int Build(const BuildCommandLineParameters& clp) {
       clp.project_directory ? std::filesystem::absolute(*clp.project_directory)
                             : absolute_input_source_file.parent_path();
 
-  hypo::reify::MountedHostFolderFilesystem virtual_filesystem(
-      project_directory);
+  reify::MountedHostFolderFilesystem virtual_filesystem(project_directory);
   std::optional<std::string> virtual_input_source_path =
       virtual_filesystem.HostPathToVirtualPath(absolute_input_source_file);
   if (!virtual_input_source_path) {
@@ -223,11 +222,12 @@ int Build(const BuildCommandLineParameters& clp) {
   }
 
   // Setup a TypeScript compiler environment.
-  hypo::reify::CompilerEnvironment compile_env(&virtual_filesystem);
+  reify::CompilerEnvironment compile_env(&virtual_filesystem);
 
   // Compile the contents of the user's script in memory and check if there were
   // any errors.
-  auto module_or_error = compile_env.Compile(*virtual_input_source_path);
+  auto module_or_error = compile_env.Compile(
+      *virtual_input_source_path, reify::hypo_v8_typescript_declarations());
   if (auto error = std::get_if<0>(&module_or_error)) {
     std::cerr << "Error compiling TypeScript:" << std::endl;
     std::cerr << error->path << ":" << error->line + 1 << ":"
@@ -277,8 +277,8 @@ int Build(const BuildCommandLineParameters& clp) {
 
 int GenerateProjectDirectory(
     const GenerateProjectDirectoryCommandLineParameters& clp) {
-  bool result = hypo::reify::CompilerEnvironment::CreateWorkspaceDirectory(
-      clp.project_directory);
+  bool result = reify::CompilerEnvironment::CreateWorkspaceDirectory(
+      clp.project_directory, reify::hypo_v8_typescript_declarations());
   if (result) {
     std::cout << "Created directory " << clp.project_directory
               << ".  You can now add TypeScript files to it." << std::endl;

@@ -1,6 +1,7 @@
 load("@reify//src/idt/src/targets/pure_cpp:pure_cpp.bzl", "idt_as_purecpp")
+load("@reify//src/idt/src/targets/typescript:typescript.bzl", "idt_as_typescript")
 load("@reify//src/idt:rules.bzl", "idt")
-load("@reify//src/idt/src/targets/typescript_in_cpp_via_v8:typescript_in_cpp_via_v8.bzl", "idt_as_typescript_in_cpp_via_v8")
+load("@reify//src/idt/src/targets/typescript_cpp_v8:typescript_cpp_v8.bzl", "idt_as_typescript_cpp_v8")
 
 idt(
     name = "hypo-idt",
@@ -15,17 +16,25 @@ idt_as_purecpp(
     idt = ":hypo-idt",
 )
 
-idt_as_typescript_in_cpp_via_v8(
+idt_as_typescript(
+    name = "hypo-typescript",
+    idt = ":hypo-idt",
+    library_file = "src/interface/typescript/hypo.ts",
+)
+
+idt_as_typescript_cpp_v8(
     name = "hypo-v8",
     idt = ":hypo-idt",
     purecpp = ":hypo-purecpp",
-    ts_library_file = "src/interface/typescript/hypo.ts",
+    typescript = ":hypo-typescript",
 )
 
 cc_library(
     name = "CLI11",
-    hdrs = glob(["src/third_party/CLI11/include/**/*.h",
-                 "src/third_party/CLI11/include/**/*.hpp"]),
+    hdrs = glob([
+        "src/third_party/CLI11/include/**/*.h",
+        "src/third_party/CLI11/include/**/*.hpp",
+    ]),
     includes = [
         "src/third_party/CLI11/include",
     ],
@@ -34,7 +43,6 @@ cc_library(
 cc_binary(
     name = "hypo",
     srcs = [
-        "src/main.cc",
         "src/cgal/construct_region2.cc",
         "src/cgal/construct_region2.h",
         "src/cgal/construct_region3.cc",
@@ -55,17 +63,18 @@ cc_binary(
         "src/cgal/subdivide.h",
         "src/cgal/types_core.h",
         "src/cgal/types_nef_polyhedron_3.h",
-        "src/cgal/types_surface_mesh.h",
         "src/cgal/types_polygons.h",
+        "src/cgal/types_surface_mesh.h",
+        "src/main.cc",
     ],
     includes = [
         "src/",
     ],
+    linkstatic = 1,
     deps = [
-        "@cgal//:cgal",
         ":CLI11",
         ":hypo-purecpp",
         ":hypo-v8",
+        "@cgal",
     ],
-    linkstatic = 1,
 )

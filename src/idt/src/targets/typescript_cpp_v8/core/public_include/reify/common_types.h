@@ -1,18 +1,13 @@
-// {{!
-// clang-format off
-// }}
-#ifndef _{{namespace}}_CPP_V8_IST_GENERATED_H_
-#define _{{namespace}}_CPP_V8_IST_GENERATED_H_
+#ifndef _REIFY_COMMON_TYPES_H_
+#define _REIFY_COMMON_TYPES_H_
+
+#include <v8.h>
 
 #include <cassert>
 #include <tuple>
 #include <vector>
 
-#include <v8.h>
-
-#include "{{immutableRefCountedHeaderFile}}"
-
-namespace {{namespace}} {
+namespace reify_v8 {
 
 template <typename T>
 struct FromImmRefCnt {};
@@ -26,15 +21,14 @@ void InstallInterfaceToGlobalObject(
     v8::Isolate* isolate, v8::Local<v8::ObjectTemplate> global_template);
 
 namespace internal {
-inline std::string GetPropertyAsString(
-    v8::Object* object, const char* key) {
+inline std::string GetPropertyAsString(v8::Object* object, const char* key) {
   v8::Local<v8::String> key_name =
       v8::String::NewFromUtf8(object->GetIsolate(), key).ToLocalChecked();
 
   v8::String::Utf8Value utf8_kind_value(
-      object->GetIsolate(),
-      object->Get(object->CreationContext(), key_name)
-          .ToLocalChecked().template As<v8::String>());
+      object->GetIsolate(), object->Get(object->CreationContext(), key_name)
+                                .ToLocalChecked()
+                                .template As<v8::String>());
 
   return std::string(*utf8_kind_value, utf8_kind_value.length());
 }
@@ -72,9 +66,7 @@ class I32 : public v8::Number {
     return static_cast<I32*>(obj);
   }
 
-  int32_t Value() const {
-    return static_cast<int32_t>(v8::Number::Value());
-  }
+  int32_t Value() const { return static_cast<int32_t>(v8::Number::Value()); }
 
  private:
   static void CheckCast(v8::Value* obj) {}
@@ -100,9 +92,7 @@ class F32 : public v8::Number {
     return static_cast<F32*>(obj);
   }
 
-  float Value() const {
-    return static_cast<float>(v8::Number::Value());
-  }
+  float Value() const { return static_cast<float>(v8::Number::Value()); }
 
  private:
   static void CheckCast(v8::Value* obj) {}
@@ -201,9 +191,10 @@ namespace internal {
 template <typename T, int S, std::size_t... Indices>
 auto Value(v8::Isolate* isolate, v8::Local<FixedSizeArray<T, S>> x,
            indices<Indices...>) {
-  return std::array<decltype({{namespace}}::Value(isolate, std::declval<v8::Local<T>>())), S>{
-      {{namespace}}::Value(
-          isolate, x->Get(isolate->GetCurrentContext(), Indices))...};
+  return std::array<
+      decltype(reify_v8::Value(isolate, std::declval<v8::Local<T>>())), S>{
+      reify_v8::Value(isolate,
+                      x->Get(isolate->GetCurrentContext(), Indices))...};
 }
 }  // namespace internal
 
@@ -224,9 +215,10 @@ struct TypeMatchesTypeScriptString<std::array<T, S>> {
 };
 
 namespace internal {
-// From https://stackoverflow.com/questions/20162903/template-parameter-packs-access-nth-type-and-nth-element
-template<int N, typename... Ts> using NthTypeOf =
-        typename std::tuple_element<N, std::tuple<Ts...>>::type;
+// From
+// https://stackoverflow.com/questions/20162903/template-parameter-packs-access-nth-type-and-nth-element
+template <int N, typename... Ts>
+using NthTypeOf = typename std::tuple_element<N, std::tuple<Ts...>>::type;
 }  // namespace internal
 
 template <typename... Types>
@@ -240,8 +232,11 @@ class Tuple : public v8::Array {
   }
 
   template <int N>
-  v8::Local<internal::NthTypeOf<N, Types...>> Get(v8::Local<v8::Context> context) {
-    return v8::Array::Get(context, N).ToLocalChecked().template As<internal::NthTypeOf<N, Types...>>();
+  v8::Local<internal::NthTypeOf<N, Types...>> Get(
+      v8::Local<v8::Context> context) {
+    return v8::Array::Get(context, N)
+        .ToLocalChecked()
+        .template As<internal::NthTypeOf<N, Types...>>();
   }
 
  private:
@@ -253,7 +248,7 @@ template <typename... Ts, std::size_t... Indices>
 auto Value(v8::Isolate* isolate, v8::Local<Tuple<Ts...>>& x,
            indices<Indices...>) {
   return std::make_tuple(
-      {{namespace}}::Value(isolate, x->template Get<Indices>())...);
+      reify_v8::Value(isolate, x->template Get<Indices>())...);
 }
 }  // namespace internal
 
@@ -273,88 +268,6 @@ struct TypeMatchesTypeScriptString<std::tuple<Ts...>> {
   }
 };
 
-{{#declarationSequence}}
-{{{.}}}
-{{/declarationSequence}}
+}  // namespace reify_v8
 
-template <typename T>
-class Ref : public T {
- public:
-  using DerefValueType = const decltype(
-      {{namespace}}::Value(std::declval<v8::Isolate*>(),
-                           std::declval<v8::Local<T>>()));
-  using RefValueType = std::shared_ptr<DerefValueType>;
-
-  V8_INLINE static Ref<T>* Cast(v8::Value* obj) {
-    return static_cast<Ref<T>*>(T::Cast(obj));
-  }
-};
-
-template <typename T>
-typename Ref<T>::RefValueType ConstructRefValue(
-    v8::Isolate* isolate, v8::Local<Ref<T>> x) {
-  return std::make_shared<typename Ref<T>::DerefValueType>(
-      Value(isolate, v8::Local<T>::Cast(x)));
-}
-
-template <typename T>
-struct WeakCallbackData {
-  WeakCallbackData(v8::Isolate* isolate, v8::Local<Ref<T>> x)
-      : persistent(isolate, x), ptr_data(ConstructRefValue(isolate, x)) {}
-
-  // Unfortunately, we can't setup a floating callback without also keeping
-  // a v8::Persistent object alive, so we bundle it here with the data.
-  v8::Persistent<Ref<T>> persistent;
-  typename Ref<T>::RefValueType ptr_data;
-};
-
-template <typename T>
-auto Value(v8::Isolate* isolate, v8::Local<Ref<T>> x) {
-  if constexpr (std::is_base_of<v8::Object, T>::value) {
-    if (x->InternalFieldCount() > 0) {
-      // If we have an internal field (i.e. we were created from an object
-      // template), cache the returned shared_ptr value into the internal field
-      // and then return that.
-      auto internal_field = static_cast<WeakCallbackData<T>*>(
-          x->GetAlignedPointerFromInternalField(0));
-      if (!internal_field) {
-        internal_field = new WeakCallbackData<T>(isolate, x);
-
-        x->SetAlignedPointerInInternalField(0, internal_field);
-
-        // We package up a pointer to the Persistent<Ref<T>> object itself into
-        // the callback so that we can reset it after it has been cleaned up,
-        // as the V8 API requires.
-        internal_field->persistent.SetWeak(
-            internal_field,
-            [](const v8::WeakCallbackInfo<WeakCallbackData<T>>& data) {
-              WeakCallbackData<T>* obj = data.GetParameter();
-              obj->persistent.Reset();
-              delete obj;
-            },
-            v8::WeakCallbackType::kParameter);
-      }
-      return internal_field->ptr_data;
-    } else {
-      return ConstructRefValue(isolate, x);
-    }
-  } else {
-    return ConstructRefValue(isolate, x);
-  }
-}
-
-template <typename T>
-struct FromImmRefCnt<std::shared_ptr<const T>> {
-  using type = Ref<typename FromImmRefCnt<T>::type>;
-};
-
-template <typename T>
-struct TypeMatchesTypeScriptString<std::shared_ptr<const T>> {
-  static bool Result(std::string_view ts) {
-    return TypeMatchesTypeScriptString<T>::Result(ts);
-  }
-};
-
-}  // {{namespace}}
-
-#endif  // _{{namespace}}_CPP_V8_IST_GENERATED_H_
+#endif  // _REIFY_COMMON_TYPES_H_

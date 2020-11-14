@@ -1,6 +1,9 @@
 // {{!
 // clang-format off
 // }}
+
+namespace {{namespace}} {
+
 class {{name}} : public v8::Object {
  public:
   V8_INLINE static {{name}}* Cast(v8::Value* obj) {
@@ -21,11 +24,14 @@ class {{name}} : public v8::Object {
  private:
   static void CheckCast(v8::Value* obj) {}
 };
+
+}  // namespace {{namespace}}
+
 {{immRefCntNamespace}}::{{name}} Value(
-    v8::Isolate* isolate, v8::Local<{{name}}> x);
+    v8::Isolate* isolate, v8::Local<{{namespace}}::{{name}}> x);
 template <>
 struct FromImmRefCnt<{{immRefCntNamespace}}::{{name}}> {
-  using type = {{name}};
+  using type = {{namespace}}::{{name}};
 };
 template <>
 struct TypeMatchesTypeScriptString<{{immRefCntNamespace}}::{{name}}> {

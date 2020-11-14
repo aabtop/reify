@@ -10,7 +10,6 @@
 #include <sstream>
 #include <string>
 
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 namespace {
@@ -71,9 +70,10 @@ void GetSourceFile(const v8::FunctionCallbackInfo<v8::Value>& args) {
           std::get_if<VirtualFilesystem::Error>(&maybe_file_contents)) {
     isolate->ThrowException(
         v8::String::NewFromUtf8(
-            isolate,
-            ("Error reading data from " + file.diagnostics_path + ": " +
-             error->message).c_str()).ToLocalChecked());
+            isolate, ("Error reading data from " + file.diagnostics_path +
+                      ": " + error->message)
+                         .c_str())
+            .ToLocalChecked());
     return;
   }
   auto& file_contents = std::get<std::string>(maybe_file_contents);
@@ -547,4 +547,3 @@ auto TypeScriptCompiler::TranspileToJavaScript(
   return return_value;
 }
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE

@@ -1,9 +1,6 @@
 #ifndef _REIFY_GLOBAL_INITIALIZATION_H_
 #define _REIFY_GLOBAL_INITIALIZATION_H_
 
-#include "reify_generated_project_namespace.h"
-
-namespace REIFY_GENERATED_PROJECT_NAMESPACE {
 namespace reify {
 
 class GlobalV8InitializationEnsurer {
@@ -16,6 +13,5 @@ class GlobalV8InitializationEnsurer {
 };
 
 }  // namespace reify
-}  // namespace REIFY_GENERATED_PROJECT_NAMESPACE
 
 #endif  // _REIFY_GLOBAL_INITIALIZATION_H_
