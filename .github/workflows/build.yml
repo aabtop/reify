@@ -16,23 +16,25 @@ jobs:
             runs-on: windows-2019
             build-script: ./build.bat
     runs-on: ${{ matrix.runs-on }}
+    env:
+      build_artifact: hypo-x64-${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
       - name: Build
-        run: ${{ matrix.build-script }} hypo_out_${{ matrix.os }}_x64
+        run: ${{ matrix.build-script }} ${{ env.build_artifact }}
       - name: Archive resulting executable
         uses: actions/upload-artifact@v2
         with:
-          name: hypo-${{ matrix.os }}-x64
-          path: hypo_out_${{ matrix.os }}_x64
+          name: ${{ env.build_artifact }}
+          path: ${{ env.build_artifact }}
 
   # If a tag starting with "v" is pushed, assume it represents a release and
   # go ahead and create a draft release for this version of the code.
   create_release:
-    name: Create Release
+    name: Create release
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-20.04
-    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       # First get the tag name without the "refs/tags/" part.
       - name: Get Tag Name
@@ -50,37 +52,48 @@ jobs:
           body: ENTER RELEASE NOTES HERE.
           draft: true
           prerelease: true  # I don't really know what this implies...
-      # Download Linux and Windows artifacts.
+    outputs:
+      tag: ${{ steps.tag_name.outputs.tag }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+  # Now attach the build artifacts to the new release.
+  upload_artifacts_to_release:
+    name: Attach artifact to release
+    needs: create_release
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        os: [ubuntu, windows]
+        include:
+          - os: ubuntu
+            archive_command: tar -czvf
+            archive_extension: tar.gz
+            asset_content_type: application/gzip
+          - os: windows
+            archive_command: zip -r
+            archive_extension: zip
+            asset_content_type: application/zip
+    env:
+      build_artifact: hypo-x64-${{ matrix.os }}
+      release_artifact: hypo-x64-${{ matrix.os }}-${{ needs.create_release.outputs.tag }}
+      release_artifact_archive_filename: hypo-x64-${{ matrix.os }}-${{ needs.create_release.outputs.tag }}.${{ matrix.archive_extension }}
+    steps:
+      # Download build artifacts emitted from the build step.
       - uses: actions/download-artifact@v2
         with:
-          name: hypo-ubuntu-x64
-          path: ./hypo-ubuntu-x64
-      - uses: actions/download-artifact@v2
-        with:
-          name: hypo-windows-x64
-          path: ./hypo-windows-x64
+          name: ${{ env.build_artifact }}
+          path: ./${{ env.release_artifact }}
       # Package up the artifacts into an archive native to the OS.
       - name: Package Artifacts
-        run: |
-          zip -r hypo-windows-x64.zip hypo-windows-x64
-          tar -czvf hypo-ubuntu-x64.tar.gz hypo-ubuntu-x64
+        run: ${{ matrix.archive_command }} ${{ env.release_artifact_archive_filename }} ${{ env.release_artifact }}
       # Finally upload the resulting archive packages to the draft release we
       # created a few steps ago.
-      - name: Upload Ubuntu Release Artifact
+      - name: Attach packaged artifact to release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./hypo-ubuntu-x64.tar.gz
-          asset_name: hypo-ubuntu-x64.tar.gz
-          asset_content_type: application/gzip
-      - name: Upload Windows Release Artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./hypo-windows-x64.zip
-          asset_name: hypo-windows-x64.zip
-          asset_content_type: application/zip
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ./${{ env.release_artifact_archive_filename }}
+          asset_name: ${{ env.release_artifact_archive_filename }}
+          asset_content_type: ${{ matrix.asset_content_type }}
