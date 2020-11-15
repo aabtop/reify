@@ -328,6 +328,8 @@ std::variant<RuntimeException, RuntimeEnvironment> CreateRuntimeEnvironment(
 
 RuntimeEnvironment::RuntimeEnvironment(std::unique_ptr<Impl>&& impl)
     : impl_(std::move(impl)) {}
+RuntimeEnvironment::RuntimeEnvironment(RuntimeEnvironment&&) = default;
+
 RuntimeEnvironment::~RuntimeEnvironment() {}
 
 std::variant<GetExportError, GenericFunction>

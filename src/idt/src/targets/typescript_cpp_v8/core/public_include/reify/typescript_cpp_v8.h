@@ -150,7 +150,7 @@ using GetExportError = std::string;
 class RuntimeEnvironment {
  public:
   RuntimeEnvironment(const RuntimeEnvironment&) = delete;
-  RuntimeEnvironment(RuntimeEnvironment&&) = default;
+  RuntimeEnvironment(RuntimeEnvironment&&);
   ~RuntimeEnvironment();
 
   template <typename T>

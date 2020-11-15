@@ -23,21 +23,10 @@ idt_as_typescript(
 )
 
 idt_as_typescript_cpp_v8(
-    name = "hypo-v8",
+    name = "hypo-typescript_cpp_v8",
     idt = ":hypo-idt",
     purecpp = ":hypo-purecpp",
     typescript = ":hypo-typescript",
-)
-
-cc_library(
-    name = "CLI11",
-    hdrs = glob([
-        "src/third_party/CLI11/include/**/*.h",
-        "src/third_party/CLI11/include/**/*.hpp",
-    ]),
-    includes = [
-        "src/third_party/CLI11/include",
-    ],
 )
 
 cc_binary(
@@ -72,9 +61,10 @@ cc_binary(
     ],
     linkstatic = 1,
     deps = [
-        ":CLI11",
         ":hypo-purecpp",
-        ":hypo-v8",
+        ":hypo-typescript_cpp_v8",
         "@cgal",
+        "@reify//src/idt/src/targets/typescript_cpp_v8:command_line_tool",
+        "@reify//third_party:CLI11",
     ],
 )

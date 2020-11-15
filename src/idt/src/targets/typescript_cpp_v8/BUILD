@@ -64,4 +64,20 @@ cc_library(
     ],
 )
 
-exports_files(["Main.hs"] + glob(["core/**"]))
+cc_library(
+    name = "command_line_tool",
+    srcs = [
+        "command_line_tool/command_line_tool.cc",
+        "command_line_tool/include/reify/typescript_cpp_v8/command_line_tool.h",
+    ],
+    includes = [
+        "command_line_tool/include",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":core",
+        "//third_party:CLI11",
+    ],
+)
+
+exports_files(["Main.hs"])
