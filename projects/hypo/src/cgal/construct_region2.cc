@@ -6,7 +6,7 @@
 
 #include "cgal/conversions.h"
 #include "cgal/types_polygons.h"
-#include "hypo.h"
+#include "reify/purecpp/hypo.h"
 
 namespace hypo {
 namespace cgal {

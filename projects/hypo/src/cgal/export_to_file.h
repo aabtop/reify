@@ -9,7 +9,7 @@
 #include "cgal/construct_region3.h"
 #include "export_to_stl.h"
 #include "export_to_svg.h"
-#include "hypo.h"
+#include "reify/purecpp/hypo.h"
 
 namespace hypo {
 namespace cgal {

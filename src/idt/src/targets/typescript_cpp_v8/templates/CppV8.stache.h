@@ -10,10 +10,10 @@
 
 #include <v8.h>
 
-#include "reify/common_types.h"
+#include "reify/typescript_cpp_v8/common_types.h"
 #include "reify/typescript_cpp_v8.h"
 
-#include "{{immutableRefCountedHeaderFile}}"
+#include "reify/purecpp/{{immutableRefCountedHeaderFile}}"
 
 namespace reify_v8 {
 
@@ -24,10 +24,13 @@ namespace reify_v8 {
 }  // namespace reify_v8
 
 namespace reify {
+namespace typescript_cpp_v8 {
+namespace {{immRefCntNamespace}} {
 
-std::vector<CompilerEnvironment::InputModule>
-    {{namespace}}_typescript_declarations();
+std::vector<CompilerEnvironment::InputModule> typescript_declarations();
 
+}  // namespace {{immRefCntNamespace}}
+}  // namespace typescript_cpp_v8
 }  // namespace reify
 
 #endif  // _{{namespace}}_CPP_V8_IST_GENERATED_H_

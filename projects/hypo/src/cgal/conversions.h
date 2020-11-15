@@ -2,7 +2,7 @@
 #define _HYPO_CGAL_CONVERSION_UTILS_H_
 
 #include "cgal/types_core.h"
-#include "hypo.h"
+#include "reify/purecpp/hypo.h"
 
 namespace hypo {
 namespace cgal {

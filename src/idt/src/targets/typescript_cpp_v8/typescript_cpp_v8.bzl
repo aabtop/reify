@@ -4,18 +4,18 @@ load("@reify//src/idt:rules.bzl", "IdtInfo")
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 
 def __idt_as_typescript_cpp_v8_rule_impl(ctx):
-    output_directory_path = ctx.attr.idt[IdtInfo].namespace + "_typescript_cpp_v8"
+    output_directory = "reify/typescript_cpp_v8/"
     output_h_file = ctx.actions.declare_file(
-        output_directory_path + "/reify_cpp_v8_interface.h",
+        output_directory + ctx.attr.idt[IdtInfo].namespace + ".h",
     )
     output_cc_file = ctx.actions.declare_file(
-        output_directory_path + "/reify_cpp_v8_interface.cc",
+        output_directory + ctx.attr.idt[IdtInfo].namespace + ".cc",
     )
 
     ctx.actions.run(
         outputs = [output_h_file, output_cc_file],
         tools = [ctx.executable.generator_binary],
-        arguments = [ctx.attr.idt[IdtInfo].namespace, output_h_file.dirname],
+        arguments = [ctx.attr.idt[IdtInfo].namespace, ctx.bin_dir.path + "/" + output_directory],
         progress_message = "Generating C++ V8 <-> TypeScript interface for IDT %s" % ctx.attr.idt.label,
         executable = ctx.executable.generator_binary,
     )
@@ -24,7 +24,7 @@ def __idt_as_typescript_cpp_v8_rule_impl(ctx):
         CcInfo(
             compilation_context = cc_common.create_compilation_context(
                 headers = depset(direct = [output_h_file]),
-                includes = depset(direct = [output_h_file.dirname]),
+                includes = depset(direct = [ctx.bin_dir.path]),
             ),
         ),
         DefaultInfo(

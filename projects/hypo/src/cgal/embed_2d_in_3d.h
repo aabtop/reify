@@ -3,15 +3,14 @@
 
 #include "cgal/types_nef_polyhedron_3.h"
 #include "cgal/types_polygons.h"
-#include "hypo.h"
+#include "reify/purecpp/hypo.h"
 
 namespace hypo {
 namespace cgal {
 
 Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
     const Polygon_set_2& polygon_set,
-    const std::vector<hypo::Matrix43>& transforms,
-    bool closed);
+    const std::vector<hypo::Matrix43>& transforms, bool closed);
 
 }  // namespace cgal
 }  // namespace hypo

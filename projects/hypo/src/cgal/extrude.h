@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "cgal/types_surface_mesh.h"
-#include "hypo.h"
+#include "reify/purecpp/hypo.h"
 
 namespace hypo {
 namespace cgal {

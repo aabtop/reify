@@ -6,10 +6,10 @@
 
 #include "CLI/CLI.hpp"
 #include "cgal/export_to_file.h"
-#include "hypo.h"
+#include "reify/purecpp/hypo.h"
 #include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/command_line_tool.h"
-#include "reify_cpp_v8_interface.h"
+#include "reify/typescript_cpp_v8/hypo.h"
 
 using namespace std::chrono;
 
@@ -20,6 +20,23 @@ struct CallAndExportResults {
   std::chrono::microseconds export_time;
   std::string output_filepath;
 };
+
+void PrintResultsInformation(std::ostream& out, microseconds compile_time,
+                             const CallAndExportResults& results) {
+  out << "Successfully produced '" << results.output_filepath << "'. "
+      << std::endl;
+  out << "  Compile time: " << duration_cast<milliseconds>(compile_time).count()
+      << "ms" << std::endl;
+  out << "  Call time: "
+      << duration_cast<milliseconds>(results.call_time).count() << "ms"
+      << std::endl;
+  out << "  Build time: "
+      << duration_cast<milliseconds>(results.build_time).count() << "ms"
+      << std::endl;
+  out << "  Export time: "
+      << duration_cast<milliseconds>(results.export_time).count() << "ms"
+      << std::endl;
+}
 
 // Call the TypeScript function named by |function_name| within the given
 // |runtime_env|.  Output the results into the file named by
@@ -90,23 +107,6 @@ std::optional<CallAndExportResults> BuildOutputAndSaveToFile(
   }
 }
 
-void PrintResultsInformation(std::ostream& out, microseconds compile_time,
-                             const CallAndExportResults& results) {
-  out << "Successfully produced '" << results.output_filepath << "'. "
-      << std::endl;
-  out << "  Compile time: " << duration_cast<milliseconds>(compile_time).count()
-      << "ms" << std::endl;
-  out << "  Call time: "
-      << duration_cast<milliseconds>(results.call_time).count() << "ms"
-      << std::endl;
-  out << "  Build time: "
-      << duration_cast<milliseconds>(results.build_time).count() << "ms"
-      << std::endl;
-  out << "  Export time: "
-      << duration_cast<milliseconds>(results.export_time).count() << "ms"
-      << std::endl;
-}
-
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
   auto maybe_result = reify::typescript_cpp_v8::CommandLineToolParse(
       reify::typescript_cpp_v8::CommandLineToolParameters{
           "hypo", "Build geometry declaritively with TypeScript.",
-          reify::hypo_v8_typescript_declarations(),
+          reify::typescript_cpp_v8::hypo::typescript_declarations(),
           [&output_file_basepath](CLI::App* app) {
             app->add_option(
                    "output_file_basepath,-o,--output_file_basepath",
@@ -132,7 +132,6 @@ int main(int argc, char* argv[]) {
   if (int* exit_code = std::get_if<int>(&maybe_result)) {
     return *exit_code;
   }
-
   auto results = std::move(std::get<1>(maybe_result));
 
   auto build_results = BuildOutputAndSaveToFile(&(*results->runtime_env),

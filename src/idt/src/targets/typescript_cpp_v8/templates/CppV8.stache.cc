@@ -25,8 +25,10 @@ namespace {
 }  // namespace
 
 namespace reify {
+namespace typescript_cpp_v8 {
+namespace {{immRefCntNamespace}} {
 
-std::vector<CompilerEnvironment::InputModule> {{namespace}}_typescript_declarations() {
+std::vector<CompilerEnvironment::InputModule> typescript_declarations() {
   const CompilerEnvironment::InputModule lib_interface_module = {
       "/{{immRefCntNamespace}}.ts",
       std::string_view(reinterpret_cast<const char*>(lib_ts), lib_ts_len)};
@@ -40,4 +42,6 @@ std::vector<CompilerEnvironment::InputModule> {{namespace}}_typescript_declarati
   return std::vector<CompilerEnvironment::InputModule>({lib_interface_module, reify_generated_module});
 }
 
-}  // namespace
+}  // namespace {{immRefCntNamespace}}
+}  // namespace typescript_cpp_v8
+}  // namespace reify

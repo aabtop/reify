@@ -2,7 +2,7 @@
 #define _HYPO_CGAL_SUBDIVIDE_H_
 
 #include "cgal/types_nef_polyhedron_3.h"
-#include "hypo.h"
+#include "reify/purecpp/hypo.h"
 
 namespace hypo {
 namespace cgal {
