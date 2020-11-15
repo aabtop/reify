@@ -6,7 +6,7 @@
     {
       "label": "build",
       "type": "shell",
-      "command": "cd projects/hypo && bazel build //:hypo -c dbg --verbose_failures",
+      "command": "cd projects/hypo; bazel build //:hypo -c dbg --verbose_failures",
       "problemMatcher": [
         "$gcc"
       ],

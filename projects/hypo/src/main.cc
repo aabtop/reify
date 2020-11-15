@@ -18,7 +18,7 @@ struct CallAndExportResults {
   std::chrono::microseconds call_time;
   std::chrono::microseconds build_time;
   std::chrono::microseconds export_time;
-  std::string output_filepath;
+  std::filesystem::path output_filepath;
 };
 
 void PrintResultsInformation(std::ostream& out, microseconds compile_time,
@@ -110,7 +110,7 @@ std::optional<CallAndExportResults> BuildOutputAndSaveToFile(
 }  // namespace
 
 int main(int argc, char* argv[]) {
-  std::filesystem::path output_file_basepath;
+  std::string output_file_basepath;
 
   auto maybe_result = reify::typescript_cpp_v8::CommandLineToolParse(
       reify::typescript_cpp_v8::CommandLineToolParameters{

@@ -70,7 +70,7 @@ Bbox_2 BoundingBox(
 }  // namespace
 
 bool ExportToSVG(const Polygon_set_2& polygon_set,
-                 const std::string& output_filepath) {
+                 const std::filesystem::path& output_filepath) {
   std::ofstream out(output_filepath);
 
   std::vector<Polygon_with_holes_2> polygons_with_holes;

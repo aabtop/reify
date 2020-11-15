@@ -2,6 +2,7 @@
 #define _HYPO_EXPORT_TO_FILE_H_
 
 #include <chrono>
+#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -17,7 +18,7 @@ namespace cgal {
 struct BuildAndExportResults {
   std::chrono::microseconds build_time;
   std::chrono::microseconds export_time;
-  std::string output_filepath;
+  std::filesystem::path output_filepath;
 };
 
 template <typename T>

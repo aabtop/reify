@@ -2,6 +2,7 @@
 
 #include <CGAL/boost/graph/convert_nef_polyhedron_to_polygon_mesh.h>
 
+#include <filesystem>
 #include <fstream>
 
 #include "cgal/types_nef_polyhedron_3.h"
@@ -10,7 +11,7 @@ namespace hypo {
 namespace cgal {
 
 bool ExportToSTL(const Nef_polyhedron_3& polyhedron,
-                 const std::string& output_filepath) {
+                 const std::filesystem::path& output_filepath) {
   std::vector<Point_3> vertices;
   std::vector<std::vector<size_t>> faces;
   CGAL::convert_nef_polyhedron_to_polygon_soup(polyhedron, vertices, faces,
@@ -18,7 +19,7 @@ bool ExportToSTL(const Nef_polyhedron_3& polyhedron,
 
   std::ostringstream out;
 
-  out << "solid " << output_filepath << std::endl;
+  out << "solid " << output_filepath.string() << std::endl;
   for (const auto& face : faces) {
     const Point_3& point1 = vertices[face[0]];
     const Point_3& point2 = vertices[face[1]];
@@ -38,7 +39,7 @@ bool ExportToSTL(const Nef_polyhedron_3& polyhedron,
     out << "    endloop" << std::endl;
     out << "  endfacet" << std::endl;
   }
-  out << "endsolid " << output_filepath << std::endl;
+  out << "endsolid " << output_filepath.string() << std::endl;
 
   std::ofstream fout(output_filepath);
   auto out_string = out.str();
