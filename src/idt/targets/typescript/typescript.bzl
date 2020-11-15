@@ -1,32 +1,27 @@
 load("@rules_haskell//haskell:defs.bzl", "haskell_binary")
 load("@reify//src/idt:rules.bzl", "IdtInfo")
 
-def __idt_as_purecpp_rule_impl(ctx):
-    output_directory = "reify/purecpp/"
-    output_header_file = ctx.actions.declare_file(
-        output_directory + ctx.attr.idt[IdtInfo].namespace + ".h",
+def __idt_as_typescript_impl(ctx):
+    output_ts_file = ctx.actions.declare_file(
+        ctx.attr.idt[IdtInfo].namespace + "_typescript/reify_generated_interface.ts",
     )
 
     ctx.actions.run(
-        outputs = [output_header_file],
+        outputs = [output_ts_file],
         tools = [ctx.executable.generator_binary],
-        arguments = [ctx.attr.idt[IdtInfo].namespace, ctx.bin_dir.path + "/" + output_directory],
-        progress_message = "Generating pure C++ interface for IDT %s" % ctx.attr.idt.label,
+        arguments = [output_ts_file.dirname],
+        progress_message = "Generating TypeScript interface for IDT %s" % ctx.attr.idt.label,
         executable = ctx.executable.generator_binary,
     )
 
     return [
-        CcInfo(compilation_context = cc_common.create_compilation_context(
-            headers = depset(direct = [output_header_file]),
-            includes = depset(direct = [ctx.bin_dir.path]),
-        )),
         DefaultInfo(
-            files = depset([output_header_file]),
+            files = depset([output_ts_file, ctx.files.library_file[0]]),
         ),
     ]
 
-_idt_as_purecpp_rule = rule(
-    implementation = __idt_as_purecpp_rule_impl,
+_idt_as_typescript_rule = rule(
+    implementation = __idt_as_typescript_impl,
     attrs = {
         "idt": attr.label(
             doc = "The idt target that defines the interface to generate.",
@@ -39,27 +34,33 @@ _idt_as_purecpp_rule = rule(
             executable = True,
             cfg = "exec",
         ),
+        "library_file": attr.label(
+            doc = "File representing TypeScript logic that should accompany the generated type definitions.",
+            mandatory = True,
+            allow_files = True,
+        ),
     },
 )
 
-def idt_as_purecpp(name, idt):
+def idt_as_typescript(name, idt, library_file):
     generator_name = name + "_generator"
     haskell_binary(
         name = generator_name,
         srcs = [
-            "@reify//src/idt/targets/pure_cpp:Main.hs",
+            "@reify//src/idt/targets/typescript:Main.hs",
         ],
         deps = [
             "@stackage//:base",
             "@stackage//:filepath",
             "@stackage//:directory",
             "@reify//src/idt",
-            "@reify//src/idt/targets/pure_cpp",
+            "@reify//src/idt/targets/typescript",
             idt + "_lib",
         ],
     )
-    _idt_as_purecpp_rule(
+    _idt_as_typescript_rule(
         name = name,
         idt = idt,
         generator_binary = generator_name,
+        library_file = library_file,
     )

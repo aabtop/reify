@@ -40,9 +40,9 @@ subproject is called "IDT" which refers to "Interface Description Tree", express
 
 The source IDT file (e.g. [from hypo](./projects/hypo/src/interface/ReifyInputInterface.hs)) is used to generate three target interfaces:
 
-1. The TypeScript interface, defined by [TargetTypeScript.hs](src/idt/src/targets/typescript/TargetTypeScript.hs).
-1. The C++ V8 bindings layer, defined by [TargetCppV8.hs](src/idt/src/targets/typescript_cpp_v8/TargetCppV8.hs).
-1. The pure C++ interface, defined by [TargetCppImmutableRefCounted.hs](src/idt/src/targets/pure_cpp/TargetCppImmutableRefCounted.hs).
+1. The TypeScript interface, defined by [TargetTypeScript.hs](src/idt/targets/typescript/TargetTypeScript.hs).
+1. The C++ V8 bindings layer, defined by [TargetCppV8.hs](src/idt/targets/typescript_cpp_v8/TargetCppV8.hs).
+1. The pure C++ interface, defined by [TargetCppImmutableRefCounted.hs](src/idt/targets/pure_cpp/TargetCppImmutableRefCounted.hs).
 
 Note that the interfaces described by the IDT are very abstract.  They can be used to generate C++ and TypeScript interfaces, but they may also be used to generate other backend targets, such as JSON and binary representations.
 

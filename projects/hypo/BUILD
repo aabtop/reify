@@ -1,7 +1,7 @@
-load("@reify//src/idt/src/targets/pure_cpp:pure_cpp.bzl", "idt_as_purecpp")
-load("@reify//src/idt/src/targets/typescript:typescript.bzl", "idt_as_typescript")
+load("@reify//src/idt/targets/pure_cpp:pure_cpp.bzl", "idt_as_purecpp")
+load("@reify//src/idt/targets/typescript:typescript.bzl", "idt_as_typescript")
 load("@reify//src/idt:rules.bzl", "idt")
-load("@reify//src/idt/src/targets/typescript_cpp_v8:typescript_cpp_v8.bzl", "idt_as_typescript_cpp_v8")
+load("@reify//src/idt/targets/typescript_cpp_v8:typescript_cpp_v8.bzl", "idt_as_typescript_cpp_v8")
 
 idt(
     name = "hypo-idt",
@@ -64,7 +64,7 @@ cc_binary(
         ":hypo-purecpp",
         ":hypo-typescript_cpp_v8",
         "@cgal",
-        "@reify//src/idt/src/targets/typescript_cpp_v8:command_line_tool",
+        "@reify//src/idt/targets/typescript_cpp_v8:command_line_tool",
         "@reify//third_party:CLI11",
     ],
 )
