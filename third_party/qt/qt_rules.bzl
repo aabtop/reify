@@ -1,101 +1,3 @@
-def _build_all_libs_impl(ctx):
-#    if "windows" in ctx.attr.os:
-#        output_filenames = ["v8_monolith.lib"]
-#        build_script_env = ctx.configuration.default_shell_env
-#        build_script_env.update({
-#            "ProgramFiles(x86)": "C:\\Program Files (x86)",
-#            "WINDIR": "C:\\Windows",
-#        })
-#        if ctx.attr.bazel_vc != "":
-#            build_script_env.update({
-#                "BAZEL_VC": ctx.attr.bazel_vc,
-#            })
-#    else:
-#        output_filenames = ["libv8_monolith.a"]
-#        build_script_env = {}
-#    output_files = [ctx.actions.declare_file(x) for x in output_filenames]
-#
-#    ctx.actions.run(
-#        outputs = output_files,
-#        inputs = ctx.files.data,
-#        tools = [ctx.executable.build_script],
-#        arguments = [ctx.files.depot_tools_dir[0].path, ctx.files.v8_src_dir[0].path, ctx.attr.build_config] + [x.path for x in output_files],
-#        progress_message = "Building V8",
-#        executable = ctx.executable.build_script,
-#        env = build_script_env,
-#        execution_requirements = {"no-sandbox": "1", "local": "1"},
-#    )
-#
-#    return [
-#        DefaultInfo(
-#            files = depset(output_files),
-#        ),
-#    ]
-    output_filepaths = [
-      "lib/Qt5Core.lib",
-      "lib/Qt5Core.dll",
-    ]
-
-    include_directory = "include"
-
-    output_files = [ctx.actions.declare_file(x) for x in output_filepaths] + [ctx.actions.declare_directory(include_directory)]
-
-    return [
-        DefaultInfo(
-            files = depset(output_files),
-        ),
-    ]
-
-build_all_libs = rule(
-    implementation = _build_all_libs_impl,
-    attrs = {
-#        "build_script": attr.label(
-#            mandatory = True,
-#            allow_single_file = True,
-#            executable = True,
-#            cfg = "exec",
-#        ),
-#        "data": attr.label_list(
-#            mandatory = True,
-#        ),
-#        "depot_tools_dir": attr.label(mandatory = True, allow_single_file = True),
-        "src_dir": attr.label(mandatory = True, allow_single_file = True),
-#        "build_config": attr.string(mandatory = True),
-        "os": attr.string(mandatory = True),
-        "bazel_vc": attr.string(),
-    },
-)
-
-def define_qt_targets():
-  build_all_libs(
-    name="build_libs",
-    src_dir=".",
-    os = select({
-        "@bazel_tools//src/conditions:windows": "windows",
-        "//conditions:default": "linux",
-    }),
-    bazel_vc = "{bazel_vc}",
-  )
-
-  lib_filepaths = [
-    "lib/Qt5Core.lib",
-    "lib/Qt5Widgets.lib",
-    "lib/Qt5Gui.lib",
-    "lib/Qt5WebEngineWidgets.lib",
-  ]
-
-  include_directories = ["include", "include/QtWidgets", "include/QtWebEngineWidgets"]
-
-  native.cc_library(
-    name="qt",
-    srcs = lib_filepaths,
-    hdrs = native.glob([x + "/**" for x in include_directories]),
-    includes = include_directories,
-    visibility = ["//visibility:public"],
-  )
-
-  native.exports_files(["bin/moc.exe", "bin/uic.exe"])
-
 def __qt_compile_ui_impl(ctx):
   ctx.actions.run(
     outputs = [ctx.outputs.out],
@@ -166,7 +68,7 @@ def qt_moc_src(name, hdr_src):
   )
 
 
-def qt_cc_library(name, srcs, hdr, ui_src, deps=None, **kwargs):
+def qt_cc_library(name, srcs, hdr, ui_src, qt_dep, deps=[], **kwargs):
   moc_target_name = "{}_moc".format(name)
   qt_moc_src(moc_target_name, hdr)
 
@@ -177,6 +79,46 @@ def qt_cc_library(name, srcs, hdr, ui_src, deps=None, **kwargs):
       name = name,
       srcs = srcs + [":" + moc_target_name],
       hdrs = [hdr],
-      deps = deps + [":" + uic_target_name],
+      deps = [qt_dep + "_lib"] + deps + [":" + uic_target_name],
       **kwargs
+  )
+
+
+def __package_runtime_files_impl(ctx):
+  local_files = []
+  for x in ctx.files.runtime_files:
+    new_local_file = ctx.actions.declare_file(x.path.replace(ctx.attr.runtime_files.label.workspace_root + "/", ""))
+    ctx.actions.symlink(output=new_local_file, target_file=x)
+    local_files.append(new_local_file)
+
+  for x in ctx.files.runtime_sibling_files:
+    new_local_file = ctx.actions.declare_file(x.basename)
+    ctx.actions.symlink(output=new_local_file, target_file=x)
+    local_files.append(new_local_file)
+
+  return [DefaultInfo(runfiles=ctx.runfiles(files=local_files))]
+
+
+_package_runtime_files = rule(
+  implementation = __package_runtime_files_impl,
+  attrs = {
+    "runtime_files": attr.label(mandatory = True),
+    "runtime_sibling_files": attr.label(mandatory = True),
+  },
+)
+
+
+def qt_cc_binary(name, srcs, qt_dep, deps):
+  runtime_files_name = name + "_runtime_files"
+  _package_runtime_files(
+    name = runtime_files_name,
+    runtime_files = qt_dep + "_data_files",
+    runtime_sibling_files = qt_dep + "_data_sibling_files",
+  )
+
+  native.cc_binary(
+    name = name,
+    srcs = srcs,
+    deps = [qt_dep + "_lib"] + deps,
+    data = [":" + runtime_files_name],
   )
