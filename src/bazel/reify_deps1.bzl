@@ -44,5 +44,4 @@ def reify_deps1():
 
     fetch_qt(
         name = "qt",
-        branch = "5.15",
     )

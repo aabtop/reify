@@ -7,6 +7,8 @@ SET DOCKERFILE_DIRECTORY=%THIS_SCRIPT_LOCATION%dockerdev\windows
 
 if not exist %HOST_OUT_DIR% md %HOST_OUT_DIR%
 
+shift
+
 SET RUN_COMMAND="C:/build/src/dockerdev/windows/build_in_docker.bat"
 
 :GETOPTS
@@ -23,6 +25,9 @@ rem https://github.com/docker/for-win/issues/829
 @echo off
 docker run^
     --rm --name reify-build-env-instance^
+    -it^
+    --memory 32gb^
+    --storage-opt size=80G^
     --mount type=bind,source=%HOST_SRC_DIR%,target=C:\build\src^
     --mount type=bind,source=%HOST_OUT_DIR%,target=C:\build\out^
     reify-build-env^
