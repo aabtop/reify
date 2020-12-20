@@ -6,7 +6,8 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 
 
 # Specifically install Windows SDK version 10.0.19041.0, for the Windows that's what V8 needs.
-RUN (New-Object Net.WebClient).DownloadFile('https://download.microsoft.com/download/1/c/3/1c3d5161-d9e9-4e4b-9b43-b70fe8be268c/windowssdk/winsdksetup.exe', 'winsdksetup.exe')
+# See archive of releases here: https://developer.microsoft.com/en-us/windows/downloads/sdk-archive/
+RUN Invoke-WebRequest -UserAgent 'DockerCI' -outfile winsdksetup.exe https://go.microsoft.com/fwlink/?linkid=2120843
 RUN $p = Start-Process -Wait -PassThru -FilePath 'winsdksetup.exe' -ArgumentList '/features OptionId.WindowsDesktopDebuggers OptionId.DesktopCPPx86 OptionId.DesktopCPPx64 /Quiet /NoRestart /Ceip on'; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { throw ('winsdksetup.exe install failed with exit code 0x{0:x}' -f $ret) }
 
 # Download the Build Tools bootstrapper, specific versions can be found here:
@@ -24,7 +25,7 @@ RUN $p = Start-Process -Wait -PassThru -FilePath '.\vs_buildtools.exe' -Argument
   --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 \
   --add Microsoft.VisualStudio.Component.VC.ATLMFC \
   --installPath=C:\2019\BuildTools \
-  '; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { throw ('winsdksetup.exe install failed with exit code 0x{0:x}' -f $ret) }
+  '; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { throw ('vs_buildtools.exe install failed with exit code 0x{0:x}' -f $ret) }
 ENV BAZEL_VC=C:/2019/BuildTools/VC
 
 # Install Chocolatey

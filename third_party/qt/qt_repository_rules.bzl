@@ -26,7 +26,7 @@ def _fetch_qt_impl(repository_ctx):
 
     result = repository_ctx.execute(
       [build_script, src_dir, build_dir, "."],
-      timeout=43200,  # This can take a long time...
+      timeout=140000,  # This can take a long time...
       environment = env,
     )
     if result.return_code:
