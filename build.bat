@@ -25,7 +25,6 @@ rem https://github.com/docker/for-win/issues/829
 @echo off
 docker run^
     --rm --name reify-build-env-instance^
-    -it^
     --memory 32gb^
     --storage-opt size=80G^
     --mount type=bind,source=%HOST_SRC_DIR%,target=C:\build\src^
