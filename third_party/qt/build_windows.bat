@@ -78,7 +78,7 @@ IF NOT EXIST "%BUILD_DIR%" (
 REM Install Qt.
 echo Installing Qt...
 cd %BUILD_DIR%
-REM CALL jom install
+CALL jom install
 REM IF %ERRORLEVEL% NEQ 0 EXIT 1
 
 echo Done installing Qt.
