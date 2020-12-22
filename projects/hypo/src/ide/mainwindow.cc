@@ -1,6 +1,6 @@
 #include "src/ide/mainwindow.h"
 
-#include <QWebEngineView>
+#include <qwebengineview.h>
 
 #include "src/ide/ui_mainwindow.h"
 

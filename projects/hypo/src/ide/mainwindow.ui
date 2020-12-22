@@ -42,7 +42,7 @@
   <customwidget>
    <class>QWebEngineView</class>
    <extends>QWidget</extends>
-   <header>QWebEngineView.h</header>
+   <header>qwebengineview.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
