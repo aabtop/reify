@@ -106,6 +106,7 @@ _package_runtime_files = rule(
     },
 )
 
+# When going through qt_cc_binary, we ensure
 def qt_cc_binary(name, srcs, qt_dep, deps):
     runtime_files_name = name + "_runtime_files"
     _package_runtime_files(
@@ -120,4 +121,65 @@ def qt_cc_binary(name, srcs, qt_dep, deps):
         srcs = srcs,
         deps = [qt_dep + "_lib"] + deps,
         data = [":" + runtime_files_name],
+    )
+
+def __qt_resource_impl(ctx):
+    # Strip the "/BUILD", there's probably a better way but I don't know what it
+    # is.
+    package_dir = ctx.build_file_path[:-5]
+
+    linked_assets = []
+    for x in ctx.files.srcs:
+        if not x.path.startswith(package_dir):
+            fail("Resources must be relative to package.")
+        # The Qt rcc tool wants all the assets to be specified relative to the
+        # qrc file, which we are generating.  So, symlink over all of its assets
+        # so they are in trivial paths relative to the generated qrc file.
+        out_path = ctx.actions.declare_file(x.path.replace(package_dir, ""))
+        ctx.actions.symlink(output = out_path, target_file = x)
+        linked_assets.append(out_path)
+
+    file_list = "\n".join([
+        '<file alias="{}">{}</file>'.format(x.path, x.path[len(package_dir):]) for x in ctx.files.srcs])
+
+    qrc_content = """
+        <RCC>
+            <qresource prefix="{prefix}">
+{file_list}
+            </qresource>
+        </RCC>
+    """.format(prefix = ctx.attr.prefix, file_list = file_list)
+
+    qrc_file = ctx.actions.declare_file(ctx.label.name + ".qrc")
+    out_file = ctx.actions.declare_file(ctx.label.name + ".qrc.cc")
+
+    ctx.actions.write(qrc_file, qrc_content)
+
+    ctx.actions.run(
+        outputs = [out_file],
+        inputs = linked_assets + [qrc_file],
+        tools = [ctx.executable.rcc],
+        arguments = ["-name", ctx.label.name, "-o", out_file.path, qrc_file.path],
+        executable = ctx.executable.rcc,
+    )
+
+    return DefaultInfo(files = depset([out_file]))
+
+
+_qt_resource = rule(
+    implementation = __qt_resource_impl,
+    attrs = {
+        "prefix": attr.string(mandatory = True, default = "/"),
+        "srcs": attr.label_list(mandatory = True, allow_files = True),
+        "rcc": attr.label(default = "@qt//:rcc", allow_single_file = True, executable = True, cfg = "exec"),
+    },
+)
+
+def qt_resource(name, srcs, prefix="/"):
+    cc_name = name + "_cc"
+    _qt_resource(name = cc_name, srcs = srcs, prefix = prefix)
+    native.cc_library(
+        name = name,
+        alwayslink = True,
+        srcs = [":" + cc_name],
     )

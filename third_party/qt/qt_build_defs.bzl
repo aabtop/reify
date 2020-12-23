@@ -126,3 +126,11 @@ def define_qt_targets():
         }),
         visibility = ["//visibility:public"],
     )
+    native.alias(
+        name = "rcc",
+        actual = select({
+            "@bazel_tools//src/conditions:windows": "bin/rcc.exe",
+            "//conditions:default": "bin/rcc",
+        }),
+        visibility = ["//visibility:public"],
+    )

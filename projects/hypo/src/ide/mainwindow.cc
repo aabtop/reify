@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
   ui->setupUi(this);
 
-  ui->editor->load(QUrl("qrc:/resources/monaco-wrapper/index.html"));
+  ui->editor->load(QUrl("qrc:/src/ide/site/index.html"));
   ui->editor->show();
 }
 
