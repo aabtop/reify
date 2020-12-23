@@ -3,6 +3,7 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@reify//third_party/v8:v8_repository_rules.bzl", "fetch_v8")
+load("@reify//third_party/qt:qt_repository_rules.bzl", "fetch_qt")
 
 def reify_deps1():
     # Setup NPM repositories required to build the `tsc_wrapper`.
@@ -39,4 +40,8 @@ def reify_deps1():
     fetch_v8(
         name = "v8",
         branch = "8.6.395.10",
+    )
+
+    fetch_qt(
+        name = "qt",
     )
