@@ -129,18 +129,27 @@ def __qt_resource_impl(ctx):
     package_dir = ctx.build_file_path[:-5]
 
     linked_assets = []
+    workspace_relative_paths = []
     for x in ctx.files.srcs:
-        if not x.path.startswith(package_dir):
-            fail("Resources must be relative to package.")
-        # The Qt rcc tool wants all the assets to be specified relative to the
-        # qrc file, which we are generating.  So, symlink over all of its assets
-        # so they are in trivial paths relative to the generated qrc file.
-        out_path = ctx.actions.declare_file(x.path.replace(package_dir, ""))
-        ctx.actions.symlink(output = out_path, target_file = x)
-        linked_assets.append(out_path)
+        workspace_relative_path = x.path
+        if x.path.startswith(ctx.bin_dir.path):
+            workspace_relative_path = x.path[len(ctx.bin_dir.path) + 1:]
+            linked_assets.append(x)
+        else:
+            # The Qt rcc tool wants all the assets to be specified relative to the
+            # qrc file, which we are generating.  So, symlink over all of its assets
+            # so they are in trivial paths relative to the generated qrc file.
+            out_path = ctx.actions.declare_file(workspace_relative_path.replace(package_dir, ""))
+            ctx.actions.symlink(output = out_path, target_file = x)
+            linked_assets.append(out_path)
+
+        if not workspace_relative_path.startswith(package_dir):
+            fail("Resources must be relative to package. Resource: '{}', Package directory: '{}'.".format(workspace_relative_path, package_dir))
+
+        workspace_relative_paths.append(workspace_relative_path)
 
     file_list = "\n".join([
-        '<file alias="{}">{}</file>'.format(x.path, x.path[len(package_dir):]) for x in ctx.files.srcs])
+        '<file alias="{}">{}</file>'.format(x, x[len(package_dir):]) for x in workspace_relative_paths])
 
     qrc_content = """
         <RCC>

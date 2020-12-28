@@ -11,9 +11,14 @@ load("@rules_sh//sh:posix.bzl", "sh_posix_configure")
 
 def reify_deps2():
   yarn_install(
-      name = "npm",
+      name = "npm_tsc_wrapper",
       package_json = "@reify//src/tsc_wrapper:package.json",
       yarn_lock = "@reify//src/tsc_wrapper:yarn.lock",
+  )
+  yarn_install(
+      name = "npm_monaco_wrapper",
+      package_json = "@reify//src/monaco_wrapper:package.json",
+      yarn_lock = "@reify//src/monaco_wrapper:yarn.lock",
   )
 
   sh_posix_configure()

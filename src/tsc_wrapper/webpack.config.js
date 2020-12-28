@@ -4,7 +4,7 @@ module.exports = {
   entry: path.join(__dirname, './src/tsc_wrapper.ts'),
   output: {
     filename: 'tsc_wrapper.js',
-    path: __dirname + '/dist',
+    path: path.join(__dirname, 'dist'),
     library: 'tsc_wrapper'
   },
   module: {
@@ -15,7 +15,7 @@ module.exports = {
       },
     ]
   },
-  resolve: {extensions: ['.ts', '.js']},
+  resolve: { extensions: ['.ts', '.js'] },
   mode: 'production',
   plugins: []
 };

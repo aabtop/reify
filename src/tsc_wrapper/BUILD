@@ -1,4 +1,4 @@
-load("@npm//webpack-cli:index.bzl", webpack = "webpack_cli")
+load("@npm_tsc_wrapper//webpack-cli:index.bzl", webpack = "webpack_cli")
 
 webpack(
     name = "tsc_wrapper",
@@ -14,10 +14,10 @@ webpack(
         "tsconfig.json",
         "yarn.lock",
         "webpack.config.js",
-        "@npm//@types/node",
-        "@npm//typescript",
-        "@npm//ts-loader",
-        "@npm//raw-loader",
+        "@npm_tsc_wrapper//@types/node",
+        "@npm_tsc_wrapper//typescript",
+        "@npm_tsc_wrapper//ts-loader",
+        "@npm_tsc_wrapper//raw-loader",
     ],
     visibility = ["//visibility:public"],
 )
