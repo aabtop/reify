@@ -2,7 +2,7 @@ load("@npm_monaco_wrapper//webpack-cli:index.bzl", webpack = "webpack_cli")
 
 webpack(
     name = "monaco_wrapper",
-    outs = ["monaco_wrapper.js", "index.html", "ts.worker.js"],
+    outs = ["monaco_wrapper.js", "ts.worker.js", "editor.worker.js", "index.html"],
     args = [
         "--config",
         "$(location webpack.config.js)",
@@ -18,6 +18,8 @@ webpack(
         "@npm_monaco_wrapper//ts-loader",
         "@npm_monaco_wrapper//monaco-editor-webpack-plugin",
         "@npm_monaco_wrapper//copy-webpack-plugin",
+        "@npm_monaco_wrapper//base64-inline-loader",
+        "@npm_monaco_wrapper//webpack",
     ],
     visibility = ["//visibility:public"],
 )

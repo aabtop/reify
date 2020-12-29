@@ -13,26 +13,29 @@ qt_cc_binary(
 )
 
 copy_file(
-  name = "monaco_wrapper_js",
-  src = "@reify//src/monaco_wrapper:monaco_wrapper.js",
-  out = "monaco_wrapper.js",
-)
-copy_file(
   name = "index_html",
   src = "@reify//src/monaco_wrapper:index.html",
   out = "index.html",
+)
+copy_file(
+  name = "editor_worker_js",
+  src = "@reify//src/monaco_wrapper:editor.worker.js",
+  out = "editor.worker.js",
 )
 copy_file(
   name = "ts_worker_js",
   src = "@reify//src/monaco_wrapper:ts.worker.js",
   out = "ts.worker.js",
 )
+copy_file(
+  name = "monaco_wrapper_js",
+  src = "@reify//src/monaco_wrapper:monaco_wrapper.js",
+  out = "monaco_wrapper.js",
+)
 
 qt_resource(
   name = "monaco_wrapper_resources",
-  srcs = ["index.html",
-          "ts.worker.js",
-          "monaco_wrapper.js"],
+  srcs = ["index.html", "monaco_wrapper.js", "editor.worker.js", "ts.worker.js"],
 )
 
 qt_cc_library(
