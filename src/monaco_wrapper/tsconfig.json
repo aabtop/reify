@@ -61,6 +61,5 @@
   "exclude": [],
   "files": [
     "./src/index.ts",
-    "node_modules/monaco-editor/monaco.d.ts"
   ]
 }
