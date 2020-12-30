@@ -32,7 +32,6 @@ copy_file(
   src = "@reify//src/monaco_wrapper:monaco_wrapper.js",
   out = "monaco_wrapper.js",
 )
-
 qt_resource(
   name = "monaco_wrapper_resources",
   srcs = ["index.html", "monaco_wrapper.js", "editor.worker.js", "ts.worker.js"],
