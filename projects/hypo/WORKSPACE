@@ -2,17 +2,18 @@ workspace(
     name = "hypo",
 )
 
-
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 git_repository(
-   name = "rules_foreign_cc",
-   commit = "d54c78ab86b40770ee19f0949db9d74a831ab9f0",
-   remote = "https://github.com/bazelbuild/rules_foreign_cc",
-   shallow_since = "1603722361 +0100",
+    name = "rules_foreign_cc",
+    commit = "d54c78ab86b40770ee19f0949db9d74a831ab9f0",
+    remote = "https://github.com/bazelbuild/rules_foreign_cc",
+    shallow_since = "1603722361 +0100",
 )
+
 load("@rules_foreign_cc//:workspace_definitions.bzl", "rules_foreign_cc_dependencies")
+
 rules_foreign_cc_dependencies()
 
 all_content = """filegroup(name = "all", srcs = glob(["**"]), visibility = ["//visibility:public"])"""
@@ -20,40 +21,39 @@ all_content = """filegroup(name = "all", srcs = glob(["**"]), visibility = ["//v
 http_archive(
     name = "gmp",
     build_file_content = all_content,
-    strip_prefix = "gmp-6.2.0",
+    sha256 = "fd4829912cddd12f84181c3451cc752be224643e87fac497b69edddadc49b4f2",
+    strip_prefix = "gmp-6.2.1",
     urls = [
-        "https://mirror.bazel.build/gmplib.org/download/gmp/gmp-6.2.0.tar.gz",
-        "https://gmplib.org/download/gmp/gmp-6.2.0.tar.gz",
+        "https://gmplib.org/download/gmp/gmp-6.2.1.tar.xz",
     ],
-    sha256 = "cadd49052b740ccc3d8075c24ceaefbe5128d44246d91d0ecc818b2f78b0ec9c",
 )
 
 http_archive(
     name = "mpfr",
     build_file_content = all_content,
+    sha256 = "3127fe813218f3a1f0adf4e8899de23df33b4cf4b4b3831a5314f78e65ffa2d6",
     strip_prefix = "mpfr-4.1.0",
     urls = [
-        "https://mirror.bazel.build/www.mpfr.org/mpfr-current/mpfr-4.1.0.tar.gz",
         "https://www.mpfr.org/mpfr-current/mpfr-4.1.0.tar.gz",
     ],
-    sha256 = "3127fe813218f3a1f0adf4e8899de23df33b4cf4b4b3831a5314f78e65ffa2d6",
 )
 
 load("//:src/bazel/vcpkg.bzl", "vcpkg")
+
 vcpkg(
     name = "vcpkg",
     packages = [
-        "mpir",
         "mpfr",
+        "mpir",
     ],
 )
 
 http_archive(
     name = "cgal",
-    urls = ["https://github.com/CGAL/cgal/releases/download/v5.1/CGAL-5.1.tar.xz"],
-    sha256 = "94779e80db978c01768a1b62889ddcfcf74dababa70b73d1e493823d273e0ab7",
     build_file = "@//:src/bazel/cgal.BUILD",
+    sha256 = "94779e80db978c01768a1b62889ddcfcf74dababa70b73d1e493823d273e0ab7",
     strip_prefix = "/CGAL-5.1",
+    urls = ["https://github.com/CGAL/cgal/releases/download/v5.1/CGAL-5.1.tar.xz"],
 )
 
 git_repository(
@@ -64,6 +64,7 @@ git_repository(
 )
 
 load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
+
 boost_deps()
 
 local_repository(
@@ -72,6 +73,9 @@ local_repository(
 )
 
 load("@reify//:src/bazel/reify_deps1.bzl", "reify_deps1")
+
 reify_deps1()
+
 load("@reify//:src/bazel/reify_deps2.bzl", "reify_deps2")
+
 reify_deps2()
