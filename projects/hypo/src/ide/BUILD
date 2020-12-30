@@ -44,6 +44,15 @@ qt_cc_library(
   ],
   hdr = "mainwindow.h",
   ui_src = "mainwindow.ui",
-  deps = [":monaco_wrapper_resources",],
+  deps = [":monaco_wrapper_resources", ":web_interface",],
+  qt_dep = "@qt//:qt",
+)
+
+qt_cc_library(
+  name = "web_interface",
+  srcs = [
+    "web_interface.cc",
+  ],
+  hdr = "web_interface.h",
   qt_dep = "@qt//:qt",
 )

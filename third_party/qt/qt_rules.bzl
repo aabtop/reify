@@ -63,18 +63,19 @@ def qt_moc_src(name, hdr_src):
         package_name = native.package_name(),
     )
 
-def qt_cc_library(name, srcs, hdr, ui_src, qt_dep, deps = [], **kwargs):
+def qt_cc_library(name, srcs, hdr, qt_dep, ui_src = None, deps = [], **kwargs):
     moc_target_name = "{}_moc".format(name)
     qt_moc_src(moc_target_name, hdr)
 
-    uic_target_name = "{}_ui".format(name)
-    qt_ui_header(uic_target_name, ui_src)
+    if ui_src:
+        uic_target_name = "{}_ui".format(name)
+        qt_ui_header(uic_target_name, ui_src)
 
     native.cc_library(
         name = name,
         srcs = srcs + [":" + moc_target_name],
         hdrs = [hdr],
-        deps = [qt_dep + "_lib"] + deps + [":" + uic_target_name],
+        deps = [qt_dep + "_lib"] + deps + ([":" + uic_target_name] if ui_src else []),
         **kwargs
     )
 
