@@ -2,6 +2,9 @@
 #define MAINWINDOW_H
 
 #include <qmainwindow.h>
+#include <qwebchannel.h>
+
+#include "src/ide/web_interface.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -26,6 +29,8 @@ class MainWindow : public QMainWindow {
   void on_actionAbout_triggered();
 
  private:
-  Ui::MainWindow* ui;
+  std::unique_ptr<Ui::MainWindow> ui_;
+  std::unique_ptr<QWebChannel> web_channel_;
+  std::unique_ptr<WebInterface> monaco_interface_;
 };
 #endif  // MAINWINDOW_H

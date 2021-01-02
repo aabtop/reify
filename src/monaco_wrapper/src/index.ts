@@ -25,8 +25,8 @@ declare class QWebChannel {
 }
 declare var qt: any;
 new QWebChannel(qt.webChannelTransport, function (channel: QWebChannel) {
-  var test_object = channel.objects.test_object;
-  test_object.dataChanged.connect((x: string) => {
+  var monaco_qt_bridge = channel.objects.monaco_qt_bridge;
+  monaco_qt_bridge.dataChanged.connect((x: string) => {
     console.log("hi there");
     editor.setValue(x);
   });

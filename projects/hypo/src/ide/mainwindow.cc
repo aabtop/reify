@@ -1,6 +1,5 @@
 #include "src/ide/mainwindow.h"
 
-#include <qwebchannel.h>
 #include <qwebengineview.h>
 
 #include <iostream>
@@ -10,23 +9,24 @@
 #include "src/ide/web_interface.h"
 
 MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow) {
-  ui->setupUi(this);
+    : QMainWindow(parent), ui_(new Ui::MainWindow) {
+  ui_->setupUi(this);
 
-  QWebChannel* channel = new QWebChannel(ui->editor->page());
-  ui->editor->page()->setWebChannel(channel);
+  web_channel_.reset(new QWebChannel(ui_->editor->page()));
+  ui_->editor->page()->setWebChannel(web_channel_.get());
 
-  WebInterface* test_object = new WebInterface(this);
-  channel->registerObject(QStringLiteral("test_object"), test_object);
+  monaco_interface_.reset(new WebInterface(this));
+  web_channel_->registerObject(QStringLiteral("monaco_qt_bridge"),
+                               monaco_interface_.get());
 
-  ui->editor->load(QUrl("qrc:/src/ide/index.html"));
-  ui->editor->show();
+  ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
+  ui_->editor->show();
 
-  connect(ui->pushButton, SIGNAL(clicked()), test_object,
+  connect(ui_->pushButton, SIGNAL(clicked()), monaco_interface_.get(),
           SLOT(generateRandomData()));
 }
 
-MainWindow::~MainWindow() { delete ui; }
+MainWindow::~MainWindow() {}
 
 void MainWindow::on_actionNew_triggered() {
   std::cout << "on_actionNew_triggered." << std::endl;
