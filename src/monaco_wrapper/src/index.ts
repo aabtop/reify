@@ -19,6 +19,8 @@ let editor = monaco.editor.create(container, {
   language: 'typescript'
 });
 
+let current_filepath = '';
+
 declare class QWebChannel {
   constructor(transport: any, initCallback: (channel: QWebChannel) => void);
   objects: any;
@@ -26,8 +28,14 @@ declare class QWebChannel {
 declare var qt: any;
 new QWebChannel(qt.webChannelTransport, function (channel: QWebChannel) {
   var monaco_qt_bridge = channel.objects.monaco_qt_bridge;
-  monaco_qt_bridge.dataChanged.connect((x: string) => {
-    console.log("hi there");
-    editor.setValue(x);
+
+  monaco_qt_bridge.NewFile.connect(() => {
+    current_filepath = '';
+    editor.setValue('');
+  });
+
+  monaco_qt_bridge.SaveAs.connect((filepath: string) => {
+    current_filepath = filepath;
+    monaco_qt_bridge.SaveAsReply(filepath, editor.getValue());
   });
 });

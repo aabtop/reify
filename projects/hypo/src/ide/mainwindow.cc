@@ -1,5 +1,6 @@
 #include "src/ide/mainwindow.h"
 
+#include <qfiledialog.h>
 #include <qwebengineview.h>
 
 #include <iostream>
@@ -19,31 +20,54 @@ MainWindow::MainWindow(QWidget* parent)
   web_channel_->registerObject(QStringLiteral("monaco_qt_bridge"),
                                monaco_interface_.get());
 
+  connect(monaco_interface_.get(),
+          SIGNAL(OnSaveAsReply(const QString&, const QString&)), this,
+          SLOT(SaveAsReply(const QString&, const QString&)));
+
   ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
   ui_->editor->show();
-
-  connect(ui_->pushButton, SIGNAL(clicked()), monaco_interface_.get(),
-          SLOT(generateRandomData()));
 }
 
 MainWindow::~MainWindow() {}
 
 void MainWindow::on_actionNew_triggered() {
-  std::cout << "on_actionNew_triggered." << std::endl;
+  current_filepath_ = std::nullopt;
+  emit monaco_interface_->NewFile();
 }
+
 void MainWindow::on_actionOpen_triggered() {
   std::cout << "on_actionOpen_triggered." << std::endl;
 }
+
 void MainWindow::on_actionSave_triggered() {
-  std::cout << "on_actionSave_triggered." << std::endl;
+  if (current_filepath_) {
+    emit monaco_interface_->SaveAs(QString(current_filepath_->c_str()));
+  } else {
+    on_actionSave_As_triggered();
+  }
 }
+
 void MainWindow::on_actionSave_As_triggered() {
-  std::cout << "on_actionSave_As_triggered." << std::endl;
+  QString filepath = QFileDialog::getSaveFileName(
+      this, tr("Save As..."), "", tr("Typescript (*.ts);;All Files (*)"));
+
+  if (filepath.isEmpty()) {
+    return;
+  }
+
+  current_filepath_ = filepath.toStdString();
+  emit monaco_interface_->SaveAs(filepath);
 }
-void MainWindow::on_actionExit_triggered() {
-  std::cout << "on_actionExit_triggered." << std::endl;
-}
+
+void MainWindow::on_actionExit_triggered() { close(); }
+
 void MainWindow::on_actionAbout_triggered() {
   AboutDialog about_dialog;
   about_dialog.exec();
+}
+
+void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
+  std::cout << "SaveAsReply: " << std::endl;
+  std::cout << "  Filepath: " << filepath.toStdString() << std::endl;
+  std::cout << "  Content: " << content.toStdString() << std::endl;
 }

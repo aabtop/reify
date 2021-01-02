@@ -1,7 +1,10 @@
 #include "src/ide/web_interface.h"
 
+#include <iostream>
+
 WebInterface::WebInterface(QWidget* parent) : QObject(parent) {}
 
-void WebInterface::ChangeData(const QString& data) { emit dataChanged(data); }
-
-void WebInterface::generateRandomData() { ChangeData("Foobar"); }
+void WebInterface::SaveAsReply(const QString& filepath,
+                               const QString& content) {
+  emit OnSaveAsReply(filepath, content);
+}

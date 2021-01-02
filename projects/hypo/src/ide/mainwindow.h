@@ -4,6 +4,9 @@
 #include <qmainwindow.h>
 #include <qwebchannel.h>
 
+#include <optional>
+#include <string>
+
 #include "src/ide/web_interface.h"
 
 QT_BEGIN_NAMESPACE
@@ -28,9 +31,13 @@ class MainWindow : public QMainWindow {
 
   void on_actionAbout_triggered();
 
+  void SaveAsReply(const QString& filepath, const QString& content);
+
  private:
   std::unique_ptr<Ui::MainWindow> ui_;
   std::unique_ptr<QWebChannel> web_channel_;
   std::unique_ptr<WebInterface> monaco_interface_;
+
+  std::optional<std::string> current_filepath_;
 };
 #endif  // MAINWINDOW_H

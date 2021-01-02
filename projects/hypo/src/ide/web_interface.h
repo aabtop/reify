@@ -1,6 +1,7 @@
 #ifndef WEB_INTERFACE_H_
 #define WEB_INTERFACE_H_
 
+#include <qfuture.h>
 #include <qobject.h>
 #include <qwidget.h>
 
@@ -10,13 +11,18 @@ class WebInterface : public QObject {
  public:
   WebInterface(QWidget* parent = Q_NULLPTR);
 
-  void ChangeData(const QString& data);
-
  public slots:
-  void generateRandomData();
+  void SaveAsReply(const QString& filepath,
+                   const QString& content);  // Called by the QWebEngine.
 
  signals:
-  void dataChanged(const QString& data);
+  // Signals emitted by C++.
+  void NewFile();
+  void SaveAs(const QString& filepath);
+
+  // Signals emitted by the QWebEngine.
+  void OnSaveAsReply(const QString& filepath,
+                     const QString& content);  // Fired in response to SaveAs().
 };
 
 #endif  // WEB_INTERFACE_H_
