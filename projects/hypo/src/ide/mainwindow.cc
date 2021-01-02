@@ -55,6 +55,7 @@ void MainWindow::on_actionOpen_triggered() {
     return;
   }
 
+  current_filepath_ = filepath.toStdString();
   emit monaco_interface_->Open(filepath, QString(content.str().c_str()));
 }
 
