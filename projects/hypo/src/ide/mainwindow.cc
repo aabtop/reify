@@ -5,7 +5,6 @@
 #include <qwebengineview.h>
 
 #include <fstream>
-#include <iostream>
 #include <sstream>
 
 #include "src/ide/about_dialog.h"
