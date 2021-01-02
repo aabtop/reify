@@ -34,6 +34,10 @@ class MainWindow : public QMainWindow {
   void SaveAsReply(const QString& filepath, const QString& content);
 
  private:
+  void OnCurrentFileChanged();
+
+  QString default_title_;
+
   std::unique_ptr<Ui::MainWindow> ui_;
   std::unique_ptr<QWebChannel> web_channel_;
   std::unique_ptr<WebInterface> monaco_interface_;

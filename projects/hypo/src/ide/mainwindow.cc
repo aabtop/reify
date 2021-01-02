@@ -14,6 +14,7 @@
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), ui_(new Ui::MainWindow) {
   ui_->setupUi(this);
+  default_title_ = windowTitle();
 
   web_channel_.reset(new QWebChannel(ui_->editor->page()));
   ui_->editor->page()->setWebChannel(web_channel_.get());
@@ -34,6 +35,7 @@ MainWindow::~MainWindow() {}
 
 void MainWindow::on_actionNew_triggered() {
   current_filepath_ = std::nullopt;
+  OnCurrentFileChanged();
   emit monaco_interface_->NewFile();
 }
 
@@ -56,6 +58,7 @@ void MainWindow::on_actionOpen_triggered() {
   }
 
   current_filepath_ = filepath.toStdString();
+  OnCurrentFileChanged();
   emit monaco_interface_->Open(filepath, QString(content.str().c_str()));
 }
 
@@ -76,6 +79,7 @@ void MainWindow::on_actionSave_As_triggered() {
   }
 
   current_filepath_ = filepath.toStdString();
+  OnCurrentFileChanged();
   emit monaco_interface_->SaveAs(filepath);
 }
 
@@ -94,5 +98,14 @@ void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
     QMessageBox::warning(this, "Error saving file",
                          "Error while attempting to save to file " + filepath);
     return;
+  }
+}
+
+void MainWindow::OnCurrentFileChanged() {
+  if (current_filepath_) {
+    setWindowTitle(default_title_ + " - " +
+                   QString(current_filepath_->c_str()));
+  } else {
+    setWindowTitle(default_title_);
   }
 }
