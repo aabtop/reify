@@ -1,9 +1,12 @@
 #include "src/ide/mainwindow.h"
 
 #include <qfiledialog.h>
+#include <qmessagebox.h>
 #include <qwebengineview.h>
 
+#include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include "src/ide/about_dialog.h"
 #include "src/ide/ui_mainwindow.h"
@@ -36,7 +39,24 @@ void MainWindow::on_actionNew_triggered() {
 }
 
 void MainWindow::on_actionOpen_triggered() {
-  std::cout << "on_actionOpen_triggered." << std::endl;
+  QString filepath = QFileDialog::getOpenFileName(
+      this, tr("Open"), "", tr("Typescript (*.ts);;All Files (*)"));
+
+  if (filepath.isEmpty()) {
+    return;
+  }
+
+  std::ifstream file(filepath.toStdString().c_str());
+  std::stringstream content;
+  content << file.rdbuf();
+
+  if (file.fail()) {
+    QMessageBox::warning(this, "Error opening file",
+                         "Error while attempting to open file " + filepath);
+    return;
+  }
+
+  emit monaco_interface_->Open(filepath, QString(content.str().c_str()));
 }
 
 void MainWindow::on_actionSave_triggered() {
@@ -67,7 +87,12 @@ void MainWindow::on_actionAbout_triggered() {
 }
 
 void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
-  std::cout << "SaveAsReply: " << std::endl;
-  std::cout << "  Filepath: " << filepath.toStdString() << std::endl;
-  std::cout << "  Content: " << content.toStdString() << std::endl;
+  std::ofstream file(filepath.toStdString().c_str());
+  file << content.toStdString();
+
+  if (file.fail()) {
+    QMessageBox::warning(this, "Error saving file",
+                         "Error while attempting to save to file " + filepath);
+    return;
+  }
 }

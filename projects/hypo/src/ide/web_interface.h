@@ -19,6 +19,7 @@ class WebInterface : public QObject {
   // Signals emitted by C++.
   void NewFile();
   void SaveAs(const QString& filepath);
+  void Open(const QString& filepath, const QString& content);
 
   // Signals emitted by the QWebEngine.
   void OnSaveAsReply(const QString& filepath,

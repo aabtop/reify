@@ -38,4 +38,9 @@ new QWebChannel(qt.webChannelTransport, function (channel: QWebChannel) {
     current_filepath = filepath;
     monaco_qt_bridge.SaveAsReply(filepath, editor.getValue());
   });
+
+  monaco_qt_bridge.Open.connect((filepath: string, content: string) => {
+    current_filepath = filepath;
+    editor.setValue(content);
+  });
 });
