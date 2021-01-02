@@ -44,7 +44,7 @@ qt_cc_library(
   ],
   hdr = "mainwindow.h",
   ui_src = "mainwindow.ui",
-  deps = [":monaco_wrapper_resources", ":web_interface",],
+  deps = [":monaco_wrapper_resources", ":web_interface", ":about_dialog"],
   qt_dep = "@qt//:qt",
 )
 
@@ -54,5 +54,15 @@ qt_cc_library(
     "web_interface.cc",
   ],
   hdr = "web_interface.h",
+  qt_dep = "@qt//:qt",
+)
+
+qt_cc_library(
+  name = "about_dialog",
+  srcs = [
+    "about_dialog.cc",
+  ],
+  hdr = "about_dialog.h",
+  ui_src = "about_dialog.ui",
   qt_dep = "@qt//:qt",
 )
