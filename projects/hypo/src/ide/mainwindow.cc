@@ -2,6 +2,7 @@
 
 #include <qfiledialog.h>
 #include <qmessagebox.h>
+#include <qprogressbar.h>
 #include <qwebengineview.h>
 
 #include <fstream>
@@ -29,6 +30,13 @@ MainWindow::MainWindow(QWidget* parent)
 
   ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
   ui_->editor->show();
+
+  progress_bar_.reset(new QProgressBar(this));
+  statusBar()->addPermanentWidget(progress_bar_.get());
+  progress_bar_->setMaximum(0);
+  progress_bar_->setMinimum(0);
+  progress_bar_->setValue(0);
+  statusBar()->showMessage(tr("Loading"));
 }
 
 MainWindow::~MainWindow() {}

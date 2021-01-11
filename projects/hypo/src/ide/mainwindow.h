@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <qmainwindow.h>
+#include <qprogressbar.h>
 #include <qwebchannel.h>
 
 #include <optional>
@@ -43,5 +44,7 @@ class MainWindow : public QMainWindow {
   std::unique_ptr<WebInterface> monaco_interface_;
 
   std::optional<std::string> current_filepath_;
+
+  std::unique_ptr<QProgressBar> progress_bar_;
 };
 #endif  // MAINWINDOW_H
