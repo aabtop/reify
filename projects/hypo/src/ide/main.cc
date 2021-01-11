@@ -1,7 +1,7 @@
 #include <QApplication>
 #include <QWebEngineView>
 
-#include "src/ide/mainwindow.h"
+#include "src/ide/main_window.h"
 
 int main(int argc, char* argv[]) {
   QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);

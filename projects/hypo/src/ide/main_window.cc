@@ -1,4 +1,4 @@
-#include "src/ide/mainwindow.h"
+#include "src/ide/main_window.h"
 
 #include <qfiledialog.h>
 #include <qmessagebox.h>
@@ -9,7 +9,7 @@
 #include <sstream>
 
 #include "src/ide/about_dialog.h"
-#include "src/ide/ui_mainwindow.h"
+#include "src/ide/ui_main_window.h"
 #include "src/ide/web_interface.h"
 
 MainWindow::MainWindow(QWidget* parent)

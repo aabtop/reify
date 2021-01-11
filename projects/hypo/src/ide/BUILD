@@ -7,7 +7,7 @@ qt_cc_binary(
     "main.cc",
   ],
   deps = [
-    ":mainwindow",
+    ":main_window",
   ],
   qt_dep = "@qt//:qt",
 )
@@ -38,12 +38,12 @@ qt_resource(
 )
 
 qt_cc_library(
-  name = "mainwindow",
+  name = "main_window",
   srcs = [
-    "mainwindow.cc",
+    "main_window.cc",
   ],
-  hdr = "mainwindow.h",
-  ui_src = "mainwindow.ui",
+  hdr = "main_window.h",
+  ui_src = "main_window.ui",
   deps = [":monaco_wrapper_resources", ":web_interface", ":about_dialog"],
   qt_dep = "@qt//:qt",
 )
