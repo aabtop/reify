@@ -99,7 +99,6 @@
     </item>
    </layout>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
@@ -126,9 +125,18 @@
     </property>
     <addaction name="actionAbout"/>
    </widget>
+   <widget class="QMenu" name="menuBuild">
+    <property name="title">
+     <string>Build</string>
+    </property>
+    <addaction name="actionBuild"/>
+    <addaction name="actionCompile"/>
+   </widget>
    <addaction name="menu_File"/>
+   <addaction name="menuBuild"/>
    <addaction name="menuHelp"/>
   </widget>
+  <widget class="QStatusBar" name="statusBar"/>
   <action name="actionNew">
    <property name="text">
     <string>&amp;New</string>
@@ -171,8 +179,22 @@
     <string>About</string>
    </property>
   </action>
-  <widget class="QStatusBar" name="statusBar">
-  </widget>
+  <action name="actionBuild">
+   <property name="text">
+    <string>Build</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
+   </property>
+  </action>
+  <action name="actionCompile">
+   <property name="text">
+    <string>&amp;Compile</string>
+   </property>
+   <property name="shortcut">
+    <string>F7</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

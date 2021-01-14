@@ -30,12 +30,22 @@ class MainWindow : public QMainWindow {
   void on_actionSave_As_triggered();
   void on_actionExit_triggered();
 
+  void on_actionBuild_triggered();
+  void on_actionCompile_triggered();
+
   void on_actionAbout_triggered();
 
   void SaveAsReply(const QString& filepath, const QString& content);
 
  private:
   void OnCurrentFileChanged();
+  bool Save(const std::optional<std::function<void()>>& save_complete_callback);
+  bool SaveAs(
+      const std::optional<std::function<void()>>& save_complete_callback);
+  bool Compile(
+      const std::optional<std::function<void()>>& compile_complete_callback);
+  bool Build(
+      const std::optional<std::function<void()>>& build_complete_callback);
 
   QString default_title_;
 
@@ -46,5 +56,7 @@ class MainWindow : public QMainWindow {
   std::optional<std::string> current_filepath_;
 
   std::unique_ptr<QProgressBar> progress_bar_;
+
+  std::optional<std::function<void()>> save_complete_callback_;
 };
 #endif  // MAINWINDOW_H

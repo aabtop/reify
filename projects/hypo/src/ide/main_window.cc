@@ -70,28 +70,14 @@ void MainWindow::on_actionOpen_triggered() {
   emit monaco_interface_->Open(filepath, QString(content.str().c_str()));
 }
 
-void MainWindow::on_actionSave_triggered() {
-  if (current_filepath_) {
-    emit monaco_interface_->SaveAs(QString(current_filepath_->c_str()));
-  } else {
-    on_actionSave_As_triggered();
-  }
-}
+void MainWindow::on_actionSave_triggered() { Save(std::nullopt); }
 
-void MainWindow::on_actionSave_As_triggered() {
-  QString filepath = QFileDialog::getSaveFileName(
-      this, tr("Save As..."), "", tr("Typescript (*.ts);;All Files (*)"));
-
-  if (filepath.isEmpty()) {
-    return;
-  }
-
-  current_filepath_ = filepath.toStdString();
-  OnCurrentFileChanged();
-  emit monaco_interface_->SaveAs(filepath);
-}
+void MainWindow::on_actionSave_As_triggered() { SaveAs(std::nullopt); }
 
 void MainWindow::on_actionExit_triggered() { close(); }
+
+void MainWindow::on_actionBuild_triggered() { Build(std::nullopt); }
+void MainWindow::on_actionCompile_triggered() { Compile(std::nullopt); }
 
 void MainWindow::on_actionAbout_triggered() {
   AboutDialog about_dialog;
@@ -99,6 +85,10 @@ void MainWindow::on_actionAbout_triggered() {
 }
 
 void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
+  std::optional<std::function<void()>> save_complete_callback =
+      std::move(save_complete_callback_);
+  save_complete_callback_.reset();
+
   std::ofstream file(filepath.toStdString().c_str());
   file << content.toStdString();
 
@@ -106,6 +96,10 @@ void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
     QMessageBox::warning(this, "Error saving file",
                          "Error while attempting to save to file " + filepath);
     return;
+  }
+
+  if (save_complete_callback) {
+    (*save_complete_callback)();
   }
 }
 
@@ -116,4 +110,69 @@ void MainWindow::OnCurrentFileChanged() {
   } else {
     setWindowTitle(default_title_);
   }
+}
+
+bool MainWindow::Save(
+    const std::optional<std::function<void()>>& save_complete_callback) {
+  if (current_filepath_) {
+    emit monaco_interface_->SaveAs(QString(current_filepath_->c_str()));
+    save_complete_callback_ = save_complete_callback;
+    return true;
+  } else {
+    return SaveAs(save_complete_callback);
+  }
+}
+
+bool MainWindow::SaveAs(
+    const std::optional<std::function<void()>>& save_complete_callback) {
+  if (save_complete_callback_) {
+    return false;
+  }
+
+  QString filepath = QFileDialog::getSaveFileName(
+      this, tr("Save As..."), "", tr("Typescript (*.ts);;All Files (*)"));
+
+  if (filepath.isEmpty()) {
+    return false;
+  }
+
+  current_filepath_ = filepath.toStdString();
+  OnCurrentFileChanged();
+  emit monaco_interface_->SaveAs(filepath);
+
+  save_complete_callback_ = save_complete_callback;
+  return true;
+}
+
+bool MainWindow::Compile(
+    const std::optional<std::function<void()>>& compile_complete_callback) {
+  auto save_complete_callback = [compile_complete_callback]() {
+    // TODO: Make or reference a virtual file system based on the current
+    // workspace.
+
+    // TODO: Kick off, in a parallel thread, the compilation process.  Save
+    // results somewhere when complete, and populate the combo box based on
+    // the resulting exported symbols.
+
+    if (compile_complete_callback) {
+      (*compile_complete_callback)();
+    }
+  };
+
+  return Save(save_complete_callback);
+}
+
+bool MainWindow::Build(
+    const std::optional<std::function<void()>>& build_complete_callback) {
+  auto compile_complete_callback = [build_complete_callback]() {
+    // TODO: Kick off a parallel thread to:
+    //         1. Call the selected export to obtain the data.
+    //         2. Pass data along into builder system.
+    //         3. Pass builder output along into renderer system.
+    if (build_complete_callback) {
+      (*build_complete_callback)();
+    }
+  };
+
+  return Compile(compile_complete_callback);
 }
