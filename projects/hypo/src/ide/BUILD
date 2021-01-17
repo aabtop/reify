@@ -40,7 +40,10 @@ qt_resource(
 cc_library(
   name = "project",
   srcs = ["project.cc"],
-  hdrs = ["project.h"],
+  hdrs = [
+    "project.h",
+    "thread_checker.h"
+  ],
   deps = ["@reify//src/idt/targets/typescript_cpp_v8:core"],
 )
 

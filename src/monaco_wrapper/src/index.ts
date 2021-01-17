@@ -12,9 +12,11 @@ let editor = monaco.editor.create(container, {
   // We want the editor to be automatically resized as its container is resized.
   automaticLayout: true,
   value: [
+    'import * as h from \'hypo\';',
+    '',
     'function x() {',
-    '\tconsole.log("Hello world!");',
-    '}'
+    '}',
+    '',
   ].join('\n'),
   language: 'typescript'
 });

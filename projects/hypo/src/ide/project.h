@@ -6,6 +6,7 @@
 #include <variant>
 
 #include "reify/typescript_cpp_v8.h"
+#include "src/ide/thread_checker.h"
 
 class Project {
  public:
@@ -18,6 +19,7 @@ class Project {
   CompileFile(const std::filesystem::path& filepath);
 
  private:
+  ThreadChecker thread_checker_;
   std::filesystem::path current_filepath_;
   const std::vector<reify::CompilerEnvironment::InputModule>
       initial_input_modules_;

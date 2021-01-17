@@ -129,6 +129,9 @@ export function TranspileModule(
     lib: LIB_MODULES.map(x => x[0]),
     strict: true,
     noErrorTruncation: true,
+    // This makes it so that TSC gives a reasonable error when the user tries
+    // to compile an empty file.  Without this, TSC would throw an exception
+    // instead.
     isolatedModules: true,
     baseUrl: '/',
   };
