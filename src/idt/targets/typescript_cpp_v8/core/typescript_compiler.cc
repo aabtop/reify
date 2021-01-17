@@ -394,11 +394,13 @@ auto TypeScriptCompiler::TranspileToJavaScript(
            .ToLocal(&call_return_value) ||
       !call_return_value->IsObject()) {
     context->SetAlignedPointerInEmbedderData(1, nullptr);
+    v8::String::Utf8Value error_string(
+        isolate_, try_catch.StackTrace(context).ToLocalChecked());
     return Error{
-        diagnostics_path,
+        "Internal Error",
         0,
         0,
-        ToStdString(isolate_, try_catch.Exception()),
+        std::string(*error_string, error_string.length()),
     };
   }
 

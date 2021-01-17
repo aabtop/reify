@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 
+#include "reify/typescript_cpp_v8/hypo.h"
 #include "src/ide/about_dialog.h"
 #include "src/ide/ui_main_window.h"
 #include "src/ide/web_interface.h"
@@ -89,13 +90,19 @@ void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
       std::move(save_complete_callback_);
   save_complete_callback_.reset();
 
-  std::ofstream file(filepath.toStdString().c_str());
-  file << content.toStdString();
+  {
+    std::ofstream file(filepath.toStdString().c_str());
+    file << content.toStdString();
 
-  if (file.fail()) {
-    QMessageBox::warning(this, "Error saving file",
-                         "Error while attempting to save to file " + filepath);
-    return;
+    if (file.fail()) {
+      QMessageBox::warning(
+          this, "Error saving file",
+          "Error while attempting to save to file " + filepath);
+      return;
+    }
+
+    // We need to ensure that the file is closed before we call any callbacks,
+    // which may rely on the contents being flushed.
   }
 
   if (save_complete_callback) {
@@ -105,9 +112,12 @@ void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
 
 void MainWindow::OnCurrentFileChanged() {
   if (current_filepath_) {
+    project_.emplace(*current_filepath_,
+                     reify::typescript_cpp_v8::hypo::typescript_declarations());
     setWindowTitle(default_title_ + " - " +
-                   QString(current_filepath_->c_str()));
+                   QString(current_filepath_->string().c_str()));
   } else {
+    project_.reset();
     setWindowTitle(default_title_);
   }
 }
@@ -115,7 +125,8 @@ void MainWindow::OnCurrentFileChanged() {
 bool MainWindow::Save(
     const std::optional<std::function<void()>>& save_complete_callback) {
   if (current_filepath_) {
-    emit monaco_interface_->SaveAs(QString(current_filepath_->c_str()));
+    emit monaco_interface_->SaveAs(
+        QString(current_filepath_->string().c_str()));
     save_complete_callback_ = save_complete_callback;
     return true;
   } else {
@@ -146,13 +157,26 @@ bool MainWindow::SaveAs(
 
 bool MainWindow::Compile(
     const std::optional<std::function<void()>>& compile_complete_callback) {
-  auto save_complete_callback = [compile_complete_callback]() {
-    // TODO: Make or reference a virtual file system based on the current
-    // workspace.
+  auto save_complete_callback = [compile_complete_callback, this]() {
+    if (!current_filepath_) {
+      QMessageBox::warning(this, "Error compiling",
+                           "No file is marked as the current file.");
+      return;
+    }
 
     // TODO: Kick off, in a parallel thread, the compilation process.  Save
     // results somewhere when complete, and populate the combo box based on
     // the resulting exported symbols.
+
+    auto result = project_->CompileFile(*current_filepath_);
+    if (auto* error = std::get_if<Project::CompileError>(&result)) {
+      QMessageBox::warning(this, "Error compiling", QString(error->c_str()));
+      return;
+    }
+
+    auto compiled_module =
+        std::get<std::shared_ptr<reify::CompiledModule>>(result);
+    QMessageBox::information(this, "Compile Status", "Success!");
 
     if (compile_complete_callback) {
       (*compile_complete_callback)();

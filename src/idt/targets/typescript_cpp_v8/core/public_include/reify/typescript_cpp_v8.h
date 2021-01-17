@@ -126,6 +126,8 @@ class MountedHostFolderFilesystem : public VirtualFilesystem {
   std::optional<std::string> HostPathToVirtualPath(
       const std::filesystem::path& host_absolute_path);
 
+  const std::filesystem::path host_root() const { return host_root_; }
+
  private:
   std::filesystem::path TranslateToHostPath(
       std::string_view virtual_absolute_path) const;
@@ -205,7 +207,7 @@ class CompiledModule {
  private:
   CompiledModule(std::unique_ptr<Impl> impl);
 
-  std::unique_ptr<Impl> impl_;
+  const std::unique_ptr<Impl> impl_;
 
   friend class CompilerEnvironment;
 };
@@ -238,14 +240,14 @@ class CompilerEnvironment {
 
   CompilerEnvironment(
       VirtualFilesystem* virtual_filesystem,
+      const std::vector<InputModule>* initial_modules,
       SnapshotOptions snapshot_options = SnapshotOptions::kNoSnapshot);
   CompilerEnvironment(const CompilerEnvironment&) = delete;
   CompilerEnvironment(CompilerEnvironment&&) = delete;
   ~CompilerEnvironment();
 
   std::variant<CompileError, std::shared_ptr<CompiledModule>> Compile(
-      std::string_view virtual_absolute_path,
-      const std::vector<InputModule>& initial_modules);
+      std::string_view virtual_absolute_path);
 
   // Creates a directory at the specified path containing the root of a
   // TypeScript project setup to recognize the Reify types.  For example,

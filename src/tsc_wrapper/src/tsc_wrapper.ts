@@ -129,6 +129,7 @@ export function TranspileModule(
     lib: LIB_MODULES.map(x => x[0]),
     strict: true,
     noErrorTruncation: true,
+    isolatedModules: true,
     baseUrl: '/',
   };
   if (generate_declarations) {

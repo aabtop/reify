@@ -137,12 +137,13 @@ std::variant<int, std::unique_ptr<CommandLineToolParseResult>> Build(
   }
 
   // Setup a TypeScript compiler environment.
-  result->compile_env.emplace(&(*result->virtual_filesystem));
+  result->compile_env.emplace(&(*result->virtual_filesystem),
+                              &typescript_input_modules);
 
   // Compile the contents of the user's script in memory and check if there were
   // any errors.
-  auto compiled_module_or_error = result->compile_env->Compile(
-      *virtual_input_source_path, typescript_input_modules);
+  auto compiled_module_or_error =
+      result->compile_env->Compile(*virtual_input_source_path);
   if (auto error = std::get_if<0>(&compiled_module_or_error)) {
     std::cerr << "Error compiling TypeScript:" << std::endl;
     std::cerr << error->path << ":" << error->line + 1 << ":"

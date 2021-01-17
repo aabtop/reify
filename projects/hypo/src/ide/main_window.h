@@ -8,6 +8,7 @@
 #include <optional>
 #include <string>
 
+#include "src/ide/project.h"
 #include "src/ide/web_interface.h"
 
 QT_BEGIN_NAMESPACE
@@ -53,10 +54,11 @@ class MainWindow : public QMainWindow {
   std::unique_ptr<QWebChannel> web_channel_;
   std::unique_ptr<WebInterface> monaco_interface_;
 
-  std::optional<std::string> current_filepath_;
-
   std::unique_ptr<QProgressBar> progress_bar_;
 
   std::optional<std::function<void()>> save_complete_callback_;
+
+  std::optional<std::filesystem::path> current_filepath_;
+  std::optional<Project> project_;
 };
 #endif  // MAINWINDOW_H

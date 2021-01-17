@@ -121,10 +121,9 @@ int main(int argc, char* argv[]) {
                    "output_file_basepath,-o,--output_file_basepath",
                    output_file_basepath,
                    "The output file path, without an extension, where the "
-                   "output "
-                   "will be generated into.  The extension will be chosen "
-                   "based "
-                   "on the return type of the specified input function.")
+                   "output will be generated into. The extension will be "
+                   "chosen based on the return type of the specified input "
+                   "function.")
                 ->required();
           }},
       argc, argv);

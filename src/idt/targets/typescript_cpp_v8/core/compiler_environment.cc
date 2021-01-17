@@ -11,8 +11,10 @@ namespace reify {
 class CompilerEnvironment::Impl {
  public:
   Impl(VirtualFilesystem* virtual_filesystem,
+       const std::vector<InputModule>* initial_modules,
        SnapshotOptions snapshot_cache_options)
-      : tsc_(virtual_filesystem,
+      : initial_modules_(initial_modules),
+        tsc_(virtual_filesystem,
              snapshot_cache_options == SnapshotOptions::kNoSnapshot
                  ? TypeScriptCompiler::SnapshotOptions::kNoSnapshot
                  : TypeScriptCompiler::SnapshotOptions::kCacheSnapshot) {}
@@ -20,25 +22,25 @@ class CompilerEnvironment::Impl {
   enum class GenerateDeclarationFiles { Yes, No };
   std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
   Compile(std::string_view virtual_absolute_path,
-          const std::vector<InputModule>& initial_modules,
           GenerateDeclarationFiles generate_declaration_files);
 
  private:
+  const std::vector<InputModule>* initial_modules_;
   TypeScriptCompiler tsc_;
 };
 
-CompilerEnvironment::CompilerEnvironment(VirtualFilesystem* virtual_filesystem,
-                                         SnapshotOptions snapshot_options)
-    : impl_(new CompilerEnvironment::Impl(virtual_filesystem,
+CompilerEnvironment::CompilerEnvironment(
+    VirtualFilesystem* virtual_filesystem,
+    const std::vector<InputModule>* initial_modules,
+    SnapshotOptions snapshot_options)
+    : impl_(new CompilerEnvironment::Impl(virtual_filesystem, initial_modules,
                                           snapshot_options)) {}
 CompilerEnvironment::~CompilerEnvironment() {}
 
 std::variant<CompileError, std::shared_ptr<CompiledModule>>
-CompilerEnvironment::Compile(std::string_view virtual_absolute_path,
-                             const std::vector<InputModule>& initial_modules) {
+CompilerEnvironment::Compile(std::string_view virtual_absolute_path) {
   auto transpile_results_or_error =
-      impl_->Compile(virtual_absolute_path, initial_modules,
-                     Impl::GenerateDeclarationFiles::No);
+      impl_->Compile(virtual_absolute_path, Impl::GenerateDeclarationFiles::No);
   if (auto error =
           std::get_if<TypeScriptCompiler::Error>(&transpile_results_or_error)) {
     return *error;
@@ -53,11 +55,10 @@ CompilerEnvironment::Compile(std::string_view virtual_absolute_path,
 std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
 CompilerEnvironment::Impl::Compile(
     std::string_view virtual_absolute_path,
-    const std::vector<InputModule>& initial_modules,
     GenerateDeclarationFiles generate_declaration_files) {
   return tsc_.TranspileToJavaScript(
       virtual_absolute_path,
-      {initial_modules,
+      {*initial_modules_,
        (generate_declaration_files == GenerateDeclarationFiles::Yes)});
 }
 
@@ -96,10 +97,9 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
   InMemoryFilesystem filesystem(
       InMemoryFilesystem::FileMap({{std::string(initial_modules[0].path),
                                     std::string(initial_modules[0].content)}}));
-  CompilerEnvironment compiler_environment(&filesystem);
+  CompilerEnvironment compiler_environment(&filesystem, &initial_modules);
   auto transpile_results_or_error = compiler_environment.impl_->Compile(
-      initial_modules[0].path, initial_modules,
-      Impl::GenerateDeclarationFiles::Yes);
+      initial_modules[0].path, Impl::GenerateDeclarationFiles::Yes);
   if (std::holds_alternative<TypeScriptCompiler::Error>(
           transpile_results_or_error)) {
     // We shouldn't have any errors here since we're just compiling a

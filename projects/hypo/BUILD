@@ -3,6 +3,8 @@ load("@reify//src/idt/targets/typescript:typescript.bzl", "idt_as_typescript")
 load("@reify//src/idt:rules.bzl", "idt")
 load("@reify//src/idt/targets/typescript_cpp_v8:typescript_cpp_v8.bzl", "idt_as_typescript_cpp_v8")
 
+package(default_visibility = ["//visibility:public"])
+
 idt(
     name = "hypo-idt",
     srcs = [

@@ -37,6 +37,13 @@ qt_resource(
   srcs = ["index.html", "monaco_wrapper.js", "editor.worker.js", "ts.worker.js"],
 )
 
+cc_library(
+  name = "project",
+  srcs = ["project.cc"],
+  hdrs = ["project.h"],
+  deps = ["@reify//src/idt/targets/typescript_cpp_v8:core"],
+)
+
 qt_cc_library(
   name = "main_window",
   srcs = [
@@ -44,7 +51,13 @@ qt_cc_library(
   ],
   hdr = "main_window.h",
   ui_src = "main_window.ui",
-  deps = [":monaco_wrapper_resources", ":web_interface", ":about_dialog"],
+  deps = [
+    ":monaco_wrapper_resources",
+    ":web_interface",
+    ":about_dialog",
+    "//:hypo-typescript_cpp_v8",
+    ":project",
+  ],
   qt_dep = "@qt//:qt",
 )
 
