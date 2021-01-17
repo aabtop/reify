@@ -37,7 +37,8 @@ MainWindow::MainWindow(QWidget* parent)
   progress_bar_->setMaximum(0);
   progress_bar_->setMinimum(0);
   progress_bar_->setValue(0);
-  statusBar()->showMessage(tr("Loading"));
+
+  UpdateUiState();
 }
 
 MainWindow::~MainWindow() {}
@@ -89,6 +90,7 @@ void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
   std::optional<std::function<void()>> save_complete_callback =
       std::move(save_complete_callback_);
   save_complete_callback_.reset();
+  UpdateUiState();
 
   {
     std::ofstream file(filepath.toStdString().c_str());
@@ -114,12 +116,10 @@ void MainWindow::OnCurrentFileChanged() {
   if (current_filepath_) {
     project_.emplace(*current_filepath_,
                      reify::typescript_cpp_v8::hypo::typescript_declarations());
-    setWindowTitle(default_title_ + " - " +
-                   QString(current_filepath_->string().c_str()));
   } else {
     project_.reset();
-    setWindowTitle(default_title_);
   }
+  UpdateUiState();
 }
 
 bool MainWindow::Save(
@@ -152,35 +152,46 @@ bool MainWindow::SaveAs(
   emit monaco_interface_->SaveAs(filepath);
 
   save_complete_callback_ = save_complete_callback;
+
+  UpdateUiState();
   return true;
 }
 
 bool MainWindow::Compile(
     const std::optional<std::function<void()>>& compile_complete_callback) {
-  auto save_complete_callback = [compile_complete_callback, this]() {
+  auto save_complete_callback = [this, compile_complete_callback]() {
     if (!current_filepath_) {
       QMessageBox::warning(this, "Error compiling",
                            "No file is marked as the current file.");
       return;
     }
 
-    // TODO: Kick off, in a parallel thread, the compilation process.  Save
-    // results somewhere when complete, and populate the combo box based on
-    // the resulting exported symbols.
+    assert(!project_operation_);
+    project_operation_.emplace([this, &project = project_,
+                                current_filepath = *current_filepath_,
+                                compile_complete_callback]() {
+      auto result = project->CompileFile(current_filepath);
+      QMetaObject::invokeMethod(
+          this, [this, result, compile_complete_callback]() {
+            project_operation_->join();
+            project_operation_.reset();
+            UpdateUiState();
 
-    auto result = project_->CompileFile(*current_filepath_);
-    if (auto* error = std::get_if<Project::CompileError>(&result)) {
-      QMessageBox::warning(this, "Error compiling", QString(error->c_str()));
-      return;
-    }
+            if (auto* error = std::get_if<Project::CompileError>(&result)) {
+              QMessageBox::warning(this, "Error compiling",
+                                   QString(error->c_str()));
+              return;
+            }
 
-    auto compiled_module =
-        std::get<std::shared_ptr<reify::CompiledModule>>(result);
-    QMessageBox::information(this, "Compile Status", "Success!");
+            auto compiled_module =
+                std::get<std::shared_ptr<reify::CompiledModule>>(result);
 
-    if (compile_complete_callback) {
-      (*compile_complete_callback)();
-    }
+            if (compile_complete_callback) {
+              (*compile_complete_callback)();
+            }
+          });
+    });
+    UpdateUiState();
   };
 
   return Save(save_complete_callback);
@@ -199,4 +210,24 @@ bool MainWindow::Build(
   };
 
   return Compile(compile_complete_callback);
+}
+
+void MainWindow::UpdateUiState() {
+  if (current_filepath_) {
+    setWindowTitle(default_title_ + " - " +
+                   QString(current_filepath_->string().c_str()));
+  } else {
+    setWindowTitle(default_title_);
+  }
+
+  if (save_complete_callback_) {
+    progress_bar_->setVisible(true);
+    statusBar()->showMessage(tr("Saving..."));
+  } else if (project_operation_) {
+    progress_bar_->setVisible(true);
+    statusBar()->showMessage(tr("Compiling..."));
+  } else {
+    progress_bar_->setVisible(false);
+    statusBar()->clearMessage();
+  }
 }

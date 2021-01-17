@@ -48,6 +48,10 @@ class MainWindow : public QMainWindow {
   bool Build(
       const std::optional<std::function<void()>>& build_complete_callback);
 
+  // Should be called whenever the internal state data changes in such a way
+  // that it would cause the UI to appear different.
+  void UpdateUiState();
+
   QString default_title_;
 
   std::unique_ptr<Ui::MainWindow> ui_;
@@ -60,5 +64,7 @@ class MainWindow : public QMainWindow {
 
   std::optional<std::filesystem::path> current_filepath_;
   std::optional<Project> project_;
+
+  std::optional<std::thread> project_operation_;
 };
 #endif  // MAINWINDOW_H

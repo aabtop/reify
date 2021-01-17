@@ -20,8 +20,6 @@ Project::Project(const std::filesystem::path& filepath,
 
 std::variant<std::shared_ptr<reify::CompiledModule>, Project::CompileError>
 Project::CompileFile(const std::filesystem::path& filepath) {
-  thread_checker_.Check();
-
   auto absolute_filepath = std::filesystem::absolute(filepath);
 
   std::optional<std::string> virtual_path =
