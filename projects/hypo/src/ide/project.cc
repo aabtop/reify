@@ -20,13 +20,10 @@ Project::Project(const std::filesystem::path& filepath,
 
 std::variant<std::shared_ptr<reify::CompiledModule>, Project::CompileError>
 Project::CompileFile(const std::filesystem::path& filepath) {
-  auto absolute_filepath = std::filesystem::absolute(filepath);
-
-  std::optional<std::string> virtual_path =
-      vfs_->HostPathToVirtualPath(absolute_filepath);
+  auto virtual_path = FilepathToVirtualFilepath(filepath);
 
   if (!virtual_path) {
-    return "Input file " + absolute_filepath.string() +
+    return "Input file " + filepath.string() +
            " is not contained within the project root: " +
            vfs_->host_root().string();
   }
@@ -40,5 +37,30 @@ Project::CompileFile(const std::filesystem::path& filepath) {
     return oss.str();
   }
 
+  compiled_modules_.clear();
+  compiled_modules_[*virtual_path] = std::get<1>(result);
+
   return std::get<1>(result);
+}
+
+std::optional<std::shared_ptr<reify::CompiledModule>>
+Project::GetCompiledModules(const std::filesystem::path& filepath) const {
+  auto virtual_path = FilepathToVirtualFilepath(filepath);
+  if (!virtual_path) {
+    return std::nullopt;
+  }
+
+  auto found = compiled_modules_.find(*virtual_path);
+  if (found == compiled_modules_.end()) {
+    return std::nullopt;
+  }
+
+  return found->second;
+}
+
+std::optional<std::string> Project::FilepathToVirtualFilepath(
+    const std::filesystem::path& filepath) const {
+  auto absolute_filepath = std::filesystem::absolute(filepath);
+
+  return vfs_->HostPathToVirtualPath(absolute_filepath);
 }

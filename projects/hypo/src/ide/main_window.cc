@@ -183,8 +183,7 @@ bool MainWindow::Compile(
               return;
             }
 
-            auto compiled_module =
-                std::get<std::shared_ptr<reify::CompiledModule>>(result);
+            UpdateUiState();
 
             if (compile_complete_callback) {
               (*compile_complete_callback)();
@@ -216,6 +215,20 @@ void MainWindow::UpdateUiState() {
   if (current_filepath_) {
     setWindowTitle(default_title_ + " - " +
                    QString(current_filepath_->string().c_str()));
+
+    if (project_) {
+      std::optional<std::shared_ptr<reify::CompiledModule>> compiled_module =
+          project_->GetCompiledModules(*current_filepath_);
+      ui_->comboBox->clear();
+      if (compiled_module) {
+        for (const auto& symbol : (*compiled_module)->exported_symbols()) {
+          if (symbol.HasType<reify::Function<hypo::Region2()>>() ||
+              symbol.HasType<reify::Function<hypo::Region3()>>()) {
+            ui_->comboBox->addItem(QString(symbol.name.c_str()));
+          }
+        }
+      }
+    }
   } else {
     setWindowTitle(default_title_);
   }

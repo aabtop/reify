@@ -43,7 +43,7 @@ MountedHostFolderFilesystem::FilePath MountedHostFolderFilesystem::GetPath(
 }
 
 std::optional<std::string> MountedHostFolderFilesystem::HostPathToVirtualPath(
-    const std::filesystem::path& host_absolute_path) {
+    const std::filesystem::path& host_absolute_path) const {
   auto [host_root_end, relative_path_start] = std::mismatch(
       host_root_.begin(), host_root_.end(), host_absolute_path.begin());
 

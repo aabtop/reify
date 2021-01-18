@@ -124,7 +124,7 @@ class MountedHostFolderFilesystem : public VirtualFilesystem {
   // Converts a host path into a virtual path.  If the host path is not
   // contained within the mounted folder, a std::nullopt is returend.
   std::optional<std::string> HostPathToVirtualPath(
-      const std::filesystem::path& host_absolute_path);
+      const std::filesystem::path& host_absolute_path) const;
 
   const std::filesystem::path host_root() const { return host_root_; }
 
