@@ -8,6 +8,7 @@
 #include <optional>
 #include <string>
 
+#include "src/ide/domain_visualizer.h"
 #include "src/ide/project.h"
 #include "src/ide/web_interface.h"
 
@@ -59,6 +60,9 @@ class MainWindow : public QMainWindow {
   std::unique_ptr<WebInterface> monaco_interface_;
 
   std::unique_ptr<QProgressBar> progress_bar_;
+
+  std::unique_ptr<DomainVisualizer> domain_visualizer_;
+  bool domain_build_active_ = false;
 
   std::optional<std::function<void()>> save_complete_callback_;
 

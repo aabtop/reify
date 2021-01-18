@@ -58,10 +58,41 @@ qt_cc_library(
     ":monaco_wrapper_resources",
     ":web_interface",
     ":about_dialog",
-    "//:hypo-typescript_cpp_v8",
+    ":domain_visualizer_interface",
+    ":domain_visualizer_hypo_qt",
     ":project",
   ],
   qt_dep = "@qt//:qt",
+)
+
+cc_library(
+  name = "domain_visualizer_interface",
+  hdrs = ["domain_visualizer.h"],
+)
+
+cc_library(
+  name = "domain_visualizer_interface_qt",
+  hdrs = ["domain_visualizer_qt.h"],
+  deps = [":domain_visualizer_interface", "@qt//:qt_lib"],
+)
+
+cc_library(
+  name = "domain_visualizer_hypo",
+  srcs = ["domain_visualizer_hypo.cc"],
+  hdrs = ["domain_visualizer_hypo.h"],
+  deps = [
+    ":domain_visualizer_interface",
+    "//:hypo-typescript_cpp_v8"
+  ],
+)
+
+cc_library(
+  name = "domain_visualizer_hypo_qt",
+  srcs = ["domain_visualizer_hypo_qt.cc"],
+  deps = [
+    ":domain_visualizer_hypo",
+    ":domain_visualizer_interface_qt"
+  ],
 )
 
 qt_cc_library(

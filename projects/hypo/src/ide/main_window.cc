@@ -8,8 +8,8 @@
 #include <fstream>
 #include <sstream>
 
-#include "reify/typescript_cpp_v8/hypo.h"
 #include "src/ide/about_dialog.h"
+#include "src/ide/domain_visualizer_qt.h"
 #include "src/ide/ui_main_window.h"
 #include "src/ide/web_interface.h"
 
@@ -30,7 +30,8 @@ MainWindow::MainWindow(QWidget* parent)
           SLOT(SaveAsReply(const QString&, const QString&)));
 
   ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
-  ui_->editor->show();
+
+  domain_visualizer_ = CreateDefaultQtWidgetDomainVisualizer(ui_->visualizer);
 
   progress_bar_.reset(new QProgressBar(this));
   statusBar()->addPermanentWidget(progress_bar_.get());
@@ -39,6 +40,7 @@ MainWindow::MainWindow(QWidget* parent)
   progress_bar_->setValue(0);
 
   UpdateUiState();
+  ui_->editor->show();
 }
 
 MainWindow::~MainWindow() {}
@@ -115,7 +117,7 @@ void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
 void MainWindow::OnCurrentFileChanged() {
   if (current_filepath_) {
     project_.emplace(*current_filepath_,
-                     reify::typescript_cpp_v8::hypo::typescript_declarations());
+                     domain_visualizer_->GetTypeScriptModules());
   } else {
     project_.reset();
   }
@@ -198,16 +200,42 @@ bool MainWindow::Compile(
 
 bool MainWindow::Build(
     const std::optional<std::function<void()>>& build_complete_callback) {
-  auto compile_complete_callback = [build_complete_callback]() {
-    // TODO: Kick off a parallel thread to:
-    //         1. Call the selected export to obtain the data.
-    //         2. Pass data along into builder system.
-    //         3. Pass builder output along into renderer system.
-    if (build_complete_callback) {
-      (*build_complete_callback)();
+  auto compile_complete_callback = [this, build_complete_callback]() {
+    if (ui_->comboBox->currentIndex() == -1) {
+      QMessageBox::warning(this, "No symbol selected",
+                           QString("Choose an exported symbol to build "
+                                   "from the drop down box."));
+      return;
     }
-  };
 
+    std::string symbol_name = ui_->comboBox->currentText().toStdString();
+
+    std::shared_ptr<reify::CompiledModule> compiled_module =
+        *(project_->GetCompiledModules(*current_filepath_));
+
+    domain_build_active_ = true;
+    UpdateUiState();
+
+    domain_visualizer_->ConsumeSymbol(
+        compiled_module, *compiled_module->GetExportedSymbol(symbol_name),
+        [this, build_complete_callback](
+            std::optional<DomainVisualizer::ConsumeError>&& error) {
+          QMetaObject::invokeMethod(this, [this, error = std::move(error),
+                                           build_complete_callback]() {
+            domain_build_active_ = false;
+            UpdateUiState();
+
+            if (error) {
+              QMessageBox::warning(this, "Error building symbol",
+                                   QString(error->c_str()));
+              return;
+            }
+            if (build_complete_callback) {
+              (*build_complete_callback)();
+            }
+          });
+        });
+  };
   return Compile(compile_complete_callback);
 }
 
@@ -217,16 +245,28 @@ void MainWindow::UpdateUiState() {
                    QString(current_filepath_->string().c_str()));
 
     if (project_) {
+      std::optional<QString> previous_combo_box_text;
+      if (ui_->comboBox->currentIndex() != -1) {
+        previous_combo_box_text = ui_->comboBox->currentText();
+      }
+
       std::optional<std::shared_ptr<reify::CompiledModule>> compiled_module =
           project_->GetCompiledModules(*current_filepath_);
       ui_->comboBox->clear();
       if (compiled_module) {
         for (const auto& symbol : (*compiled_module)->exported_symbols()) {
-          if (symbol.HasType<reify::Function<hypo::Region2()>>() ||
-              symbol.HasType<reify::Function<hypo::Region3()>>()) {
+          if (domain_visualizer_->CanConsumeSymbol(symbol)) {
             ui_->comboBox->addItem(QString(symbol.name.c_str()));
           }
         }
+      }
+
+      if (!previous_combo_box_text) {
+        // If nothing was selected before the compile, maintain this.
+        ui_->comboBox->setCurrentIndex(-1);
+      } else {
+        ui_->comboBox->setCurrentIndex(
+            ui_->comboBox->findText(*previous_combo_box_text));
       }
     }
   } else {
@@ -239,6 +279,9 @@ void MainWindow::UpdateUiState() {
   } else if (project_operation_) {
     progress_bar_->setVisible(true);
     statusBar()->showMessage(tr("Compiling..."));
+  } else if (domain_build_active_) {
+    progress_bar_->setVisible(true);
+    statusBar()->showMessage(tr("Building..."));
   } else {
     progress_bar_->setVisible(false);
     statusBar()->clearMessage();
