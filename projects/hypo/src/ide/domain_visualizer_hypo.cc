@@ -1,5 +1,9 @@
 #include "src/ide/domain_visualizer_hypo.h"
 
+#include "cgal/construct_region2.h"
+#include "cgal/construct_region3.h"
+#include "cgal/types_nef_polyhedron_3.h"
+#include "reify/purecpp/hypo.h"
 #include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/hypo.h"
 
@@ -49,7 +53,11 @@ void DomainVisualizerHypo::ConsumeSymbol(
         return;
       }
 
-      auto result = std::get<1>(result_or_error);
+      hypo::Region3 result = std::get<1>(result_or_error);
+
+      hypo::cgal::Nef_polyhedron_3 polyhedron3 =
+          hypo::cgal::ConstructRegion3(result);
+
       on_consumed(std::nullopt);
     }
   });

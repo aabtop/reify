@@ -82,7 +82,9 @@ cc_library(
   hdrs = ["domain_visualizer_hypo.h"],
   deps = [
     ":domain_visualizer_interface",
-    "//:hypo-typescript_cpp_v8"
+    "//:hypo-typescript_cpp_v8",
+    "//:hypo-purecpp",
+    "//:hypo_lib",
   ],
 )
 

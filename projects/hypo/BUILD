@@ -31,8 +31,8 @@ idt_as_typescript_cpp_v8(
     typescript = ":hypo-typescript",
 )
 
-cc_binary(
-    name = "hypo",
+cc_library(
+    name = "hypo_lib",
     srcs = [
         "src/cgal/construct_region2.cc",
         "src/cgal/construct_region2.h",
@@ -56,6 +56,18 @@ cc_binary(
         "src/cgal/types_nef_polyhedron_3.h",
         "src/cgal/types_polygons.h",
         "src/cgal/types_surface_mesh.h",
+    ],
+    includes = [
+        "src/",
+    ],
+    deps = [
+        ":hypo-purecpp",
+        "@cgal",
+    ]
+)
+cc_binary(
+    name = "hypo",
+    srcs = [
         "src/main.cc",
     ],
     includes = [
@@ -63,6 +75,7 @@ cc_binary(
     ],
     linkstatic = 1,
     deps = [
+        ":hypo_lib",
         ":hypo-purecpp",
         ":hypo-typescript_cpp_v8",
         "@cgal",
