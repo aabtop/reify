@@ -229,6 +229,8 @@ bool MainWindow::Build(
               QMessageBox::warning(this, "Error building symbol",
                                    QString(error->c_str()));
               return;
+            } else {
+              QMessageBox::warning(this, "SUCCESS!", "We did it for real!");
             }
             if (build_complete_callback) {
               (*build_complete_callback)();

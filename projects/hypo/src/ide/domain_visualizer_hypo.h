@@ -5,6 +5,8 @@
 
 class DomainVisualizerHypo : public DomainVisualizer {
  public:
+  DomainVisualizerHypo();
+
   std::vector<reify::CompilerEnvironment::InputModule> GetTypeScriptModules()
       override;
 
