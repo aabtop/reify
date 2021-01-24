@@ -37,6 +37,20 @@ def reify_deps1():
         shallow_since = "1598536904 -0400",
     )
 
+    http_archive(
+        name = "com_github_zaucy_rules_7zip",
+        strip_prefix = "rules_7zip-e95ba876db445cf2c925c02c4bc18ed37a503fd8",
+        url = "https://github.com/zaucy/rules_7zip/archive/e95ba876db445cf2c925c02c4bc18ed37a503fd8.zip",
+        sha256 = "b66e1c712577b0c029d4c94228dba9c8aacdcdeb88c3b1eeeffd00247ba5a856",
+    )
+
+    git_repository(
+        name = "com_github_zaucy_rules_vulkan",
+        remote = "https://github.com/aabtop/rules_vulkan",
+        commit = "ebfb9377f616cf12ffe0a9e1088ca0c005bd2db4",
+        shallow_since = "1611480038 +0000",
+    )
+
     fetch_v8(
         name = "v8",
         branch = "8.6.395.10",
