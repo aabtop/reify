@@ -8,11 +8,13 @@ def _fetch_qt_impl(repository_ctx):
     if "windows" in repository_ctx.os.name:
         src_url = "http://download.qt.io/official_releases/qt/5.15/5.15.2/single/qt-everywhere-src-5.15.2.zip"
         src_sha256 = "6c5d37aa96f937eb59fd4e9ce5ec97f45fbf2b5de138b086bdeff782ec661733"
+        vulkan_lib_path = repository_ctx.path(repository_ctx.attr._vulkan_h_windows)
     else:
         # zip vs tar is more than just cosmetic, the newlines in the configure
         # scripts have Linux formatting here and Windows above.
         src_url = "http://download.qt.io/official_releases/qt/5.15/5.15.2/single/qt-everywhere-src-5.15.2.tar.xz"
         src_sha256 = "3a530d1b243b5dec00bc54937455471aaa3e56849d2593edb8ded07228202240"
+        vulkan_lib_path = repository_ctx.path(repository_ctx.attr._vulkan_h_linux)
 
     repository_ctx.download_and_extract(
         src_url,
@@ -22,6 +24,22 @@ def _fetch_qt_impl(repository_ctx):
     )
 
     env = {}
+
+
+    print("vulkan_lib_path: {}".format(vulkan_lib_path))
+
+    vulkan_lib_dir = vulkan_lib_path.dirname
+    print("vulkan_lib_dir: {}".format(vulkan_lib_dir))
+
+    vulkan_dir = vulkan_lib_dir.dirname.dirname
+    print("vulkan_dir: {}".format(vulkan_dir))
+
+    vulkan_include_dir = vulkan_dir.get_child("lib")
+    print("vulkan_include_dir: {}".format(vulkan_include_dir))
+
+    print("as string: {}".format(str(vulkan_dir)))
+    env["VULKAN_SDK"] = str(vulkan_dir)
+
     if "windows" in repository_ctx.os.name:
         build_script = repository_ctx.path(repository_ctx.attr._build_script_windows)
         if "BAZEL_VC" in repository_ctx.os.environ:
@@ -66,5 +84,7 @@ fetch_qt = repository_rule(
         "_build_script_windows": attr.label(default = "@reify//third_party/qt:build_windows.bat"),
         "_build_script_linux": attr.label(default = "@reify//third_party/qt:build_linux.sh"),
         "_build_template": attr.label(default = "@reify//third_party/qt:qt.BUILD"),
+        "_vulkan_h_windows": attr.label(default = "@vulkan_sdk_windows//:include/vulkan/vulkan.h"),
+        "_vulkan_h_linux": attr.label(default = "@vulkan_sdk_linux//:include/vulkan/vulkan.h"),
     },
 )

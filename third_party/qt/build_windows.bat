@@ -65,7 +65,7 @@ IF NOT EXIST "%BUILD_DIR%" (
     -skip qtquickcontrols -no-quick-designer -no-quick-canvas ^
     -no-quick-animatedimage -no-quick-shadereffect -no-ffmpeg ^
     -no-opus -no-webp -no-webengine-icu -no-extensions -no-alsa ^
-    -no-pulseaudio
+    -no-pulseaudio -feature-vulkan -I %VULKAN_SDK%/include -L %VULKAN_SDK%/lib
   IF %ERRORLEVEL% NEQ 0 EXIT 1
 
   REM Actually do the build.

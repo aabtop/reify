@@ -93,7 +93,7 @@ cc_library(
   srcs = ["domain_visualizer_hypo_qt.cc"],
   deps = [
     ":domain_visualizer_hypo",
-    ":domain_visualizer_interface_qt"
+    ":domain_visualizer_interface_qt",
   ],
 )
 
