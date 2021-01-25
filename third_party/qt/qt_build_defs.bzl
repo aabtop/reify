@@ -108,6 +108,9 @@ def define_qt_targets():
         hdrs = native.glob([x + "/**" for x in include_directories]),
         includes = include_directories,
         visibility = ["//visibility:public"],
+        deps = [
+            "@vulkan_sdk//:vulkan",
+        ],
     )
 
     native.alias(

@@ -33,7 +33,8 @@ if [ ! -d ${BUILD_DIR} ]; then (
     -skip qtquickcontrols -no-quick-designer -no-quick-canvas \
     -no-quick-animatedimage -no-quick-shadereffect -no-ffmpeg \
     -no-opus -no-webp -no-webengine-icu -no-extensions -no-alsa \
-    -no-pulseaudio -xcb -xcb-xlib -bundled-xcb-xinput
+    -no-pulseaudio -xcb -xcb-xlib -bundled-xcb-xinput \
+    -feature-vulkan -I ${VULKAN_SDK}/include -L ${VULKAN_SDK}/lib
 
   make -j $(nproc)
 

@@ -8,13 +8,11 @@ def _fetch_qt_impl(repository_ctx):
     if "windows" in repository_ctx.os.name:
         src_url = "http://download.qt.io/official_releases/qt/5.15/5.15.2/single/qt-everywhere-src-5.15.2.zip"
         src_sha256 = "6c5d37aa96f937eb59fd4e9ce5ec97f45fbf2b5de138b086bdeff782ec661733"
-        vulkan_lib_path = repository_ctx.path(repository_ctx.attr._vulkan_h_windows)
     else:
         # zip vs tar is more than just cosmetic, the newlines in the configure
         # scripts have Linux formatting here and Windows above.
         src_url = "http://download.qt.io/official_releases/qt/5.15/5.15.2/single/qt-everywhere-src-5.15.2.tar.xz"
         src_sha256 = "3a530d1b243b5dec00bc54937455471aaa3e56849d2593edb8ded07228202240"
-        vulkan_lib_path = repository_ctx.path(repository_ctx.attr._vulkan_h_linux)
 
     repository_ctx.download_and_extract(
         src_url,
@@ -24,20 +22,8 @@ def _fetch_qt_impl(repository_ctx):
     )
 
     env = {}
-
-
-    print("vulkan_lib_path: {}".format(vulkan_lib_path))
-
-    vulkan_lib_dir = vulkan_lib_path.dirname
-    print("vulkan_lib_dir: {}".format(vulkan_lib_dir))
-
-    vulkan_dir = vulkan_lib_dir.dirname.dirname
-    print("vulkan_dir: {}".format(vulkan_dir))
-
-    vulkan_include_dir = vulkan_dir.get_child("lib")
-    print("vulkan_include_dir: {}".format(vulkan_include_dir))
-
-    print("as string: {}".format(str(vulkan_dir)))
+    vulkan_header_path = repository_ctx.path(repository_ctx.attr._vulkan_h)
+    vulkan_dir = vulkan_header_path.dirname.dirname.dirname
     env["VULKAN_SDK"] = str(vulkan_dir)
 
     if "windows" in repository_ctx.os.name:
@@ -78,13 +64,53 @@ def _fetch_qt_impl(repository_ctx):
         },
     )
 
-fetch_qt = repository_rule(
+_fetch_qt = repository_rule(
     implementation = _fetch_qt_impl,
     attrs = {
         "_build_script_windows": attr.label(default = "@reify//third_party/qt:build_windows.bat"),
         "_build_script_linux": attr.label(default = "@reify//third_party/qt:build_linux.sh"),
         "_build_template": attr.label(default = "@reify//third_party/qt:qt.BUILD"),
-        "_vulkan_h_windows": attr.label(default = "@vulkan_sdk_windows//:include/vulkan/vulkan.h"),
-        "_vulkan_h_linux": attr.label(default = "@vulkan_sdk_linux//:include/vulkan/vulkan.h"),
+        # We need to depend on Vulkan, but we don't know whether we're
+        # downloading Windows or Linux, so unfortunately we download them both
+        # because it's hard to tell Bazel to switch on OS in this context.
+        "_vulkan_h": attr.label(default = "@os_specific_vulkan_sdk//:vulkan_sdk/include/vulkan/vulkan.h"),
     },
 )
+
+def __os_specific_vulkan_sdk_impl(repository_ctx):
+    if "windows" in repository_ctx.os.name:
+        vulkan_platform = "windows"
+    else:
+        vulkan_platform = "linux"
+
+    repository_ctx.file("current_os_repo.bzl", content = """
+def __sdk_symlink_impl(repository_ctx):
+    vulkan_header_path = repository_ctx.path(repository_ctx.attr._vulkan_h)
+    vulkan_dir = vulkan_header_path.dirname.dirname.dirname
+    repository_ctx.file("BUILD", content = "")
+    repository_ctx.symlink(vulkan_dir, "vulkan_sdk")
+
+_sdk_symlink = repository_rule(
+    implementation = __sdk_symlink_impl,
+    attrs = {{
+        "_vulkan_h": attr.label(default = "@vulkan_sdk_{}//:include/vulkan/vulkan.h"),
+    }},
+)
+
+
+def setup_os_specific_vulkan_repos():
+    _sdk_symlink(name = "os_specific_vulkan_sdk")
+""".format(vulkan_platform))
+
+    repository_ctx.file("WORKSPACE", content = "workspace(name = \"os_specific_vulkan_sdk_rules\")\n")
+    repository_ctx.file("BUILD", content = "")
+
+_os_specific_vulkan_sdk = repository_rule(
+    implementation = __os_specific_vulkan_sdk_impl,
+)
+
+def setup_qt():
+    _os_specific_vulkan_sdk(name = "os_specific_vulkan_sdk_rules")
+
+def fetch_qt(name):
+    _fetch_qt(name = name)

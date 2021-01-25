@@ -3,7 +3,7 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@reify//third_party/v8:v8_repository_rules.bzl", "fetch_v8")
-load("@reify//third_party/qt:qt_repository_rules.bzl", "fetch_qt")
+load("@reify//third_party/qt:qt_repository_rules.bzl", "setup_qt")
 
 def reify_deps1():
     # Setup NPM repositories required to build the `tsc_wrapper`.
@@ -46,7 +46,7 @@ def reify_deps1():
 
     git_repository(
         name = "com_github_zaucy_rules_vulkan",
-        remote = "https://github.com/aabtop/rules_vulkan",
+        remote = "https://github.com/zaucy/rules_vulkan",
         commit = "ebfb9377f616cf12ffe0a9e1088ca0c005bd2db4",
         shallow_since = "1611480038 +0000",
     )
@@ -56,6 +56,4 @@ def reify_deps1():
         branch = "8.6.395.10",
     )
 
-    fetch_qt(
-        name = "qt",
-    )
+    setup_qt()
