@@ -9,8 +9,8 @@ def reify_deps1():
     # Setup NPM repositories required to build the `tsc_wrapper`.
     http_archive(
         name = "build_bazel_rules_nodejs",
-        urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/2.2.0/rules_nodejs-2.2.0.tar.gz"],
-        sha256 = "4952ef879704ab4ad6729a29007e7094aef213ea79e9f2e94cbe1c9a753e63ef",
+        urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/3.0.0/rules_nodejs-3.0.0.tar.gz"],
+        sha256 = "6142e9586162b179fdd570a55e50d1332e7d9c030efd853453438d607569721d",
     )
 
     # Setup Haskell rules.

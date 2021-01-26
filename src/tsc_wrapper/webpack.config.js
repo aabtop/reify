@@ -15,7 +15,10 @@ module.exports = {
       },
     ]
   },
-  resolve: { extensions: ['.ts', '.js'] },
+  resolve: {
+    extensions: ['.ts', '.js'],
+    modules: ['node_modules']
+  },
   mode: 'production',
-  plugins: []
+  plugins: [],
 };

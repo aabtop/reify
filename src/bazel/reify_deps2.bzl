@@ -14,6 +14,8 @@ def reify_deps2():
         name = "npm_tsc_wrapper",
         package_json = "@reify//src/tsc_wrapper:package.json",
         yarn_lock = "@reify//src/tsc_wrapper:yarn.lock",
+        frozen_lockfile = True,
+        symlink_node_modules = False,
     )
     yarn_install(
         name = "npm_monaco_wrapper",

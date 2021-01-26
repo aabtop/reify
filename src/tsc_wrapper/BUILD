@@ -7,7 +7,7 @@ webpack(
         "--config",
         "$(location webpack.config.js)",
         "-o",
-        "$(location tsc_wrapper.js)",
+        "$@",
     ],
     data = glob(["src/**/*.ts"]) + [
         "package.json",
@@ -18,6 +18,9 @@ webpack(
         "@npm_tsc_wrapper//typescript",
         "@npm_tsc_wrapper//ts-loader",
         "@npm_tsc_wrapper//raw-loader",
+        "@npm_tsc_wrapper//webpack",
+        "@npm_tsc_wrapper//webpack-cli",
+        "@npm_tsc_wrapper//:node_modules",
     ],
     visibility = ["//visibility:public"],
 )
