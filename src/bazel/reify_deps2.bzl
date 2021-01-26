@@ -21,6 +21,8 @@ def reify_deps2():
         name = "npm_monaco_wrapper",
         package_json = "@reify//src/monaco_wrapper:package.json",
         yarn_lock = "@reify//src/monaco_wrapper:yarn.lock",
+        frozen_lockfile = True,
+        symlink_node_modules = False,
     )
 
     sh_posix_configure()
