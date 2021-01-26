@@ -27,6 +27,7 @@ jobs:
         with:
           name: ${{ env.build_artifact }}
           path: ${{ env.build_artifact }}
+          retention-days: 7
 
   # If a tag starting with "v" is pushed, assume it represents a release and
   # go ahead and create a draft release for this version of the code.
