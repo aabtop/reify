@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QProgressbar>
+#include <QProgressBar>
 #include <QWebChannel>
 #include <optional>
 #include <string>

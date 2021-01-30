@@ -1,8 +1,8 @@
 #include "src/ide/main_window.h"
 
 #include <QFileDialog>
-#include <QMessagebox>
-#include <QProgressbar>
+#include <QMessageBox>
+#include <QProgressBar>
 #include <QWebEngineView>
 #include <fstream>
 #include <sstream>
