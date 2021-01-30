@@ -1,4 +1,4 @@
-#include <qvulkaninstance.h>
+#include <QVulkanInstance>
 
 #include "src/ide/domain_visualizer_hypo.h"
 #include "src/ide/domain_visualizer_qt.h"

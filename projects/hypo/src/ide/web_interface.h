@@ -1,9 +1,9 @@
 #ifndef WEB_INTERFACE_H_
 #define WEB_INTERFACE_H_
 
-#include <qfuture.h>
-#include <qobject.h>
-#include <qwidget.h>
+#include <QFuture>
+#include <QObject>
+#include <QWidget>
 
 class WebInterface : public QObject {
   Q_OBJECT

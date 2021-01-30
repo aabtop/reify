@@ -1,8 +1,7 @@
 #ifndef _IDE_DOMAIN_VISUALIZER_QT_H
 #define _IDE_DOMAIN_VISUALIZER_QT_H
 
-#include <qwidget.h>
-
+#include <QWidget>
 #include <memory>
 
 #include "src/ide/domain_visualizer.h"

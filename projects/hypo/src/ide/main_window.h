@@ -1,10 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <qmainwindow.h>
-#include <qprogressbar.h>
-#include <qwebchannel.h>
-
+#include <QMainWindow>
+#include <QProgressbar>
+#include <QWebChannel>
 #include <optional>
 #include <string>
 
