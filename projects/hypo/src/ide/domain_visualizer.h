@@ -10,6 +10,8 @@
 
 class DomainVisualizer {
  public:
+  virtual ~DomainVisualizer(){};
+
   virtual std::vector<reify::CompilerEnvironment::InputModule>
   GetTypeScriptModules() = 0;
 

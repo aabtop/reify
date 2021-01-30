@@ -39,6 +39,12 @@ MainWindow::MainWindow(QWidget* parent)
   progress_bar_->setValue(0);
 
   UpdateUiState();
+
+  int halfSplitterParentWidth =
+      ui_->horizontalSplitter->parentWidget()->width() / 2;
+  ui_->horizontalSplitter->setSizes(
+      {halfSplitterParentWidth, 2 * halfSplitterParentWidth});
+
   ui_->editor->show();
 }
 
