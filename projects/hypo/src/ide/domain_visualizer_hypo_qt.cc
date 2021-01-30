@@ -4,9 +4,13 @@
 
 #include "src/ide/domain_visualizer_hypo.h"
 #include "src/ide/domain_visualizer_qt.h"
+#include "src/ide/vulkan/triangle_renderer.h"
 
 class DomainVisualizerVulkanWindow : public QVulkanWindow {
  public:
+  QVulkanWindowRenderer* createRenderer() override {
+    return new TriangleRenderer(this);
+  }
 };
 
 class DomainVisualizerQtVulkan : public DomainVisualizer {

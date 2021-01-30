@@ -94,6 +94,7 @@ cc_library(
   deps = [
     ":domain_visualizer_hypo",
     ":domain_visualizer_interface_qt",
+    "//src/ide/vulkan:triangle_renderer",
   ],
 )
 
