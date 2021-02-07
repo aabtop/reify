@@ -56,4 +56,12 @@ def reify_deps1():
         branch = "8.6.395.10",
     )
 
+    http_archive(
+        name = "fmtlib",
+        strip_prefix = "fmt-7.1.3",
+        url = "https://github.com/fmtlib/fmt/archive/7.1.3.zip",
+        sha256 = "50f2fd9f697f89726ae3c7efe84ae48c9e03158a2958eea496eeaa0fb190adb6",
+        build_file = "@reify//:third_party/fmt/fmtlib.BUILD",
+    )
+
     setup_qt()

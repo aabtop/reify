@@ -1,4 +1,5 @@
 load("@npm_tsc_wrapper//webpack-cli:index.bzl", webpack = "webpack_cli")
+load("//:src/bazel/utils.bzl", "convert_to_header")
 
 webpack(
     name = "tsc_wrapper",
@@ -25,20 +26,4 @@ webpack(
     visibility = ["//visibility:public"],
 )
 
-genrule(
-    name = "tsc_wrapper_convert_to_header",
-    srcs = [":tsc_wrapper"],
-    outs = ["src_gen/tsc_wrapper.h"],
-    cmd = """
-        mkdir -p src_gen
-        cp $< $$(basename $<)
-        xxd -i $$(basename $<) > $@
-        rm $$(basename $<)
-    """,
-)
-cc_library(
-    name = "tsc_wrapper_as_header",
-    hdrs = [":tsc_wrapper_convert_to_header"],
-    includes = ["."],
-    visibility = ["//visibility:public"],
-)
+convert_to_header("tsc_wrapper_as_header", ":tsc_wrapper", "tsc_wrapper.h")
