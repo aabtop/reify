@@ -38,6 +38,7 @@ cc_library(
     ":color_vert_as_header",
     ":color_frag_as_header",
     "@fmtlib",
+    "@glm",
   ],
   visibility = ["//visibility:public"],
 )

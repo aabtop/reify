@@ -10,8 +10,6 @@
 
 class Renderer {
  public:
-  ~Renderer();
-
   struct Error {
     std::string msg;
   };
@@ -21,16 +19,6 @@ class Renderer {
   static ErrorOr<Renderer> Create(VkInstance instance,
                                   VkPhysicalDevice physical_device,
                                   VkDevice device);
-  // TODO:
-  //   1. Return a command buffer instead, it can be added to another as a sub
-  //   command buffer.
-  //   2. Return the set of resources used by the frame.
-  //   3. Make the function accept an arbitrary polygon soup to render.
-  std::function<void()> RenderFrame(
-      VkCommandBuffer frame_command_buffer,
-      const std::pair<uint32_t, uint32_t>& output_surface_size);
-
- private:
   class MemoryAllocator {
    public:
     class Allocation {
@@ -61,6 +49,18 @@ class Renderer {
     VkPhysicalDeviceMemoryProperties physical_device_memory_properties_;
   };
 
+  ~Renderer();
+
+  // TODO:
+  //   1. Return a command buffer instead, it can be added to another as a sub
+  //   command buffer.
+  //   2. Return the set of resources used by the frame.
+  //   3. Make the function accept an arbitrary polygon soup to render.
+  std::function<void()> RenderFrame(
+      VkCommandBuffer frame_command_buffer,
+      const std::pair<uint32_t, uint32_t>& output_surface_size);
+
+ private:
   struct RendererConstructorData {
     VkInstance instance;
     VkPhysicalDevice physical_device;

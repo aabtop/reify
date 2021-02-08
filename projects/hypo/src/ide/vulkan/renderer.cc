@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <glm/mat4x4.hpp>
 #include <iostream>
 
 namespace {
@@ -17,7 +18,9 @@ const float VERTEX_DATA[] = {  // Y up, front = CCW
     0.0f, 0.5f, 1.0f, 0.0f,  0.0f, -0.5f, -0.5f, 0.0f,
     1.0f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f,  1.0f};
 
-const int UNIFORM_DATA_SIZE = 16 * sizeof(float);
+struct UniformType {
+  alignas(16) glm::mat4 matrix;
+};
 
 inline VkDeviceSize aligned(VkDeviceSize v, VkDeviceSize byteAlign) {
   return (v + byteAlign - 1) & ~(byteAlign - 1);
@@ -57,6 +60,169 @@ Renderer::ErrorOr<VkShaderModule> CreateShader(VkDevice device,
 
   return shaderModule;
 }
+
+template <typename T>
+class ValueWithDeleter {
+ public:
+  ValueWithDeleter(T&& value, const std::function<void(T&&)>& deleter)
+      : value_(std::move(value)), deleter_(deleter) {}
+  ValueWithDeleter(const ValueWithDeleter&) = delete;
+  ValueWithDeleter& operator=(const ValueWithDeleter&) = delete;
+
+  const T& value() const { return value_; }
+
+ private:
+  T value_;
+  std::function<void(T&&)> deleter_;
+};
+
+Renderer::ErrorOr<ValueWithDeleter<VkDescriptorPool>> MakeDescriptorPool(
+    VkDevice device,
+    const std::vector<VkDescriptorPoolSize> descriptor_pool_sizes,
+    uint32_t max_sets) {
+  VkDescriptorPoolCreateInfo descriptor_pool_create_info;
+  memset(&descriptor_pool_create_info, 0, sizeof(descriptor_pool_create_info));
+  descriptor_pool_create_info.sType =
+      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  descriptor_pool_create_info.maxSets = max_sets;
+  descriptor_pool_create_info.poolSizeCount = descriptor_pool_sizes.size();
+  descriptor_pool_create_info.pPoolSizes = descriptor_pool_sizes.data();
+
+  VkDescriptorPool pool;
+  auto err = vkCreateDescriptorPool(device, &descriptor_pool_create_info,
+                                    nullptr, &pool);
+  if (err != VK_SUCCESS) {
+    return Renderer::Error{
+        fmt::format("Failed to create descriptor pool: {}", err)};
+  } else {
+    return Renderer::ErrorOr<ValueWithDeleter<VkDescriptorPool>>(
+        std::in_place_index<1>, std::move(pool),
+        [device](VkDescriptorPool&& x) {
+          vkDestroyDescriptorPool(device, x, nullptr);
+        });
+  }
+}
+
+Renderer::ErrorOr<ValueWithDeleter<VkDescriptorSetLayout>>
+MakeDescriptorSetLayout(
+    VkDevice device,
+    std::vector<VkDescriptorSetLayoutBinding> layout_bindings) {
+  VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
+      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+      static_cast<uint32_t>(layout_bindings.size()), layout_bindings.data()};
+  VkDescriptorSetLayout layout;
+  auto err =
+      vkCreateDescriptorSetLayout(device, &descLayoutInfo, nullptr, &layout);
+  if (err != VK_SUCCESS) {
+    return Renderer::Error{
+        fmt::format("Failed to create descriptor set layout: {}", err)};
+  } else {
+    return Renderer::ErrorOr<ValueWithDeleter<VkDescriptorSetLayout>>(
+        std::in_place_index<1>, std::move(layout),
+        [device](VkDescriptorSetLayout&& x) {
+          vkDestroyDescriptorSetLayout(device, x, nullptr);
+        });
+  }
+}
+
+Renderer::ErrorOr<VkDescriptorSet> MakeDescriptorSet(
+    VkDevice device, VkDescriptorPool pool, const VkDescriptorSetLayout& layout,
+    const std::vector<
+        std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>>&
+        descriptor_set_write_infos) {
+  VkDescriptorSetAllocateInfo alloc_info{};
+  alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  alloc_info.descriptorPool = pool;
+  alloc_info.descriptorSetCount = 1;
+  alloc_info.pSetLayouts = &layout;
+
+  VkDescriptorSet descriptor_set;
+  auto err = vkAllocateDescriptorSets(device, &alloc_info, &descriptor_set);
+  if (err != VK_SUCCESS) {
+    return Renderer::Error{
+        fmt::format("Failed to create descriptor set: {}", err)};
+  }
+
+  std::vector<VkWriteDescriptorSet> writes;
+  writes.reserve(descriptor_set_write_infos.size());
+  for (uint32_t i = 0; i < descriptor_set_write_infos.size(); ++i) {
+    VkWriteDescriptorSet write_descriptor_set;
+    write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write_descriptor_set.dstSet = descriptor_set;
+    write_descriptor_set.dstBinding = i;
+    write_descriptor_set.dstArrayElement = 0;
+    write_descriptor_set.descriptorCount = 1;
+
+    if (auto buffer_info = std::get_if<VkDescriptorBufferInfo>(
+            &descriptor_set_write_infos[i])) {
+      write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      write_descriptor_set.pBufferInfo = buffer_info;
+    } else if (auto image_info = std::get_if<VkDescriptorImageInfo>(
+                   &descriptor_set_write_infos[i])) {
+      write_descriptor_set.descriptorType =
+          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      write_descriptor_set.pImageInfo = image_info;
+    }
+
+    writes.push_back(write_descriptor_set);
+  }
+
+  vkUpdateDescriptorSets(device, writes.size(), writes.data(), 0, nullptr);
+
+  return descriptor_set;
+}
+
+Renderer::ErrorOr<ValueWithDeleter<VkBuffer>> MakeBuffer(
+    VkDevice device, Renderer::MemoryAllocator* allocator, const uint8_t* data,
+    size_t data_size, VkBufferUsageFlagBits usage_flags) {
+  VkBufferCreateInfo vertex_buffer_create_info{};
+  vertex_buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  vertex_buffer_create_info.size = data_size;
+  vertex_buffer_create_info.usage = usage_flags;
+
+  VkBuffer buffer;
+  VkResult err =
+      vkCreateBuffer(device, &vertex_buffer_create_info, nullptr, &buffer);
+  if (err != VK_SUCCESS) {
+    return Renderer::Error{fmt::format("Failed to create buffer: {}", err)};
+  }
+
+  auto error_or_buffer_mem =
+      allocator->Allocate(buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  if (auto error = std::get_if<Renderer::Error>(&error_or_buffer_mem)) {
+    vkDestroyBuffer(device, buffer, nullptr);
+    return *error;
+  }
+  std::unique_ptr<Renderer::MemoryAllocator::Allocation>& buffer_mem =
+      std::get<1>(error_or_buffer_mem);
+
+  err = vkBindBufferMemory(device, buffer, buffer_mem->memory(), 0);
+  if (err != VK_SUCCESS) {
+    vkDestroyBuffer(device, buffer, nullptr);
+    return Renderer::Error{
+        fmt::format("Failed to bind buffer memory: {}", err)};
+  }
+
+  uint8_t* p;
+  err = vkMapMemory(device, buffer_mem->memory(), 0, data_size, 0,
+                    reinterpret_cast<void**>(&p));
+  if (err != VK_SUCCESS) {
+    vkDestroyBuffer(device, buffer, nullptr);
+    return Renderer::Error{fmt::format("Failed to map memory: {}", err)};
+  }
+
+  memcpy(p, data, data_size);
+
+  vkUnmapMemory(device, buffer_mem->memory());
+
+  return Renderer::ErrorOr<ValueWithDeleter<VkBuffer>>(
+      std::in_place_index<1>, std::move(buffer),
+      [device, mem = std::move(buffer_mem)](VkBuffer&& x) {
+        vkDestroyBuffer(device, x, nullptr);
+      });
+}
+
 }  // namespace
 
 Renderer::MemoryAllocator::Allocation::~Allocation() {
@@ -116,43 +282,14 @@ auto Renderer::Create(VkInstance instance, VkPhysicalDevice physical_device,
 
   data.allocator.emplace(data.physical_device, data.device);
 
-  VkBufferCreateInfo vertex_buffer_create_info;
-  memset(&vertex_buffer_create_info, 0, sizeof(vertex_buffer_create_info));
-  vertex_buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  vertex_buffer_create_info.size = sizeof(VERTEX_DATA);
-  vertex_buffer_create_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-  VkResult err = vkCreateBuffer(data.device, &vertex_buffer_create_info,
-                                nullptr, &data.vertex_buffer);
-  if (err != VK_SUCCESS) {
-    return Error{fmt::format("Failed to create buffer: {}", err)};
-  }
-
-  auto allocate_result = data.allocator->Allocate(
-      data.vertex_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  if (auto error = std::get_if<Error>(&allocate_result)) {
+  auto error_or_vertex_buffer =
+      MakeBuffer(data.device, &(*data.allocator),
+                 reinterpret_cast<const uint8_t*>(VERTEX_DATA),
+                 sizeof(VERTEX_DATA), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+  if (auto error = std::get_if<Error>(&error_or_vertex_buffer)) {
     return *error;
   }
-  data.vertex_buffer_mem = std::move(std::get<1>(allocate_result));
-
-  err = vkBindBufferMemory(data.device, data.vertex_buffer,
-                           data.vertex_buffer_mem->memory(), 0);
-  if (err != VK_SUCCESS) {
-    return Error{fmt::format("Failed to bind buffer memory: {}", err)};
-  }
-
-  uint8_t* p;
-  err = vkMapMemory(data.device, data.vertex_buffer_mem->memory(), 0,
-                    vertex_buffer_create_info.size, 0,
-                    reinterpret_cast<void**>(&p));
-  if (err != VK_SUCCESS) {
-    return Error{fmt::format("Failed to map memory: {}", err)};
-  }
-
-  memcpy(p, VERTEX_DATA, sizeof(VERTEX_DATA));
-
-  vkUnmapMemory(data.device, data.vertex_buffer_mem->memory());
+  auto& vertex_buffer = std::get<1>(error_or_vertex_buffer);
 
   VkVertexInputBindingDescription vertex_binding_desc = {
       0,  // binding
@@ -176,59 +313,50 @@ auto Renderer::Create(VkInstance instance, VkPhysicalDevice physical_device,
   vertex_input_info.pVertexAttributeDescriptions = vertex_attr_desc;
 
   // Set up descriptor set and its layout.
-  VkDescriptorPoolSize descPoolSizes = {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                        uint32_t(concurrentFrameCount)};
-  VkDescriptorPoolCreateInfo descPoolInfo;
-  memset(&descPoolInfo, 0, sizeof(descPoolInfo));
-  descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  descPoolInfo.maxSets = concurrentFrameCount;
-  descPoolInfo.poolSizeCount = 1;
-  descPoolInfo.pPoolSizes = &descPoolSizes;
-  err = m_devFuncs->vkCreateDescriptorPool(dev, &descPoolInfo, nullptr,
-                                           &m_descPool);
-  if (err != VK_SUCCESS) qFatal("Failed to create descriptor pool: %d", err);
-
-  VkDescriptorSetLayoutBinding layoutBinding = {
-      0,  // binding
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
-      nullptr};
-  VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
-      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1,
-      &layoutBinding};
-  err = m_devFuncs->vkCreateDescriptorSetLayout(dev, &descLayoutInfo, nullptr,
-                                                &m_descSetLayout);
-  if (err != VK_SUCCESS)
-    qFatal("Failed to create descriptor set layout: %d", err);
-
-  for (int i = 0; i < concurrentFrameCount; ++i) {
-    VkDescriptorSetAllocateInfo descSetAllocInfo = {
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, m_descPool, 1,
-        &m_descSetLayout};
-    err = m_devFuncs->vkAllocateDescriptorSets(dev, &descSetAllocInfo,
-                                               &m_descSet[i]);
-    if (err != VK_SUCCESS) qFatal("Failed to allocate descriptor set: %d", err);
-
-    VkWriteDescriptorSet descWrite;
-    memset(&descWrite, 0, sizeof(descWrite));
-    descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descWrite.dstSet = m_descSet[i];
-    descWrite.descriptorCount = 1;
-    descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descWrite.pBufferInfo = &m_uniformBufInfo[i];
-    m_devFuncs->vkUpdateDescriptorSets(dev, 1, &descWrite, 0, nullptr);
+  auto error_or_descriptor_pool = MakeDescriptorPool(
+      data.device, {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}},
+      1);
+  if (auto error = std::get_if<Error>(&error_or_descriptor_pool)) {
+    return *error;
   }
+  auto& descriptor_pool = std::get<1>(error_or_descriptor_pool);
+
+  auto error_or_descriptor_set_layout = MakeDescriptorSetLayout(
+      data.device,
+      {VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                                    VK_SHADER_STAGE_VERTEX_BIT, nullptr}});
+  if (auto error = std::get_if<Error>(&error_or_descriptor_set_layout)) {
+    return *error;
+  }
+  auto& descriptor_set_layout = std::get<1>(error_or_descriptor_set_layout);
+
+  UniformType test_uniform;
+  auto error_or_uniform_buffer =
+      MakeBuffer(data.device, &(*data.allocator),
+                 reinterpret_cast<uint8_t*>(&test_uniform),
+                 sizeof(test_uniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+  if (auto error = std::get_if<Error>(&error_or_uniform_buffer)) {
+    return *error;
+  }
+  auto& uniform_buffer = std::get<1>(error_or_uniform_buffer);
+
+  auto error_or_uniform_descriptor_sets = MakeDescriptorSet(
+      data.device, descriptor_pool.value(), descriptor_set_layout.value(),
+      {VkDescriptorBufferInfo{uniform_buffer.value(), 0, sizeof(UniformType)}});
+  if (auto error = std::get_if<Error>(&error_or_uniform_descriptor_sets)) {
+    return *error;
+  }
+  auto& uniform_descriptor_sets = std::get<1>(error_or_uniform_descriptor_sets);
 
   // Pipeline cache
-  VkPipelineCacheCreateInfo pipelineCacheInfo;
-  memset(&pipelineCacheInfo, 0, sizeof(pipelineCacheInfo));
+  VkPipelineCacheCreateInfo pipelineCacheInfo{};
   pipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
   err = m_devFuncs->vkCreatePipelineCache(dev, &pipelineCacheInfo, nullptr,
                                           &m_pipelineCache);
   if (err != VK_SUCCESS) qFatal("Failed to create pipeline cache: %d", err);
 
   // Pipeline layout
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo;
-  memset(&pipelineLayoutInfo, 0, sizeof(pipelineLayoutInfo));
+  VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts = &m_descSetLayout;
@@ -409,7 +537,6 @@ std::function<void()> Renderer::RenderFrame(
   quint8* p;
   VkResult err = m_devFuncs->vkMapMemory(
       dev, m_bufMem, m_uniformBufInfo[m_window->currentFrame()].offset,
-      UNIFORM_DATA_SIZE, 0, reinterpret_cast<void**>(&p));
   if (err != VK_SUCCESS) qFatal("Failed to map memory: %d", err);
   QMatrix4x4 m = m_proj;
   m.rotate(m_rotation, 0, 1, 0);
