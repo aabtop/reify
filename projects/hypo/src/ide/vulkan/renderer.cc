@@ -5,6 +5,13 @@
 #include <glm/mat4x4.hpp>
 #include <iostream>
 
+#define ASSIGN_OR_RETURN(lhs, rhs)                 \
+  auto maybe_##lhs = rhs;                          \
+  if (auto error = std::get_if<0>(&maybe_##lhs)) { \
+    return *error;                                 \
+  }                                                \
+  auto& lhs = std::get<1>(maybe_##lhs)
+
 namespace {
 
 #include "src_gen/color_frag.h"
@@ -223,6 +230,24 @@ Renderer::ErrorOr<ValueWithDeleter<VkBuffer>> MakeBuffer(
       });
 }
 
+Renderer::ErrorOr<ValueWithDeleter<VkPipelineCache>> MakePipelineCache(
+    VkDevice device) {
+  VkPipelineCache pipeline_cache;
+  VkPipelineCacheCreateInfo pipeline_cache_info{};
+  pipeline_cache_info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+  auto err = vkCreatePipelineCache(device, &pipeline_cache_info, nullptr,
+                                   &pipeline_cache);
+  if (err != VK_SUCCESS) {
+    return Renderer::Error{
+        fmt::format("Failed to create pipeline cache: {}\n", err)};
+  }
+  return Renderer::ErrorOr<ValueWithDeleter<VkPipelineCache>>(
+      std::in_place_index<1>, std::move(pipeline_cache),
+      [device](VkPipelineCache&& x) {
+        vkDestroyPipelineCache(device, x, nullptr);
+      });
+}
+
 }  // namespace
 
 Renderer::MemoryAllocator::Allocation::~Allocation() {
@@ -282,14 +307,11 @@ auto Renderer::Create(VkInstance instance, VkPhysicalDevice physical_device,
 
   data.allocator.emplace(data.physical_device, data.device);
 
-  auto error_or_vertex_buffer =
+  ASSIGN_OR_RETURN(
+      vertex_buffer,
       MakeBuffer(data.device, &(*data.allocator),
                  reinterpret_cast<const uint8_t*>(VERTEX_DATA),
-                 sizeof(VERTEX_DATA), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-  if (auto error = std::get_if<Error>(&error_or_vertex_buffer)) {
-    return *error;
-  }
-  auto& vertex_buffer = std::get<1>(error_or_vertex_buffer);
+                 sizeof(VERTEX_DATA), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT));
 
   VkVertexInputBindingDescription vertex_binding_desc = {
       0,  // binding
@@ -313,47 +335,35 @@ auto Renderer::Create(VkInstance instance, VkPhysicalDevice physical_device,
   vertex_input_info.pVertexAttributeDescriptions = vertex_attr_desc;
 
   // Set up descriptor set and its layout.
-  auto error_or_descriptor_pool = MakeDescriptorPool(
-      data.device, {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}},
-      1);
-  if (auto error = std::get_if<Error>(&error_or_descriptor_pool)) {
-    return *error;
-  }
-  auto& descriptor_pool = std::get<1>(error_or_descriptor_pool);
+  ASSIGN_OR_RETURN(
+      descriptor_pool,
+      MakeDescriptorPool(
+          data.device,
+          {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}}, 1));
 
-  auto error_or_descriptor_set_layout = MakeDescriptorSetLayout(
-      data.device,
-      {VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                                    VK_SHADER_STAGE_VERTEX_BIT, nullptr}});
-  if (auto error = std::get_if<Error>(&error_or_descriptor_set_layout)) {
-    return *error;
-  }
-  auto& descriptor_set_layout = std::get<1>(error_or_descriptor_set_layout);
+  ASSIGN_OR_RETURN(descriptor_set_layout,
+                   MakeDescriptorSetLayout(
+                       data.device, {VkDescriptorSetLayoutBinding{
+                                        0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                                        VK_SHADER_STAGE_VERTEX_BIT, nullptr}}));
 
   UniformType test_uniform;
-  auto error_or_uniform_buffer =
+
+  ASSIGN_OR_RETURN(
+      uniform_buffer,
       MakeBuffer(data.device, &(*data.allocator),
                  reinterpret_cast<uint8_t*>(&test_uniform),
-                 sizeof(test_uniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-  if (auto error = std::get_if<Error>(&error_or_uniform_buffer)) {
-    return *error;
-  }
-  auto& uniform_buffer = std::get<1>(error_or_uniform_buffer);
+                 sizeof(test_uniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
 
-  auto error_or_uniform_descriptor_sets = MakeDescriptorSet(
-      data.device, descriptor_pool.value(), descriptor_set_layout.value(),
-      {VkDescriptorBufferInfo{uniform_buffer.value(), 0, sizeof(UniformType)}});
-  if (auto error = std::get_if<Error>(&error_or_uniform_descriptor_sets)) {
-    return *error;
-  }
-  auto& uniform_descriptor_sets = std::get<1>(error_or_uniform_descriptor_sets);
+  ASSIGN_OR_RETURN(
+      uniform_descriptor_sets,
+      MakeDescriptorSet(data.device, descriptor_pool.value(),
+                        descriptor_set_layout.value(),
+                        {VkDescriptorBufferInfo{uniform_buffer.value(), 0,
+                                                sizeof(UniformType)}}));
 
   // Pipeline cache
-  VkPipelineCacheCreateInfo pipelineCacheInfo{};
-  pipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-  err = m_devFuncs->vkCreatePipelineCache(dev, &pipelineCacheInfo, nullptr,
-                                          &m_pipelineCache);
-  if (err != VK_SUCCESS) qFatal("Failed to create pipeline cache: %d", err);
+  ASSIGN_OR_RETURN(pipeline_cache, MakePipelineCache(data.device));
 
   // Pipeline layout
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
