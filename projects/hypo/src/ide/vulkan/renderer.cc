@@ -50,27 +50,6 @@ Renderer::ErrorOr<uint32_t> FindMemoryTypeIndex(
   return Renderer::Error{"Failed to find a suitable memory type."};
 }
 
-template <typename T>
-class ValueWithDeleter {
- public:
-  ValueWithDeleter(T&& value, const std::function<void(T&&)>& deleter)
-      : value_(std::move(value)), deleter_(deleter) {}
-  ValueWithDeleter(ValueWithDeleter&&) = default;
-  ValueWithDeleter(const ValueWithDeleter&) = delete;
-  ValueWithDeleter& operator=(const ValueWithDeleter&) = delete;
-
-  // Move an existing value but use a different deleter.
-  ValueWithDeleter(ValueWithDeleter&& other,
-                   const std::function<void(T&&)>& deleter)
-      : value_(std::move(other.value_)), deleter_(deleter) {}
-
-  const T& value() const { return value_; }
-
- private:
-  T value_;
-  std::function<void(T&&)> deleter_;
-};
-
 Renderer::ErrorOr<ValueWithDeleter<VkShaderModule>> CreateShader(
     VkDevice device, const uint8_t* data, size_t size) {
   VkShaderModuleCreateInfo shader_module_create_info;
@@ -470,14 +449,9 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
                                              VkPhysicalDevice physical_device,
                                              VkDevice device,
                                              VkFormat output_image_format) {
-  RendererConstructorData data;
-  data.instance = instance;
-  data.physical_device = physical_device;
-  data.device = device;
-
   ASSIGN_OR_RETURN(
       vertex_buffer,
-      MakeBuffer(data.physical_device, data.device,
+      MakeBuffer(physical_device, device,
                  reinterpret_cast<const uint8_t*>(VERTEX_DATA),
                  sizeof(VERTEX_DATA), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT));
 
@@ -485,45 +459,27 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
   ASSIGN_OR_RETURN(
       descriptor_pool,
       MakeDescriptorPool(
-          data.device,
-          {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}}, 1));
+          device, {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}},
+          1));
 
   ASSIGN_OR_RETURN(descriptor_set_layout,
                    MakeDescriptorSetLayout(
-                       data.device, {VkDescriptorSetLayoutBinding{
-                                        0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                                        VK_SHADER_STAGE_VERTEX_BIT, nullptr}}));
-
-  UniformType test_uniform;
-
-  ASSIGN_OR_RETURN(
-      uniform_buffer,
-      MakeBuffer(data.physical_device, data.device,
-                 reinterpret_cast<uint8_t*>(&test_uniform),
-                 sizeof(test_uniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
-
-  ASSIGN_OR_RETURN(
-      uniform_descriptor_sets,
-      MakeDescriptorSet(data.device, descriptor_pool.value(),
-                        descriptor_set_layout.value(),
-                        {VkDescriptorBufferInfo{uniform_buffer.value(), 0,
-                                                sizeof(UniformType)}}));
+                       device, {VkDescriptorSetLayoutBinding{
+                                   0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                                   VK_SHADER_STAGE_VERTEX_BIT, nullptr}}));
 
   // Pipeline cache
-  ASSIGN_OR_RETURN(pipeline_cache, MakePipelineCache(data.device));
+  ASSIGN_OR_RETURN(pipeline_cache, MakePipelineCache(device));
 
   // Pipeline layout
-  ASSIGN_OR_RETURN(
-      pipeline_layout,
-      MakePipelineLayout(data.device, descriptor_set_layout.value()));
+  ASSIGN_OR_RETURN(pipeline_layout,
+                   MakePipelineLayout(device, descriptor_set_layout.value()));
 
   // Shaders
-  ASSIGN_OR_RETURN(
-      vertex_shader_module,
-      CreateShader(data.device, color_vert_spv, color_vert_spv_len));
-  ASSIGN_OR_RETURN(
-      fragment_shader_module,
-      CreateShader(data.device, color_frag_spv, color_frag_spv_len));
+  ASSIGN_OR_RETURN(vertex_shader_module,
+                   CreateShader(device, color_vert_spv, color_vert_spv_len));
+  ASSIGN_OR_RETURN(fragment_shader_module,
+                   CreateShader(device, color_frag_spv, color_frag_spv_len));
 
   // Render pass
   ASSIGN_OR_RETURN(render_pass, MakeRenderPass(device, output_image_format));
@@ -558,7 +514,17 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
                    },
                    fragment_shader_module.value()));
 
-  return Renderer(std::move(data));
+  return Renderer(RendererConstructorData{
+      instance,
+      physical_device,
+      device,
+      std::move(vertex_buffer),
+      std::move(descriptor_pool),
+      std::move(descriptor_set_layout),
+      std::move(pipeline_cache),
+      std::move(pipeline_layout),
+      std::move(pipeline),
+  });
 }
 
 Renderer::Renderer(RendererConstructorData&& data) : data_(std::move(data)) {}
@@ -578,6 +544,20 @@ std::function<void()> Renderer::RenderFrame(
   const QSize sz = m_window->swapChainImageSize();
   m_proj.perspective(45.0f, sz.width() / (float)sz.height(), 0.01f, 100.0f);
   m_proj.translate(0, 0, -4);
+
+  UniformType test_uniform;
+  ASSIGN_OR_RETURN(
+      uniform_buffer,
+      MakeBuffer(physical_device, device,
+                 reinterpret_cast<uint8_t*>(&test_uniform),
+                 sizeof(test_uniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
+
+  ASSIGN_OR_RETURN(
+      uniform_descriptor_sets,
+      MakeDescriptorSet(device, descriptor_pool.value(),
+                        descriptor_set_layout.value(),
+                        {VkDescriptorBufferInfo{uniform_buffer.value(), 0,
+                                                sizeof(UniformType)}}));
 
   VkClearColorValue clearColor = {{0, 0, 0, 1}};
   VkClearDepthStencilValue clearDS = {1, 0};

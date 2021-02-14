@@ -9,6 +9,27 @@
 #include <utility>
 #include <variant>
 
+template <typename T>
+class ValueWithDeleter {
+ public:
+  ValueWithDeleter(T&& value, const std::function<void(T&&)>& deleter)
+      : value_(std::move(value)), deleter_(deleter) {}
+  ValueWithDeleter(ValueWithDeleter&&) = default;
+  ValueWithDeleter(const ValueWithDeleter&) = delete;
+  ValueWithDeleter& operator=(const ValueWithDeleter&) = delete;
+
+  // Move an existing value but use a different deleter.
+  ValueWithDeleter(ValueWithDeleter&& other,
+                   const std::function<void(T&&)>& deleter)
+      : value_(std::move(other.value_)), deleter_(deleter) {}
+
+  const T& value() const { return value_; }
+
+ private:
+  T value_;
+  std::function<void(T&&)> deleter_;
+};
+
 class Renderer {
  public:
   struct Error {
@@ -40,17 +61,14 @@ class Renderer {
     VkPhysicalDevice physical_device;
     VkDevice device;
 
-    VkBuffer vertex_buffer = VK_NULL_HANDLE;
+    ValueWithDeleter<VkBuffer> vertex_buffer;
 
-    VkDescriptorPool m_descPool = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_descSetLayout = VK_NULL_HANDLE;
+    ValueWithDeleter<VkDescriptorPool> descriptor_pool;
+    ValueWithDeleter<VkDescriptorSetLayout> descriptor_set_layout;
 
-    VkPipelineCache m_pipelineCache = VK_NULL_HANDLE;
-    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline m_pipeline = VK_NULL_HANDLE;
-
-    // QMatrix4x4 m_proj;
-    float m_rotation = 0.0f;
+    ValueWithDeleter<VkPipelineCache> pipeline_cache;
+    ValueWithDeleter<VkPipelineLayout> pipeline_layout;
+    ValueWithDeleter<VkPipeline> pipeline;
   };
 
   Renderer(RendererConstructorData&& data);
