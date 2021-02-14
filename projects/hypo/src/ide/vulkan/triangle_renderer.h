@@ -1,7 +1,5 @@
 #include <QVulkanWindow>
 
-#include "renderer.h"
-
 class TriangleRenderer : public QVulkanWindowRenderer {
  public:
   TriangleRenderer(QVulkanWindow* w, bool msaa = false);

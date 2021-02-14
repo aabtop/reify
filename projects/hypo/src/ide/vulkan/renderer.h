@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <utility>
 #include <variant>
@@ -18,7 +19,9 @@ class Renderer {
 
   static ErrorOr<Renderer> Create(VkInstance instance,
                                   VkPhysicalDevice physical_device,
-                                  VkDevice device);
+                                  VkDevice device,
+                                  VkFormat output_image_format);
+
   class MemoryAllocator {
    public:
     class Allocation {
@@ -49,6 +52,7 @@ class Renderer {
     VkPhysicalDeviceMemoryProperties physical_device_memory_properties_;
   };
 
+  Renderer(Renderer&& other) = default;
   ~Renderer();
 
   // TODO:
@@ -82,7 +86,7 @@ class Renderer {
     float m_rotation = 0.0f;
   };
 
-  Renderer(RendererConstructorData data);
+  Renderer(RendererConstructorData&& data);
 
   RendererConstructorData data_;
 };
