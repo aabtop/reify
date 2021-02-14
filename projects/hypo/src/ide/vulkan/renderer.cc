@@ -59,6 +59,11 @@ class ValueWithDeleter {
   ValueWithDeleter(const ValueWithDeleter&) = delete;
   ValueWithDeleter& operator=(const ValueWithDeleter&) = delete;
 
+  // Move an existing value but use a different deleter.
+  ValueWithDeleter(ValueWithDeleter&& other,
+                   const std::function<void(T&&)>& deleter)
+      : value_(std::move(other.value_)), deleter_(deleter) {}
+
   const T& value() const { return value_; }
 
  private:
@@ -181,50 +186,86 @@ Renderer::ErrorOr<VkDescriptorSet> MakeDescriptorSet(
   return descriptor_set;
 }
 
+Renderer::ErrorOr<ValueWithDeleter<VkDeviceMemory>> Allocate(
+    VkDevice device, VkDeviceSize size, uint32_t memory_type) {
+  VkMemoryAllocateInfo mem_alloc_info = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+                                         nullptr, size, memory_type};
+
+  VkDeviceMemory vk_memory;
+  auto err = vkAllocateMemory(device, &mem_alloc_info, nullptr, &vk_memory);
+  if (err != VK_SUCCESS) {
+    return Renderer::Error{
+        fmt::format("Failed to allocate {} bytes of memory: {}", size, err)};
+  }
+
+  return ValueWithDeleter<VkDeviceMemory>(
+      std::move(vk_memory),
+      [device](VkDeviceMemory&& x) { vkFreeMemory(device, x, nullptr); });
+}
+
+Renderer::ErrorOr<ValueWithDeleter<VkDeviceMemory>> Allocate(
+    VkPhysicalDevice physical_device, VkDevice device, VkDeviceSize size,
+    uint32_t type_filter, VkMemoryPropertyFlags memory_property_flags) {
+  ASSIGN_OR_RETURN(
+      memory_type,
+      FindMemoryTypeIndex(physical_device, type_filter, memory_property_flags));
+
+  return Allocate(device, size, memory_type);
+}
+
+Renderer::ErrorOr<ValueWithDeleter<VkDeviceMemory>> Allocate(
+    VkPhysicalDevice physical_device, VkDevice device, VkBuffer buffer,
+    VkMemoryPropertyFlags memory_property_flags) {
+  VkMemoryRequirements mem_reqs;
+  vkGetBufferMemoryRequirements(device, buffer, &mem_reqs);
+
+  return Allocate(physical_device, device, mem_reqs.size,
+                  mem_reqs.memoryTypeBits, memory_property_flags);
+}
+
 Renderer::ErrorOr<ValueWithDeleter<VkBuffer>> MakeBuffer(
-    VkDevice device, Renderer::MemoryAllocator* allocator, const uint8_t* data,
+    VkPhysicalDevice physical_device, VkDevice device, const uint8_t* data,
     size_t data_size, VkBufferUsageFlagBits usage_flags) {
   VkBufferCreateInfo vertex_buffer_create_info{};
   vertex_buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   vertex_buffer_create_info.size = data_size;
   vertex_buffer_create_info.usage = usage_flags;
 
-  VkBuffer buffer;
+  VkBuffer buffer_raw;
   VkResult err =
-      vkCreateBuffer(device, &vertex_buffer_create_info, nullptr, &buffer);
+      vkCreateBuffer(device, &vertex_buffer_create_info, nullptr, &buffer_raw);
   if (err != VK_SUCCESS) {
     return Renderer::Error{fmt::format("Failed to create buffer: {}", err)};
   }
 
-  auto error_or_buffer_mem =
-      allocator->Allocate(buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  if (auto error = std::get_if<Renderer::Error>(&error_or_buffer_mem)) {
-    vkDestroyBuffer(device, buffer, nullptr);
-    return *error;
-  }
-  std::unique_ptr<Renderer::MemoryAllocator::Allocation>& buffer_mem =
-      std::get<1>(error_or_buffer_mem);
+  ValueWithDeleter<VkBuffer> buffer(
+      std::move(buffer_raw),
+      [device](VkBuffer&& x) { vkDestroyBuffer(device, x, nullptr); });
 
-  err = vkBindBufferMemory(device, buffer, buffer_mem->memory(), 0);
+  ASSIGN_OR_RETURN(buffer_mem,
+                   Allocate(physical_device, device, buffer.value(),
+                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
+
+  err = vkBindBufferMemory(device, buffer.value(), buffer_mem.value(), 0);
   if (err != VK_SUCCESS) {
-    vkDestroyBuffer(device, buffer, nullptr);
     return Renderer::Error{
         fmt::format("Failed to bind buffer memory: {}", err)};
   }
 
   uint8_t* p;
-  err = vkMapMemory(device, buffer_mem->memory(), 0, data_size, 0,
+  err = vkMapMemory(device, buffer_mem.value(), 0, data_size, 0,
                     reinterpret_cast<void**>(&p));
   if (err != VK_SUCCESS) {
-    vkDestroyBuffer(device, buffer, nullptr);
     return Renderer::Error{fmt::format("Failed to map memory: {}", err)};
   }
 
   memcpy(p, data, data_size);
 
-  vkUnmapMemory(device, buffer_mem->memory());
+  vkUnmapMemory(device, buffer_mem.value());
 
+  // We move the memory into the closure so that it is also deleted when the
+  // buffer is.
   return ValueWithDeleter<VkBuffer>(
       std::move(buffer), [device, mem = std::move(buffer_mem)](VkBuffer&& x) {
         vkDestroyBuffer(device, x, nullptr);
@@ -421,54 +462,8 @@ Renderer::ErrorOr<ValueWithDeleter<VkPipeline>> MakePipeline(
       std::move(pipeline),
       [device](VkPipeline&& x) { vkDestroyPipeline(device, x, nullptr); });
 }
+
 }  // namespace
-
-Renderer::MemoryAllocator::Allocation::~Allocation() {
-  vkFreeMemory(device_, memory_, nullptr);
-}
-
-Renderer::MemoryAllocator::MemoryAllocator(VkPhysicalDevice physical_device,
-                                           VkDevice device)
-    : physical_device_(physical_device), device_(device) {}
-
-auto Renderer::MemoryAllocator::Allocate(
-    VkBuffer buffer, VkMemoryPropertyFlags memory_property_flags)
-    -> ErrorOr<std::unique_ptr<Allocation>> {
-  VkMemoryRequirements mem_reqs;
-  vkGetBufferMemoryRequirements(device_, buffer, &mem_reqs);
-
-  return Allocate(mem_reqs.size, mem_reqs.memoryTypeBits,
-                  memory_property_flags);
-}
-
-auto Renderer::MemoryAllocator::Allocate(
-    VkDeviceSize size, uint32_t type_filter,
-    VkMemoryPropertyFlags memory_property_flags)
-    -> ErrorOr<std::unique_ptr<Allocation>> {
-  auto error_or_memory_type =
-      FindMemoryTypeIndex(physical_device_, type_filter, memory_property_flags);
-
-  if (auto error = std::get_if<Error>(&error_or_memory_type)) {
-    return *error;
-  }
-
-  return Allocate(size, std::get<uint32_t>(error_or_memory_type));
-}
-
-auto Renderer::MemoryAllocator::Allocate(VkDeviceSize size,
-                                         uint32_t memory_type)
-    -> ErrorOr<std::unique_ptr<Allocation>> {
-  VkMemoryAllocateInfo mem_alloc_info = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-                                         nullptr, size, memory_type};
-
-  VkDeviceMemory vk_memory;
-  auto err = vkAllocateMemory(device_, &mem_alloc_info, nullptr, &vk_memory);
-  if (err != VK_SUCCESS) {
-    return Error{
-        fmt::format("Failed to allocate {} bytes of memory: {}", size, err)};
-  }
-  return std::make_unique<Allocation>(device_, vk_memory);
-}
 
 // static
 Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
@@ -480,11 +475,9 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
   data.physical_device = physical_device;
   data.device = device;
 
-  data.allocator.emplace(data.physical_device, data.device);
-
   ASSIGN_OR_RETURN(
       vertex_buffer,
-      MakeBuffer(data.device, &(*data.allocator),
+      MakeBuffer(data.physical_device, data.device,
                  reinterpret_cast<const uint8_t*>(VERTEX_DATA),
                  sizeof(VERTEX_DATA), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT));
 
@@ -505,7 +498,7 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
 
   ASSIGN_OR_RETURN(
       uniform_buffer,
-      MakeBuffer(data.device, &(*data.allocator),
+      MakeBuffer(data.physical_device, data.device,
                  reinterpret_cast<uint8_t*>(&test_uniform),
                  sizeof(test_uniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
 
@@ -540,14 +533,29 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
       pipeline,
       MakePipeline(device, pipeline_layout.value(), render_pass.value(),
                    pipeline_cache.value(), vertex_shader_module.value(),
-                   {{0,  // binding
-                     5 * sizeof(float), VK_VERTEX_INPUT_RATE_VERTEX}},
-                   {{    // position
-                     0,  // location
-                     0,  // binding
-                     VK_FORMAT_R32G32_SFLOAT, 0},
-                    {// color
-                     1, 0, VK_FORMAT_R32G32B32_SFLOAT, 2 * sizeof(float)}},
+                   {
+                       {
+                           0,  // binding
+                           5 * sizeof(float),
+                           VK_VERTEX_INPUT_RATE_VERTEX,
+                       },
+                   },
+                   {
+                       {
+                           // position
+                           0,  // location
+                           0,  // binding
+                           VK_FORMAT_R32G32_SFLOAT,
+                           0,
+                       },
+                       {
+                           // color
+                           1,
+                           0,
+                           VK_FORMAT_R32G32B32_SFLOAT,
+                           2 * sizeof(float),
+                       },
+                   },
                    fragment_shader_module.value()));
 
   return Renderer(std::move(data));

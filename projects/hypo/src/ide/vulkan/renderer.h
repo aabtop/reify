@@ -22,36 +22,6 @@ class Renderer {
                                   VkDevice device,
                                   VkFormat output_image_format);
 
-  class MemoryAllocator {
-   public:
-    class Allocation {
-     public:
-      Allocation(VkDevice device, VkDeviceMemory memory)
-          : device_(device), memory_(memory) {}
-      ~Allocation();
-
-      VkDeviceMemory memory() const { return memory_; }
-
-     private:
-      VkDevice device_;
-      VkDeviceMemory memory_;
-    };
-
-    MemoryAllocator(VkPhysicalDevice physical_device, VkDevice device);
-    ErrorOr<std::unique_ptr<Allocation>> Allocate(
-        VkBuffer buffer, VkMemoryPropertyFlags memory_property_flags);
-    ErrorOr<std::unique_ptr<Allocation>> Allocate(
-        VkDeviceSize size, uint32_t type_filter,
-        VkMemoryPropertyFlags memory_property_flags);
-    ErrorOr<std::unique_ptr<Allocation>> Allocate(VkDeviceSize size,
-                                                  uint32_t memory_type);
-
-   private:
-    VkPhysicalDevice physical_device_;
-    VkDevice device_;
-    VkPhysicalDeviceMemoryProperties physical_device_memory_properties_;
-  };
-
   Renderer(Renderer&& other) = default;
   ~Renderer();
 
@@ -70,10 +40,7 @@ class Renderer {
     VkPhysicalDevice physical_device;
     VkDevice device;
 
-    std::optional<MemoryAllocator> allocator;
-
     VkBuffer vertex_buffer = VK_NULL_HANDLE;
-    std::unique_ptr<MemoryAllocator::Allocation> vertex_buffer_mem;
 
     VkDescriptorPool m_descPool = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_descSetLayout = VK_NULL_HANDLE;
