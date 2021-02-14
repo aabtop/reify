@@ -2,8 +2,15 @@
 
 #include <fmt/format.h>
 
-#include <glm/mat4x4.hpp>
+#include <array>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+
+namespace {
+
+#include "src_gen/color_frag.h"
+#include "src_gen/color_vert.h"
 
 #define ASSIGN_OR_RETURN(lhs, rhs)                 \
   auto maybe_##lhs = rhs;                          \
@@ -11,11 +18,6 @@
     return *error;                                 \
   }                                                \
   auto& lhs = std::get<1>(maybe_##lhs)
-
-namespace {
-
-#include "src_gen/color_frag.h"
-#include "src_gen/color_vert.h"
 
 // Note that the vertex data and the projection matrix assume OpenGL. With
 // Vulkan Y is negated in clip space and the near/far plane is at 0/1 instead
@@ -28,10 +30,6 @@ const float VERTEX_DATA[] = {  // Y up, front = CCW
 struct UniformType {
   alignas(16) glm::mat4 matrix;
 };
-
-inline VkDeviceSize aligned(VkDeviceSize v, VkDeviceSize byteAlign) {
-  return (v + byteAlign - 1) & ~(byteAlign - 1);
-}
 
 Renderer::ErrorOr<uint32_t> FindMemoryTypeIndex(
     VkPhysicalDevice physical_device, uint32_t type_filter,
@@ -118,7 +116,7 @@ Renderer::ErrorOr<WithDeleter<VkDescriptorSetLayout>> MakeDescriptorSetLayout(
   }
 }
 
-Renderer::ErrorOr<VkDescriptorSet> MakeDescriptorSet(
+Renderer::ErrorOr<WithDeleter<VkDescriptorSet>> MakeDescriptorSet(
     VkDevice device, VkDescriptorPool pool, const VkDescriptorSetLayout& layout,
     const std::vector<
         std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>>&
@@ -162,7 +160,10 @@ Renderer::ErrorOr<VkDescriptorSet> MakeDescriptorSet(
 
   vkUpdateDescriptorSets(device, writes.size(), writes.data(), 0, nullptr);
 
-  return descriptor_set;
+  return WithDeleter<VkDescriptorSet>(
+      std::move(descriptor_set), [device, pool](VkDescriptorSet&& x) {
+        vkFreeDescriptorSets(device, pool, 1, &x);
+      });
 }
 
 Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(VkDevice device,
@@ -204,30 +205,32 @@ Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
 }
 
 Renderer::ErrorOr<WithDeleter<VkBuffer>> MakeBuffer(
-    VkPhysicalDevice physical_device, VkDevice device, const uint8_t* data,
-    size_t data_size, VkBufferUsageFlagBits usage_flags) {
+    VkDevice device, VkBufferUsageFlagBits usage_flags, size_t data_size) {
   VkBufferCreateInfo vertex_buffer_create_info{};
   vertex_buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   vertex_buffer_create_info.size = data_size;
   vertex_buffer_create_info.usage = usage_flags;
 
-  VkBuffer buffer_raw;
+  VkBuffer buffer;
   VkResult err =
-      vkCreateBuffer(device, &vertex_buffer_create_info, nullptr, &buffer_raw);
+      vkCreateBuffer(device, &vertex_buffer_create_info, nullptr, &buffer);
   if (err != VK_SUCCESS) {
     return Renderer::Error{fmt::format("Failed to create buffer: {}", err)};
   }
-
-  WithDeleter<VkBuffer> buffer(std::move(buffer_raw), [device](VkBuffer&& x) {
+  return WithDeleter<VkBuffer>(std::move(buffer), [device](VkBuffer&& x) {
     vkDestroyBuffer(device, x, nullptr);
   });
+}
 
+Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindBufferMemory(
+    VkPhysicalDevice physical_device, VkDevice device, VkBuffer buffer,
+    const uint8_t* data, size_t data_size) {
   ASSIGN_OR_RETURN(buffer_mem,
-                   Allocate(physical_device, device, buffer.value(),
+                   Allocate(physical_device, device, buffer,
                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
 
-  err = vkBindBufferMemory(device, buffer.value(), buffer_mem.value(), 0);
+  VkResult err = vkBindBufferMemory(device, buffer, buffer_mem.value(), 0);
   if (err != VK_SUCCESS) {
     return Renderer::Error{
         fmt::format("Failed to bind buffer memory: {}", err)};
@@ -244,12 +247,7 @@ Renderer::ErrorOr<WithDeleter<VkBuffer>> MakeBuffer(
 
   vkUnmapMemory(device, buffer_mem.value());
 
-  // We move the memory into the closure so that it is also deleted when the
-  // buffer is.
-  return WithDeleter<VkBuffer>(
-      std::move(buffer), [device, mem = std::move(buffer_mem)](VkBuffer&& x) {
-        vkDestroyBuffer(device, x, nullptr);
-      });
+  return std::move(buffer_mem);
 }
 
 Renderer::ErrorOr<WithDeleter<VkPipelineCache>> MakePipelineCache(
@@ -450,11 +448,14 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
                                              VkPhysicalDevice physical_device,
                                              VkDevice device,
                                              VkFormat output_image_format) {
+  ASSIGN_OR_RETURN(vertex_buffer,
+                   MakeBuffer(device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                              sizeof(VERTEX_DATA)));
   ASSIGN_OR_RETURN(
-      vertex_buffer,
-      MakeBuffer(physical_device, device,
-                 reinterpret_cast<const uint8_t*>(VERTEX_DATA),
-                 sizeof(VERTEX_DATA), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT));
+      vertex_buffer_memory,
+      AllocateAndBindBufferMemory(
+          physical_device, device, vertex_buffer.value(),
+          reinterpret_cast<const uint8_t*>(VERTEX_DATA), sizeof(VERTEX_DATA)));
 
   // Set up descriptor set and its layout.
   ASSIGN_OR_RETURN(
@@ -520,105 +521,111 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
       physical_device,
       device,
       std::move(vertex_buffer),
+      std::move(vertex_buffer_memory),
       std::move(descriptor_pool),
       std::move(descriptor_set_layout),
       std::move(pipeline_cache),
       std::move(pipeline_layout),
+      std::move(render_pass),
       std::move(pipeline),
   });
 }
 
 Renderer::~Renderer() {}
 
-std::function<void()> Renderer::RenderFrame(
-    VkCommandBuffer frame_command_buffer,
-    const std::pair<uint32_t, uint32_t>& output_surface_size) {
-  VkDevice dev = m_window->device();
-  VkCommandBuffer cb = m_window->currentCommandBuffer();
-  const QSize sz = m_window->swapChainImageSize();
+glm::mat4 PerspectiveMatrix(float vertical_fov, float aspect_ratio,
+                            float near_plane, float far_plane) {
+  const float z_range = near_plane - far_plane;
+  const float tan_half_fov = glm::tan(glm::radians(vertical_fov / 2.0));
 
-  // Projection matrix
-  m_proj = m_window->clipCorrectionMatrix();  // adjust for Vulkan-OpenGL clip
-                                              // space differences
-  const QSize sz = m_window->swapChainImageSize();
-  m_proj.perspective(45.0f, sz.width() / (float)sz.height(), 0.01f, 100.0f);
-  m_proj.translate(0, 0, -4);
+  // Column major.
+  return glm::mat4{
+      {1.0f / (tan_half_fov * aspect_ratio), 0.0f, 0.0f, 0.0f},
+      {0.0f, 1.0f / tan_half_fov, 0.0f, 0.0f},
+      {0.0f, 0.0f, (-near_plane - far_plane) / z_range, 1.0f},
+      {0.0f, 0.0f, 2.0f * far_plane * near_plane / z_range, 0.0f},
+  };
+}
 
-  UniformType test_uniform;
+auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
+                           VkFramebuffer framebuffer,
+                           const std::array<uint32_t, 2>& output_surface_size)
+    -> ErrorOr<FrameResources> {
+  glm::mat4 projection_matrix = PerspectiveMatrix(
+      45.0f, output_surface_size[0] / (float)output_surface_size[1], 0.01f,
+      100.0f);
+  glm::mat4 view_matrix =
+      glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, -4.0f));
+  glm::mat4 world_matrix =
+      glm::rotate(glm::mat4(), rotation_, glm::vec3(0.0f, 1.0f, 0.0f));
+  UniformType uniform_data{projection_matrix * view_matrix * world_matrix};
+
+  rotation_ += 1;
+
+  ASSIGN_OR_RETURN(uniform_buffer,
+                   MakeBuffer(data_.device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                              sizeof(uniform_data)));
   ASSIGN_OR_RETURN(
-      uniform_buffer,
-      MakeBuffer(physical_device, device,
-                 reinterpret_cast<uint8_t*>(&test_uniform),
-                 sizeof(test_uniform), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
+      uniform_buffer_memory,
+      AllocateAndBindBufferMemory(
+          data_.physical_device, data_.device, uniform_buffer.value(),
+          reinterpret_cast<uint8_t*>(&uniform_data), sizeof(uniform_data)));
 
   ASSIGN_OR_RETURN(
-      uniform_descriptor_sets,
-      MakeDescriptorSet(device, descriptor_pool.value(),
-                        descriptor_set_layout.value(),
+      uniform_descriptor_set,
+      MakeDescriptorSet(data_.device, data_.descriptor_pool.value(),
+                        data_.descriptor_set_layout.value(),
                         {VkDescriptorBufferInfo{uniform_buffer.value(), 0,
                                                 sizeof(UniformType)}}));
 
-  VkClearColorValue clearColor = {{0, 0, 0, 1}};
-  VkClearDepthStencilValue clearDS = {1, 0};
-  VkClearValue clearValues[3];
-  memset(clearValues, 0, sizeof(clearValues));
-  clearValues[0].color = clearValues[2].color = clearColor;
-  clearValues[1].depthStencil = clearDS;
+  VkClearColorValue clear_color = {{0, 0, 0, 1}};
+  VkClearDepthStencilValue clear_depth_stencil = {1, 0};
+  std::array<VkClearValue, 2> clear_values{};
+  clear_values[0].color = clear_values[2].color = clear_color;
+  clear_values[1].depthStencil = clear_depth_stencil;
 
-  VkRenderPassBeginInfo rpBeginInfo;
-  memset(&rpBeginInfo, 0, sizeof(rpBeginInfo));
-  rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  rpBeginInfo.renderPass = m_window->defaultRenderPass();
-  rpBeginInfo.framebuffer = m_window->currentFramebuffer();
-  rpBeginInfo.renderArea.extent.width = sz.width();
-  rpBeginInfo.renderArea.extent.height = sz.height();
-  rpBeginInfo.clearValueCount =
-      m_window->sampleCountFlagBits() > VK_SAMPLE_COUNT_1_BIT ? 3 : 2;
-  rpBeginInfo.pClearValues = clearValues;
-  VkCommandBuffer cmdBuf = m_window->currentCommandBuffer();
-  m_devFuncs->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo,
-                                   VK_SUBPASS_CONTENTS_INLINE);
+  VkRenderPassBeginInfo rpb{};
+  rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  rpb.renderPass = data_.render_pass.value();
+  rpb.framebuffer = framebuffer;
+  rpb.renderArea.extent.width = output_surface_size[0];
+  rpb.renderArea.extent.height = output_surface_size[1];
+  rpb.clearValueCount = clear_values.size();
+  rpb.pClearValues = clear_values.data();
+  vkCmdBeginRenderPass(command_buffer, &rpb, VK_SUBPASS_CONTENTS_INLINE);
 
-  quint8* p;
-  VkResult err = m_devFuncs->vkMapMemory(
-      dev, m_bufMem, m_uniformBufInfo[m_window->currentFrame()].offset,
-  if (err != VK_SUCCESS) qFatal("Failed to map memory: %d", err);
-  QMatrix4x4 m = m_proj;
-  m.rotate(m_rotation, 0, 1, 0);
-  memcpy(p, m.constData(), 16 * sizeof(float));
-  m_devFuncs->vkUnmapMemory(dev, m_bufMem);
+  vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    data_.pipeline.value());
+  vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          data_.pipeline_layout.value(), 0, 1,
+                          &(uniform_descriptor_set.value()), 0, nullptr);
 
-  // Not exactly a real animation system, just advance on every frame for now.
-  m_rotation += 1.0f;
-
-  m_devFuncs->vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_pipeline);
-  m_devFuncs->vkCmdBindDescriptorSets(
-      cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
-      &m_descSet[m_window->currentFrame()], 0, nullptr);
-  VkDeviceSize vbOffset = 0;
-  m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &m_buf, &vbOffset);
+  VkDeviceSize vertex_buffer_offset = 0;
+  vkCmdBindVertexBuffers(command_buffer, 0, 1, &(data_.vertex_buffer.value()),
+                         &vertex_buffer_offset);
 
   VkViewport viewport;
   viewport.x = viewport.y = 0;
-  viewport.width = sz.width();
-  viewport.height = sz.height();
+  viewport.width = output_surface_size[0];
+  viewport.height = output_surface_size[1];
   viewport.minDepth = 0;
   viewport.maxDepth = 1;
-  m_devFuncs->vkCmdSetViewport(cb, 0, 1, &viewport);
+  vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
   VkRect2D scissor;
   scissor.offset.x = scissor.offset.y = 0;
   scissor.extent.width = viewport.width;
   scissor.extent.height = viewport.height;
-  m_devFuncs->vkCmdSetScissor(cb, 0, 1, &scissor);
+  vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-  m_devFuncs->vkCmdDraw(cb, 3, 1, 0, 0);
+  vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
-  m_devFuncs->vkCmdEndRenderPass(cmdBuf);
+  vkCmdEndRenderPass(command_buffer);
 
-  m_window->frameReady();
-  m_window->requestUpdate();  // render continuously, throttled by the
-                              // presentation rate
-  return []() {};
+  auto resources = std::make_tuple(std::move(uniform_buffer),
+                                   std::move(uniform_buffer_memory),
+                                   std::move(uniform_descriptor_set));
+  // std::any doesn't support move only types, so we wrap it in a shared_ptr.
+  return FrameResources(
+      std::make_shared<decltype(resources)>(std::move(resources)));
 }

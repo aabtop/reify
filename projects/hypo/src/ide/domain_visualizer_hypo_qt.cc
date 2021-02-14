@@ -4,12 +4,64 @@
 
 #include "src/ide/domain_visualizer_hypo.h"
 #include "src/ide/domain_visualizer_qt.h"
-#include "src/ide/vulkan/triangle_renderer.h"
+#include "src/ide/vulkan/renderer.h"
+
+class DomainVisualizerVulkanWindowRenderer : public QVulkanWindowRenderer {
+ public:
+  DomainVisualizerVulkanWindowRenderer(QVulkanWindow* window)
+      : window_(window) {}
+
+  void initResources() override {
+    auto renderer_or_error =
+        Renderer::Create(window_->vulkanInstance(), window_->physicalDevice(),
+                         window_->device(), window_->colorFormat());
+    if (auto error = std::get_if<Renderer::Error>(&renderer_or_error)) {
+      qFatal("Error creating Vulkan renderer: %s", error->msg);
+    }
+    renderer_.emplace(std::move(std::get<Renderer>(renderer_or_error)));
+  }
+
+  void initSwapChainResources() override{};
+  void releaseSwapChainResources() override{};
+  void releaseResources() override { renderer_ = std::nullopt; };
+
+  void startNextFrame() override {
+    int current_frame_index = window_->currentFrame();
+
+    if (current_frame_index >= frame_resources_.size()) {
+      frame_resources_.resize(current_frame_index);
+    }
+
+    // Clean up previous frame's resources.
+    frame_resources_[current_frame_index] = std::nullopt;
+
+    QSize image_size = window_->swapChainImageSize();
+    auto error_or_frame_resources = renderer_->RenderFrame(
+        window_->currentCommandBuffer(), window_->currentFramebuffer(),
+        {image_size.width(), image_size.height()});
+    if (auto error = std::get_if<Renderer::Error>(&error_or_frame_resources)) {
+      qFatal("Vulkan error while rendering frame: %s", error->msg);
+    }
+
+    frame_resources_[current_frame_index] =
+        std::move(std::get<Renderer::FrameResources>(error_or_frame_resources));
+
+    window_->frameReady();
+    // render continuously, throttled by the presentation rate.
+    window_->requestUpdate();
+  };
+
+ private:
+  QVulkanWindow* window_;
+  std::optional<Renderer> renderer_;
+
+  std::vector<std::optional<Renderer::FrameResources>> frame_resources_;
+};
 
 class DomainVisualizerVulkanWindow : public QVulkanWindow {
  public:
   QVulkanWindowRenderer* createRenderer() override {
-    return new TriangleRenderer(this);
+    return new DomainVisualizerVulkanWindowRenderer(this);
   }
 };
 

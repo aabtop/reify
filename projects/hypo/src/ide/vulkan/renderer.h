@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include <any>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -17,10 +18,13 @@ class WithDeleter {
   WithDeleter(WithDeleter&&) = default;
   WithDeleter(const WithDeleter&) = delete;
   WithDeleter& operator=(const WithDeleter&) = delete;
+  WithDeleter& operator=(WithDeleter&&) = default;
 
   // Move an existing value but use a different deleter.
   WithDeleter(WithDeleter&& other, const std::function<void(T&&)>& deleter)
       : value_(std::move(other.value_)), deleter_(deleter) {}
+
+  ~WithDeleter() { deleter_(std::move(value_)); }
 
   const T& value() const { return value_; }
 
@@ -36,6 +40,7 @@ class Renderer {
   };
   template <typename T>
   using ErrorOr = std::variant<Error, T>;
+  using FrameResources = std::any;
 
   static ErrorOr<Renderer> Create(VkInstance instance,
                                   VkPhysicalDevice physical_device,
@@ -45,14 +50,9 @@ class Renderer {
   Renderer(Renderer&& other) = default;
   ~Renderer();
 
-  // TODO:
-  //   1. Return a command buffer instead, it can be added to another as a sub
-  //   command buffer.
-  //   2. Return the set of resources used by the frame.
-  //   3. Make the function accept an arbitrary polygon soup to render.
-  std::function<void()> RenderFrame(
-      VkCommandBuffer frame_command_buffer,
-      const std::pair<uint32_t, uint32_t>& output_surface_size);
+  ErrorOr<FrameResources> RenderFrame(
+      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+      const std::array<uint32_t, 2>& output_surface_size);
 
  private:
   struct RendererConstructorData {
@@ -61,18 +61,23 @@ class Renderer {
     VkDevice device;
 
     WithDeleter<VkBuffer> vertex_buffer;
+    WithDeleter<VkDeviceMemory> vertex_buffer_memory;
 
     WithDeleter<VkDescriptorPool> descriptor_pool;
     WithDeleter<VkDescriptorSetLayout> descriptor_set_layout;
 
     WithDeleter<VkPipelineCache> pipeline_cache;
     WithDeleter<VkPipelineLayout> pipeline_layout;
+
+    WithDeleter<VkRenderPass> render_pass;
     WithDeleter<VkPipeline> pipeline;
   };
 
   Renderer(RendererConstructorData&& data) : data_(std::move(data)) {}
 
   RendererConstructorData data_;
+
+  float rotation_ = 0.0f;
 };
 
 #endif  // _IDE_VULKAN_RENDERER_H
