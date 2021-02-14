@@ -10,17 +10,16 @@
 #include <variant>
 
 template <typename T>
-class ValueWithDeleter {
+class WithDeleter {
  public:
-  ValueWithDeleter(T&& value, const std::function<void(T&&)>& deleter)
+  WithDeleter(T&& value, const std::function<void(T&&)>& deleter)
       : value_(std::move(value)), deleter_(deleter) {}
-  ValueWithDeleter(ValueWithDeleter&&) = default;
-  ValueWithDeleter(const ValueWithDeleter&) = delete;
-  ValueWithDeleter& operator=(const ValueWithDeleter&) = delete;
+  WithDeleter(WithDeleter&&) = default;
+  WithDeleter(const WithDeleter&) = delete;
+  WithDeleter& operator=(const WithDeleter&) = delete;
 
   // Move an existing value but use a different deleter.
-  ValueWithDeleter(ValueWithDeleter&& other,
-                   const std::function<void(T&&)>& deleter)
+  WithDeleter(WithDeleter&& other, const std::function<void(T&&)>& deleter)
       : value_(std::move(other.value_)), deleter_(deleter) {}
 
   const T& value() const { return value_; }
@@ -61,17 +60,17 @@ class Renderer {
     VkPhysicalDevice physical_device;
     VkDevice device;
 
-    ValueWithDeleter<VkBuffer> vertex_buffer;
+    WithDeleter<VkBuffer> vertex_buffer;
 
-    ValueWithDeleter<VkDescriptorPool> descriptor_pool;
-    ValueWithDeleter<VkDescriptorSetLayout> descriptor_set_layout;
+    WithDeleter<VkDescriptorPool> descriptor_pool;
+    WithDeleter<VkDescriptorSetLayout> descriptor_set_layout;
 
-    ValueWithDeleter<VkPipelineCache> pipeline_cache;
-    ValueWithDeleter<VkPipelineLayout> pipeline_layout;
-    ValueWithDeleter<VkPipeline> pipeline;
+    WithDeleter<VkPipelineCache> pipeline_cache;
+    WithDeleter<VkPipelineLayout> pipeline_layout;
+    WithDeleter<VkPipeline> pipeline;
   };
 
-  Renderer(RendererConstructorData&& data);
+  Renderer(RendererConstructorData&& data) : data_(std::move(data)) {}
 
   RendererConstructorData data_;
 };

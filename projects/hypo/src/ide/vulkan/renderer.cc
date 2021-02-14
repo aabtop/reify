@@ -50,8 +50,9 @@ Renderer::ErrorOr<uint32_t> FindMemoryTypeIndex(
   return Renderer::Error{"Failed to find a suitable memory type."};
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkShaderModule>> CreateShader(
-    VkDevice device, const uint8_t* data, size_t size) {
+Renderer::ErrorOr<WithDeleter<VkShaderModule>> CreateShader(VkDevice device,
+                                                            const uint8_t* data,
+                                                            size_t size) {
   VkShaderModuleCreateInfo shader_module_create_info;
   memset(&shader_module_create_info, 0, sizeof(shader_module_create_info));
   shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -65,13 +66,13 @@ Renderer::ErrorOr<ValueWithDeleter<VkShaderModule>> CreateShader(
         fmt::format("Failed to create shader module: {}", err)};
   }
 
-  return ValueWithDeleter<VkShaderModule>(
+  return WithDeleter<VkShaderModule>(
       std::move(shader_module), [device](VkShaderModule&& x) {
         vkDestroyShaderModule(device, x, nullptr);
       });
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkDescriptorPool>> MakeDescriptorPool(
+Renderer::ErrorOr<WithDeleter<VkDescriptorPool>> MakeDescriptorPool(
     VkDevice device,
     const std::vector<VkDescriptorPoolSize> descriptor_pool_sizes,
     uint32_t max_sets) {
@@ -90,15 +91,14 @@ Renderer::ErrorOr<ValueWithDeleter<VkDescriptorPool>> MakeDescriptorPool(
     return Renderer::Error{
         fmt::format("Failed to create descriptor pool: {}", err)};
   } else {
-    return ValueWithDeleter<VkDescriptorPool>(
+    return WithDeleter<VkDescriptorPool>(
         std::move(pool), [device](VkDescriptorPool&& x) {
           vkDestroyDescriptorPool(device, x, nullptr);
         });
   }
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkDescriptorSetLayout>>
-MakeDescriptorSetLayout(
+Renderer::ErrorOr<WithDeleter<VkDescriptorSetLayout>> MakeDescriptorSetLayout(
     VkDevice device,
     std::vector<VkDescriptorSetLayoutBinding> layout_bindings) {
   VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
@@ -111,7 +111,7 @@ MakeDescriptorSetLayout(
     return Renderer::Error{
         fmt::format("Failed to create descriptor set layout: {}", err)};
   } else {
-    return ValueWithDeleter<VkDescriptorSetLayout>(
+    return WithDeleter<VkDescriptorSetLayout>(
         std::move(layout), [device](VkDescriptorSetLayout&& x) {
           vkDestroyDescriptorSetLayout(device, x, nullptr);
         });
@@ -165,8 +165,9 @@ Renderer::ErrorOr<VkDescriptorSet> MakeDescriptorSet(
   return descriptor_set;
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkDeviceMemory>> Allocate(
-    VkDevice device, VkDeviceSize size, uint32_t memory_type) {
+Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(VkDevice device,
+                                                        VkDeviceSize size,
+                                                        uint32_t memory_type) {
   VkMemoryAllocateInfo mem_alloc_info = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
                                          nullptr, size, memory_type};
 
@@ -177,12 +178,12 @@ Renderer::ErrorOr<ValueWithDeleter<VkDeviceMemory>> Allocate(
         fmt::format("Failed to allocate {} bytes of memory: {}", size, err)};
   }
 
-  return ValueWithDeleter<VkDeviceMemory>(
+  return WithDeleter<VkDeviceMemory>(
       std::move(vk_memory),
       [device](VkDeviceMemory&& x) { vkFreeMemory(device, x, nullptr); });
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkDeviceMemory>> Allocate(
+Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
     VkPhysicalDevice physical_device, VkDevice device, VkDeviceSize size,
     uint32_t type_filter, VkMemoryPropertyFlags memory_property_flags) {
   ASSIGN_OR_RETURN(
@@ -192,7 +193,7 @@ Renderer::ErrorOr<ValueWithDeleter<VkDeviceMemory>> Allocate(
   return Allocate(device, size, memory_type);
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkDeviceMemory>> Allocate(
+Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
     VkPhysicalDevice physical_device, VkDevice device, VkBuffer buffer,
     VkMemoryPropertyFlags memory_property_flags) {
   VkMemoryRequirements mem_reqs;
@@ -202,7 +203,7 @@ Renderer::ErrorOr<ValueWithDeleter<VkDeviceMemory>> Allocate(
                   mem_reqs.memoryTypeBits, memory_property_flags);
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkBuffer>> MakeBuffer(
+Renderer::ErrorOr<WithDeleter<VkBuffer>> MakeBuffer(
     VkPhysicalDevice physical_device, VkDevice device, const uint8_t* data,
     size_t data_size, VkBufferUsageFlagBits usage_flags) {
   VkBufferCreateInfo vertex_buffer_create_info{};
@@ -217,9 +218,9 @@ Renderer::ErrorOr<ValueWithDeleter<VkBuffer>> MakeBuffer(
     return Renderer::Error{fmt::format("Failed to create buffer: {}", err)};
   }
 
-  ValueWithDeleter<VkBuffer> buffer(
-      std::move(buffer_raw),
-      [device](VkBuffer&& x) { vkDestroyBuffer(device, x, nullptr); });
+  WithDeleter<VkBuffer> buffer(std::move(buffer_raw), [device](VkBuffer&& x) {
+    vkDestroyBuffer(device, x, nullptr);
+  });
 
   ASSIGN_OR_RETURN(buffer_mem,
                    Allocate(physical_device, device, buffer.value(),
@@ -245,13 +246,13 @@ Renderer::ErrorOr<ValueWithDeleter<VkBuffer>> MakeBuffer(
 
   // We move the memory into the closure so that it is also deleted when the
   // buffer is.
-  return ValueWithDeleter<VkBuffer>(
+  return WithDeleter<VkBuffer>(
       std::move(buffer), [device, mem = std::move(buffer_mem)](VkBuffer&& x) {
         vkDestroyBuffer(device, x, nullptr);
       });
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkPipelineCache>> MakePipelineCache(
+Renderer::ErrorOr<WithDeleter<VkPipelineCache>> MakePipelineCache(
     VkDevice device) {
   VkPipelineCache pipeline_cache;
   VkPipelineCacheCreateInfo pipeline_cache_info{};
@@ -262,13 +263,13 @@ Renderer::ErrorOr<ValueWithDeleter<VkPipelineCache>> MakePipelineCache(
     return Renderer::Error{
         fmt::format("Failed to create pipeline cache: {}\n", err)};
   }
-  return ValueWithDeleter<VkPipelineCache>(
+  return WithDeleter<VkPipelineCache>(
       std::move(pipeline_cache), [device](VkPipelineCache&& x) {
         vkDestroyPipelineCache(device, x, nullptr);
       });
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkPipelineLayout>> MakePipelineLayout(
+Renderer::ErrorOr<WithDeleter<VkPipelineLayout>> MakePipelineLayout(
     VkDevice device, VkDescriptorSetLayout descriptor_set_layout) {
   VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
   pipeline_layout_create_info.sType =
@@ -284,13 +285,13 @@ Renderer::ErrorOr<ValueWithDeleter<VkPipelineLayout>> MakePipelineLayout(
         fmt::format("Failed to create pipeline layout: {}", err)};
   }
 
-  return ValueWithDeleter<VkPipelineLayout>(
+  return WithDeleter<VkPipelineLayout>(
       std::move(pipeline_layout), [device](VkPipelineLayout&& x) {
         vkDestroyPipelineLayout(device, x, nullptr);
       });
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkRenderPass>> MakeRenderPass(
+Renderer::ErrorOr<WithDeleter<VkRenderPass>> MakeRenderPass(
     VkDevice device, VkFormat color_attachment_format) {
   VkAttachmentDescription color_attachment{};
   color_attachment.format = color_attachment_format;
@@ -325,12 +326,12 @@ Renderer::ErrorOr<ValueWithDeleter<VkRenderPass>> MakeRenderPass(
         fmt::format("Failed to create render pass: {}", err)};
   }
 
-  return ValueWithDeleter<VkRenderPass>(
+  return WithDeleter<VkRenderPass>(
       std::move(render_pass),
       [device](VkRenderPass&& x) { vkDestroyRenderPass(device, x, nullptr); });
 }
 
-Renderer::ErrorOr<ValueWithDeleter<VkPipeline>> MakePipeline(
+Renderer::ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
     VkDevice device, VkPipelineLayout pipeline_layout, VkRenderPass render_pass,
     VkPipelineCache pipeline_cache, VkShaderModule vertex_shader_module,
     const std::vector<VkVertexInputBindingDescription>&
@@ -437,9 +438,9 @@ Renderer::ErrorOr<ValueWithDeleter<VkPipeline>> MakePipeline(
         fmt::format("Failed to create graphics pipeline: {}", err)};
   }
 
-  return ValueWithDeleter<VkPipeline>(
-      std::move(pipeline),
-      [device](VkPipeline&& x) { vkDestroyPipeline(device, x, nullptr); });
+  return WithDeleter<VkPipeline>(std::move(pipeline), [device](VkPipeline&& x) {
+    vkDestroyPipeline(device, x, nullptr);
+  });
 }
 
 }  // namespace
@@ -526,8 +527,6 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
       std::move(pipeline),
   });
 }
-
-Renderer::Renderer(RendererConstructorData&& data) : data_(std::move(data)) {}
 
 Renderer::~Renderer() {}
 
