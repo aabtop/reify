@@ -95,7 +95,6 @@ cc_library(
     ":domain_visualizer_hypo",
     ":domain_visualizer_interface_qt",
     "//src/ide/vulkan:renderer",
-    "//src/ide/vulkan:triangle_renderer",
   ],
 )
 
