@@ -82,9 +82,20 @@ cc_library(
   hdrs = ["domain_visualizer_hypo.h"],
   deps = [
     ":domain_visualizer_interface",
+    "//src/ide/vulkan:interface",
     "//:hypo-typescript_cpp_v8",
     "//:hypo-purecpp",
     "//:hypo_lib",
+  ],
+)
+
+qt_cc_library(
+  name = "domain_visualizer_hypo_qt_vulkan_window",
+  srcs = ["domain_visualizer_hypo_qt_vulkan_window.cc"],
+  hdr = "domain_visualizer_hypo_qt_vulkan_window.h",
+  qt_dep = "@qt//:qt",
+  deps = [
+    "//src/ide/vulkan:renderer",
   ],
 )
 
@@ -94,9 +105,10 @@ cc_library(
   deps = [
     ":domain_visualizer_hypo",
     ":domain_visualizer_interface_qt",
-    "//src/ide/vulkan:renderer",
+    ":domain_visualizer_hypo_qt_vulkan_window",
   ],
 )
+
 
 qt_cc_library(
   name = "web_interface",

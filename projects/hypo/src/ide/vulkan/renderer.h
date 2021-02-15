@@ -11,6 +11,8 @@
 #include <utility>
 #include <variant>
 
+#include "triangle_soup.h"
+
 template <typename T>
 class WithDeleter {
  public:
@@ -55,6 +57,9 @@ class Renderer {
   Renderer(Renderer&& other) = default;
   ~Renderer();
 
+  std::optional<Error> SetTriangleSoup(
+      std::shared_ptr<const TriangleSoup> triangle_soup);
+
   ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
       const std::array<uint32_t, 2>& output_surface_size);
@@ -64,9 +69,6 @@ class Renderer {
     VkInstance instance;
     VkPhysicalDevice physical_device;
     VkDevice device;
-
-    WithDeleter<VkBuffer> vertex_buffer;
-    WithDeleter<VkDeviceMemory> vertex_buffer_memory;
 
     WithDeleter<VkDescriptorSetLayout> descriptor_set_layout;
 
@@ -82,6 +84,17 @@ class Renderer {
   RendererConstructorData data_;
 
   float rotation_ = 0.0f;
+
+  std::shared_ptr<const TriangleSoup> triangle_soup_;
+
+  struct VulkanTriangleSoup {
+    WithDeleter<VkBuffer> vertex_buffer;
+    WithDeleter<VkDeviceMemory> vertex_buffer_memory;
+
+    WithDeleter<VkBuffer> index_buffer;
+    WithDeleter<VkDeviceMemory> index_buffer_memory;
+  };
+  std::shared_ptr<VulkanTriangleSoup> vulkan_triangle_soup_;
 };
 
 #endif  // _IDE_VULKAN_RENDERER_H

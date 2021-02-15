@@ -18,16 +18,10 @@ namespace {
   }                                                \
   auto& lhs = std::get<1>(maybe_##lhs)
 
-// Note that the vertex data and the projection matrix assume OpenGL. With
-// Vulkan Y is negated in clip space and the near/far plane is at 0/1 instead
-// of -1/1. These will be corrected for by an extra transformation when
-// calculating the modelview-projection matrix.
-const float VERTEX_DATA[] = {  // Y up, front = CCW
-    0.0f, 0.5f, 1.0f, 0.0f,  0.0f, -0.5f, -0.5f, 0.0f,
-    1.0f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f,  1.0f};
-
-struct UniformType {
-  alignas(16) glm::mat4 matrix;
+struct MvpUniform {
+  alignas(16) glm::mat4 model;
+  alignas(16) glm::mat4 view;
+  alignas(16) glm::mat4 projection;
 };
 
 Renderer::ErrorOr<uint32_t> FindMemoryTypeIndex(
@@ -384,8 +378,8 @@ Renderer::ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
   memset(&rs, 0, sizeof(rs));
   rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   rs.polygonMode = VK_POLYGON_MODE_FILL;
-  rs.cullMode = VK_CULL_MODE_NONE;  // we want the back face as well
-  rs.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  rs.cullMode = VK_CULL_MODE_BACK_BIT;
+  rs.frontFace = VK_FRONT_FACE_CLOCKWISE;
   rs.lineWidth = 1.0f;
   pipeline_create_info.pRasterizationState = &rs;
 
@@ -447,15 +441,6 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
                                              VkPhysicalDevice physical_device,
                                              VkDevice device,
                                              VkFormat output_image_format) {
-  ASSIGN_OR_RETURN(vertex_buffer,
-                   MakeBuffer(device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                              sizeof(VERTEX_DATA)));
-  ASSIGN_OR_RETURN(
-      vertex_buffer_memory,
-      AllocateAndBindBufferMemory(
-          physical_device, device, vertex_buffer.value(),
-          reinterpret_cast<const uint8_t*>(VERTEX_DATA), sizeof(VERTEX_DATA)));
-
   ASSIGN_OR_RETURN(descriptor_set_layout,
                    MakeDescriptorSetLayout(
                        device, {VkDescriptorSetLayoutBinding{
@@ -486,7 +471,7 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
                    {
                        {
                            0,  // binding
-                           5 * sizeof(float),
+                           6 * sizeof(float),
                            VK_VERTEX_INPUT_RATE_VERTEX,
                        },
                    },
@@ -495,15 +480,15 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
                            // position
                            0,  // location
                            0,  // binding
-                           VK_FORMAT_R32G32_SFLOAT,
+                           VK_FORMAT_R32G32B32_SFLOAT,
                            0,
                        },
                        {
-                           // color
-                           1,
-                           0,
+                           // normal
+                           1,  // location
+                           0,  // binding
                            VK_FORMAT_R32G32B32_SFLOAT,
-                           2 * sizeof(float),
+                           3 * sizeof(float),
                        },
                    },
                    fragment_shader_module.value()));
@@ -512,8 +497,6 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
       instance,
       physical_device,
       device,
-      std::move(vertex_buffer),
-      std::move(vertex_buffer_memory),
       std::move(descriptor_set_layout),
       std::move(pipeline_cache),
       std::move(pipeline_layout),
@@ -532,10 +515,10 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
       45.0f, output_surface_size[0] / (float)output_surface_size[1], 0.01f,
       100.0f);
   glm::mat4 view_matrix =
-      glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -4.0f));
+      glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -8.0f));
   glm::mat4 model_matrix =
       glm::rotate(glm::mat4(1), rotation_, glm::vec3(0.0f, 1.0f, 0.0f));
-  UniformType uniform_data{projection_matrix * view_matrix * model_matrix};
+  MvpUniform uniform_data{model_matrix, view_matrix, projection_matrix};
 
   rotation_ += 0.01f;
 
@@ -560,7 +543,7 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
       MakeDescriptorSet(data_.device, descriptor_pool.value(),
                         data_.descriptor_set_layout.value(),
                         {VkDescriptorBufferInfo{uniform_buffer.value(), 0,
-                                                sizeof(UniformType)}}));
+                                                sizeof(MvpUniform)}}));
 
   VkClearColorValue clear_color = {{0, 0, 0, 1}};
   VkClearDepthStencilValue clear_depth_stencil = {1, 0};
@@ -579,38 +562,88 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
   rpb.pClearValues = clear_values.data();
   vkCmdBeginRenderPass(command_buffer, &rpb, VK_SUBPASS_CONTENTS_INLINE);
 
-  vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    data_.pipeline.value());
-  vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          data_.pipeline_layout.value(), 0, 1,
-                          &(uniform_descriptor_set.value()), 0, nullptr);
+  if (vulkan_triangle_soup_) {
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      data_.pipeline.value());
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            data_.pipeline_layout.value(), 0, 1,
+                            &(uniform_descriptor_set.value()), 0, nullptr);
 
-  VkDeviceSize vertex_buffer_offset = 0;
-  vkCmdBindVertexBuffers(command_buffer, 0, 1, &(data_.vertex_buffer.value()),
-                         &vertex_buffer_offset);
+    VkDeviceSize vertex_buffer_offset = 0;
+    vkCmdBindVertexBuffers(command_buffer, 0, 1,
+                           &(vulkan_triangle_soup_->vertex_buffer.value()),
+                           &vertex_buffer_offset);
+    vkCmdBindIndexBuffer(command_buffer,
+                         vulkan_triangle_soup_->index_buffer.value(), 0,
+                         VK_INDEX_TYPE_UINT32);
 
-  VkViewport viewport;
-  viewport.x = viewport.y = 0;
-  viewport.width = output_surface_size[0];
-  viewport.height = output_surface_size[1];
-  viewport.minDepth = 0;
-  viewport.maxDepth = 1;
-  vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+    VkViewport viewport;
+    viewport.x = viewport.y = 0;
+    viewport.width = output_surface_size[0];
+    viewport.height = output_surface_size[1];
+    viewport.minDepth = 0;
+    viewport.maxDepth = 1;
+    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-  VkRect2D scissor;
-  scissor.offset.x = scissor.offset.y = 0;
-  scissor.extent.width = viewport.width;
-  scissor.extent.height = viewport.height;
-  vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+    VkRect2D scissor;
+    scissor.offset.x = scissor.offset.y = 0;
+    scissor.extent.width = viewport.width;
+    scissor.extent.height = viewport.height;
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-  vkCmdDraw(command_buffer, 3, 1, 0, 0);
+    vkCmdDrawIndexed(
+        command_buffer,
+        static_cast<uint32_t>(triangle_soup_->triangles.size() * 3), 1, 0, 0,
+        0);
+  }
 
   vkCmdEndRenderPass(command_buffer);
 
   auto resources = std::make_tuple(
       std::move(uniform_buffer), std::move(uniform_buffer_memory),
-      std::move(descriptor_pool), std::move(uniform_descriptor_set));
+      std::move(descriptor_pool), std::move(uniform_descriptor_set),
+      vulkan_triangle_soup_);
   // std::any doesn't support move only types, so we wrap it in a shared_ptr.
   return FrameResources(
       std::make_shared<decltype(resources)>(std::move(resources)));
+}
+
+std::optional<Renderer::Error> Renderer::SetTriangleSoup(
+    std::shared_ptr<const TriangleSoup> triangle_soup) {
+  triangle_soup_ = triangle_soup;
+
+  size_t vertex_buffer_size =
+      triangle_soup_->vertices.size() * sizeof(triangle_soup_->vertices[0]);
+
+  ASSIGN_OR_RETURN(vertex_buffer,
+                   MakeBuffer(data_.device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                              vertex_buffer_size));
+  ASSIGN_OR_RETURN(
+      vertex_buffer_memory,
+      AllocateAndBindBufferMemory(
+          data_.physical_device, data_.device, vertex_buffer.value(),
+          reinterpret_cast<const uint8_t*>(triangle_soup_->vertices.data()),
+          vertex_buffer_size));
+
+  size_t index_buffer_size =
+      triangle_soup_->triangles.size() * sizeof(triangle_soup_->triangles[0]);
+  ASSIGN_OR_RETURN(index_buffer,
+                   MakeBuffer(data_.device, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                              index_buffer_size));
+  ASSIGN_OR_RETURN(
+      index_buffer_memory,
+      AllocateAndBindBufferMemory(
+          data_.physical_device, data_.device, index_buffer.value(),
+          reinterpret_cast<const uint8_t*>(triangle_soup_->triangles.data()),
+          index_buffer_size));
+
+  vulkan_triangle_soup_ =
+      std::shared_ptr<VulkanTriangleSoup>(new VulkanTriangleSoup{
+          std::move(vertex_buffer),
+          std::move(vertex_buffer_memory),
+          std::move(index_buffer),
+          std::move(index_buffer_memory),
+      });
+
+  return std::nullopt;
 }

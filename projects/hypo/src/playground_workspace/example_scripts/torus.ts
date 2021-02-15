@@ -1,6 +1,6 @@
 import * as h from 'hypo';
 
-export function Main() {
+export function Torus() {
   return h.Torus({
     inner_radius: 2,
     outer_radius: 3,

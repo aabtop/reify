@@ -1,5 +1,7 @@
 #include "src/ide/domain_visualizer_hypo.h"
 
+#include <CGAL/boost/graph/convert_nef_polyhedron_to_polygon_mesh.h>
+
 #include "cgal/construct_region2.h"
 #include "cgal/construct_region3.h"
 #include "cgal/types_nef_polyhedron_3.h"
@@ -7,7 +9,54 @@
 #include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/hypo.h"
 
-DomainVisualizerHypo::DomainVisualizerHypo() {}
+namespace {
+TriangleSoup ConvertToTriangleSoup(
+    const hypo::cgal::Nef_polyhedron_3& polyhedron) {
+  std::vector<hypo::cgal::Point_3> cgal_vertices;
+  std::vector<std::vector<size_t>> cgal_faces;
+  CGAL::convert_nef_polyhedron_to_polygon_soup(polyhedron, cgal_vertices,
+                                               cgal_faces, true);
+
+  std::vector<TriangleSoup::Triangle> triangles;
+  triangles.reserve(cgal_faces.size());
+  std::vector<TriangleSoup::Vertex> vertices;
+  vertices.reserve(triangles.size() * 3 * sizeof(TriangleSoup::Vertex));
+
+  for (const auto& cgal_face : cgal_faces) {
+    assert(cgal_face.size() == 3);
+    const std::array<hypo::cgal::Point_3, 3> points = {
+        cgal_vertices[cgal_face[0]], cgal_vertices[cgal_face[1]],
+        cgal_vertices[cgal_face[2]]};
+    hypo::cgal::Vector_3 cgal_normal =
+        CGAL::normal(points[0], points[1], points[2]);
+
+    TriangleSoup::Vector3 normal = {
+        static_cast<float>(CGAL::to_double(cgal_normal.x())),
+        static_cast<float>(CGAL::to_double(cgal_normal.y())),
+        static_cast<float>(CGAL::to_double(cgal_normal.z()))};
+
+    for (const auto& point : points) {
+      vertices.push_back(TriangleSoup::Vertex{
+          {static_cast<float>(CGAL::to_double(point.x())),
+           static_cast<float>(CGAL::to_double(point.y())),
+           static_cast<float>(CGAL::to_double(point.z()))},
+          normal,
+      });
+    }
+
+    triangles.push_back(
+        TriangleSoup::Triangle{static_cast<uint32_t>(vertices.size() - 3),
+                               static_cast<uint32_t>(vertices.size() - 2),
+                               static_cast<uint32_t>(vertices.size() - 1)});
+  }
+
+  return TriangleSoup{std::move(vertices), std::move(triangles)};
+}
+}  // namespace
+
+DomainVisualizerHypo::DomainVisualizerHypo(
+    const std::function<void(TriangleSoup&&)>& produce_mesh)
+    : produce_mesh_(produce_mesh) {}
 
 std::vector<reify::CompilerEnvironment::InputModule>
 DomainVisualizerHypo::GetTypeScriptModules() {
@@ -25,7 +74,8 @@ void DomainVisualizerHypo::ConsumeSymbol(
     const reify::CompiledModule::ExportedSymbol& symbol,
     const std::function<void(std::optional<ConsumeError>&&)>& on_consumed) {
   std::thread thread([module, symbol = std::move(symbol),
-                      on_consumed = std::move(on_consumed)]() {
+                      on_consumed = std::move(on_consumed),
+                      &produce_mesh = produce_mesh_]() {
     // Setup a V8 runtime environment around the CompiledModule.  This will
     // enable us to call exported functions and query exported values from the
     // module.
@@ -57,6 +107,8 @@ void DomainVisualizerHypo::ConsumeSymbol(
 
       hypo::cgal::Nef_polyhedron_3 polyhedron3 =
           hypo::cgal::ConstructRegion3(result);
+
+      produce_mesh(ConvertToTriangleSoup(polyhedron3));
 
       on_consumed(std::nullopt);
     }

@@ -1,75 +1,8 @@
-#include <fmt/format.h>
-
 #include <QVBoxLayout>
-#include <QVulkanInstance>
-#include <QVulkanWindow>
 
 #include "src/ide/domain_visualizer_hypo.h"
+#include "src/ide/domain_visualizer_hypo_qt_vulkan_window.h"
 #include "src/ide/domain_visualizer_qt.h"
-#include "src/ide/vulkan/renderer.h"
-
-class DomainVisualizerVulkanWindowRenderer : public QVulkanWindowRenderer {
- public:
-  DomainVisualizerVulkanWindowRenderer(QVulkanWindow* window)
-      : window_(window) {}
-
-  void initResources() override {
-    auto renderer_or_error = Renderer::Create(
-        window_->vulkanInstance()->vkInstance(), window_->physicalDevice(),
-        window_->device(), window_->colorFormat());
-    if (auto error = std::get_if<Renderer::Error>(&renderer_or_error)) {
-      qFatal("Error creating Vulkan renderer: %s", error->msg.c_str());
-    }
-    renderer_.emplace(std::move(std::get<Renderer>(renderer_or_error)));
-  }
-
-  void initSwapChainResources() override{};
-  void releaseSwapChainResources() override{};
-  void releaseResources() override {
-    frame_resources_.clear();
-    renderer_ = std::nullopt;
-  };
-
-  void startNextFrame() override {
-    int current_frame_index = window_->currentFrame();
-
-    if (current_frame_index >= frame_resources_.size()) {
-      frame_resources_.resize(current_frame_index + 1);
-    }
-
-    // Clean up previous frame's resources.
-    frame_resources_[current_frame_index] = std::nullopt;
-
-    QSize image_size = window_->swapChainImageSize();
-    auto error_or_frame_resources = renderer_->RenderFrame(
-        window_->currentCommandBuffer(), window_->currentFramebuffer(),
-        {static_cast<uint32_t>(image_size.width()),
-         static_cast<uint32_t>(image_size.height())});
-    if (auto error = std::get_if<Renderer::Error>(&error_or_frame_resources)) {
-      qFatal("Vulkan error while rendering frame: %s", error->msg.c_str());
-    }
-
-    frame_resources_[current_frame_index] =
-        std::move(std::get<Renderer::FrameResources>(error_or_frame_resources));
-
-    window_->frameReady();
-    // render continuously, throttled by the presentation rate.
-    window_->requestUpdate();
-  };
-
- private:
-  QVulkanWindow* window_;
-  std::optional<Renderer> renderer_;
-
-  std::vector<std::optional<Renderer::FrameResources>> frame_resources_;
-};
-
-class DomainVisualizerVulkanWindow : public QVulkanWindow {
- public:
-  QVulkanWindowRenderer* createRenderer() override {
-    return new DomainVisualizerVulkanWindowRenderer(this);
-  }
-};
 
 class DomainVisualizerQtVulkan : public DomainVisualizer {
  public:
@@ -90,7 +23,11 @@ class DomainVisualizerQtVulkan : public DomainVisualizer {
     layout->addWidget(vulkan_window_widget_.get());
     frame->setLayout(layout);
 
-    wrapped_domain_visualizer_.reset(new DomainVisualizerHypo());
+    wrapped_domain_visualizer_.reset(
+        new DomainVisualizerHypo([vulkan_window](TriangleSoup&& x) {
+          emit vulkan_window->SetTriangleSoup(
+              std::make_shared<const TriangleSoup>(std::move(x)));
+        }));
   }
 
   std::vector<reify::CompilerEnvironment::InputModule> GetTypeScriptModules()
