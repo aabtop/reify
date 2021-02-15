@@ -18,8 +18,7 @@ class DomainVisualizerVulkanWindowRenderer : public QVulkanWindowRenderer {
         window_->vulkanInstance()->vkInstance(), window_->physicalDevice(),
         window_->device(), window_->colorFormat());
     if (auto error = std::get_if<Renderer::Error>(&renderer_or_error)) {
-      qFatal(fmt::format("Error creating Vulkan renderer: {}", error->msg)
-                 .c_str());
+      qFatal("Error creating Vulkan renderer: %s", error->msg.c_str());
     }
     renderer_.emplace(std::move(std::get<Renderer>(renderer_or_error)));
   }
@@ -47,8 +46,7 @@ class DomainVisualizerVulkanWindowRenderer : public QVulkanWindowRenderer {
         {static_cast<uint32_t>(image_size.width()),
          static_cast<uint32_t>(image_size.height())});
     if (auto error = std::get_if<Renderer::Error>(&error_or_frame_resources)) {
-      qFatal(fmt::format("Vulkan error while rendering frame: {}", error->msg)
-                 .c_str());
+      qFatal("Vulkan error while rendering frame: %s", error->msg.c_str());
     }
 
     frame_resources_[current_frame_index] =
