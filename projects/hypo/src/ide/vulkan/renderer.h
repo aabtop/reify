@@ -25,7 +25,11 @@ class WithDeleter {
   WithDeleter(WithDeleter&& other, const std::function<void(T&&)>& deleter)
       : value_(std::move(other.value_)), deleter_(deleter) {}
 
-  ~WithDeleter() { deleter_(std::move(value_)); }
+  ~WithDeleter() {
+    if (deleter_) {
+      deleter_(std::move(value_));
+    }
+  }
 
   const T& value() const { return value_; }
 
@@ -64,7 +68,6 @@ class Renderer {
     WithDeleter<VkBuffer> vertex_buffer;
     WithDeleter<VkDeviceMemory> vertex_buffer_memory;
 
-    WithDeleter<VkDescriptorPool> descriptor_pool;
     WithDeleter<VkDescriptorSetLayout> descriptor_set_layout;
 
     WithDeleter<VkPipelineCache> pipeline_cache;

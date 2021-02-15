@@ -116,7 +116,7 @@ Renderer::ErrorOr<WithDeleter<VkDescriptorSetLayout>> MakeDescriptorSetLayout(
 }
 
 Renderer::ErrorOr<WithDeleter<VkDescriptorSet>> MakeDescriptorSet(
-    VkDevice device, VkDescriptorPool pool, const VkDescriptorSetLayout& layout,
+    VkDevice device, VkDescriptorPool pool, VkDescriptorSetLayout layout,
     const std::vector<
         std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>>&
         descriptor_set_write_infos) {
@@ -136,7 +136,7 @@ Renderer::ErrorOr<WithDeleter<VkDescriptorSet>> MakeDescriptorSet(
   std::vector<VkWriteDescriptorSet> writes;
   writes.reserve(descriptor_set_write_infos.size());
   for (uint32_t i = 0; i < descriptor_set_write_infos.size(); ++i) {
-    VkWriteDescriptorSet write_descriptor_set;
+    VkWriteDescriptorSet write_descriptor_set{};
     write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write_descriptor_set.dstSet = descriptor_set;
     write_descriptor_set.dstBinding = i;
@@ -293,7 +293,7 @@ Renderer::ErrorOr<WithDeleter<VkRenderPass>> MakeRenderPass(
   VkAttachmentDescription color_attachment{};
   color_attachment.format = color_attachment_format;
   color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
   color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -456,13 +456,6 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
           physical_device, device, vertex_buffer.value(),
           reinterpret_cast<const uint8_t*>(VERTEX_DATA), sizeof(VERTEX_DATA)));
 
-  // Set up descriptor set and its layout.
-  ASSIGN_OR_RETURN(
-      descriptor_pool,
-      MakeDescriptorPool(
-          device, {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}},
-          1));
-
   ASSIGN_OR_RETURN(descriptor_set_layout,
                    MakeDescriptorSetLayout(
                        device, {VkDescriptorSetLayoutBinding{
@@ -521,7 +514,6 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
       device,
       std::move(vertex_buffer),
       std::move(vertex_buffer_memory),
-      std::move(descriptor_pool),
       std::move(descriptor_set_layout),
       std::move(pipeline_cache),
       std::move(pipeline_layout),
@@ -532,34 +524,20 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
 
 Renderer::~Renderer() {}
 
-glm::mat4 PerspectiveMatrix(float vertical_fov, float aspect_ratio,
-                            float near_plane, float far_plane) {
-  const float z_range = near_plane - far_plane;
-  const float tan_half_fov = glm::tan(glm::radians(vertical_fov / 2.0));
-
-  // Column major.
-  return glm::mat4{
-      {1.0f / (tan_half_fov * aspect_ratio), 0.0f, 0.0f, 0.0f},
-      {0.0f, 1.0f / tan_half_fov, 0.0f, 0.0f},
-      {0.0f, 0.0f, (-near_plane - far_plane) / z_range, 1.0f},
-      {0.0f, 0.0f, 2.0f * far_plane * near_plane / z_range, 0.0f},
-  };
-}
-
 auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
                            VkFramebuffer framebuffer,
                            const std::array<uint32_t, 2>& output_surface_size)
     -> ErrorOr<FrameResources> {
-  glm::mat4 projection_matrix = PerspectiveMatrix(
+  glm::mat4 projection_matrix = glm::perspective(
       45.0f, output_surface_size[0] / (float)output_surface_size[1], 0.01f,
       100.0f);
   glm::mat4 view_matrix =
-      glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, -4.0f));
-  glm::mat4 world_matrix =
-      glm::rotate(glm::mat4(), rotation_, glm::vec3(0.0f, 1.0f, 0.0f));
-  UniformType uniform_data{projection_matrix * view_matrix * world_matrix};
+      glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -4.0f));
+  glm::mat4 model_matrix =
+      glm::rotate(glm::mat4(1), rotation_, glm::vec3(0.0f, 1.0f, 0.0f));
+  UniformType uniform_data{projection_matrix * view_matrix * model_matrix};
 
-  rotation_ += 1;
+  rotation_ += 0.01f;
 
   ASSIGN_OR_RETURN(uniform_buffer,
                    MakeBuffer(data_.device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -570,9 +548,16 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
           data_.physical_device, data_.device, uniform_buffer.value(),
           reinterpret_cast<uint8_t*>(&uniform_data), sizeof(uniform_data)));
 
+  // Set up descriptor set and its layout.
+  ASSIGN_OR_RETURN(
+      descriptor_pool,
+      MakeDescriptorPool(
+          data_.device,
+          {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}}, 1));
+
   ASSIGN_OR_RETURN(
       uniform_descriptor_set,
-      MakeDescriptorSet(data_.device, data_.descriptor_pool.value(),
+      MakeDescriptorSet(data_.device, descriptor_pool.value(),
                         data_.descriptor_set_layout.value(),
                         {VkDescriptorBufferInfo{uniform_buffer.value(), 0,
                                                 sizeof(UniformType)}}));
@@ -580,7 +565,8 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
   VkClearColorValue clear_color = {{0, 0, 0, 1}};
   VkClearDepthStencilValue clear_depth_stencil = {1, 0};
   std::array<VkClearValue, 2> clear_values{};
-  clear_values[0].color = clear_values[2].color = clear_color;
+  memset(clear_values.data(), 0, sizeof(clear_values[0]) * clear_values.size());
+  clear_values[0].color = clear_color;
   clear_values[1].depthStencil = clear_depth_stencil;
 
   VkRenderPassBeginInfo rpb{};
@@ -621,9 +607,9 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
 
   vkCmdEndRenderPass(command_buffer);
 
-  auto resources = std::make_tuple(std::move(uniform_buffer),
-                                   std::move(uniform_buffer_memory),
-                                   std::move(uniform_descriptor_set));
+  auto resources = std::make_tuple(
+      std::move(uniform_buffer), std::move(uniform_buffer_memory),
+      std::move(descriptor_pool), std::move(uniform_descriptor_set));
   // std::any doesn't support move only types, so we wrap it in a shared_ptr.
   return FrameResources(
       std::make_shared<decltype(resources)>(std::move(resources)));

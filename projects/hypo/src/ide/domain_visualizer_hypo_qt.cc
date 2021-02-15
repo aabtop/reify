@@ -1,3 +1,5 @@
+#include <fmt/format.h>
+
 #include <QVBoxLayout>
 #include <QVulkanInstance>
 #include <QVulkanWindow>
@@ -16,20 +18,24 @@ class DomainVisualizerVulkanWindowRenderer : public QVulkanWindowRenderer {
         window_->vulkanInstance()->vkInstance(), window_->physicalDevice(),
         window_->device(), window_->colorFormat());
     if (auto error = std::get_if<Renderer::Error>(&renderer_or_error)) {
-      qFatal("Error creating Vulkan renderer: %s", error->msg);
+      qFatal(fmt::format("Error creating Vulkan renderer: {}", error->msg)
+                 .c_str());
     }
     renderer_.emplace(std::move(std::get<Renderer>(renderer_or_error)));
   }
 
   void initSwapChainResources() override{};
   void releaseSwapChainResources() override{};
-  void releaseResources() override { renderer_ = std::nullopt; };
+  void releaseResources() override {
+    frame_resources_.clear();
+    renderer_ = std::nullopt;
+  };
 
   void startNextFrame() override {
     int current_frame_index = window_->currentFrame();
 
     if (current_frame_index >= frame_resources_.size()) {
-      frame_resources_.resize(current_frame_index);
+      frame_resources_.resize(current_frame_index + 1);
     }
 
     // Clean up previous frame's resources.
@@ -41,7 +47,8 @@ class DomainVisualizerVulkanWindowRenderer : public QVulkanWindowRenderer {
         {static_cast<uint32_t>(image_size.width()),
          static_cast<uint32_t>(image_size.height())});
     if (auto error = std::get_if<Renderer::Error>(&error_or_frame_resources)) {
-      qFatal("Vulkan error while rendering frame: %s", error->msg);
+      qFatal(fmt::format("Vulkan error while rendering frame: {}", error->msg)
+                 .c_str());
     }
 
     frame_resources_[current_frame_index] =
