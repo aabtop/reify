@@ -12,9 +12,9 @@ class DomainVisualizerVulkanWindowRenderer : public QVulkanWindowRenderer {
       : window_(window) {}
 
   void initResources() override {
-    auto renderer_or_error =
-        Renderer::Create(window_->vulkanInstance(), window_->physicalDevice(),
-                         window_->device(), window_->colorFormat());
+    auto renderer_or_error = Renderer::Create(
+        window_->vulkanInstance()->vkInstance(), window_->physicalDevice(),
+        window_->device(), window_->colorFormat());
     if (auto error = std::get_if<Renderer::Error>(&renderer_or_error)) {
       qFatal("Error creating Vulkan renderer: %s", error->msg);
     }
@@ -38,7 +38,8 @@ class DomainVisualizerVulkanWindowRenderer : public QVulkanWindowRenderer {
     QSize image_size = window_->swapChainImageSize();
     auto error_or_frame_resources = renderer_->RenderFrame(
         window_->currentCommandBuffer(), window_->currentFramebuffer(),
-        {image_size.width(), image_size.height()});
+        {static_cast<uint32_t>(image_size.width()),
+         static_cast<uint32_t>(image_size.height())});
     if (auto error = std::get_if<Renderer::Error>(&error_or_frame_resources)) {
       qFatal("Vulkan error while rendering frame: %s", error->msg);
     }

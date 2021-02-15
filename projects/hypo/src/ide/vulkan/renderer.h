@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 
 #include <any>
+#include <array>
 #include <functional>
 #include <memory>
 #include <optional>
