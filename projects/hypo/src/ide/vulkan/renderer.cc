@@ -289,25 +289,55 @@ Renderer::ErrorOr<WithDeleter<VkRenderPass>> MakeRenderPass(
   color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
   color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
   color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
   VkAttachmentReference color_attachment_ref{};
   color_attachment_ref.attachment = 0;
   color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+  VkAttachmentDescription depth_attachment{};
+  depth_attachment.format = VK_FORMAT_D32_SFLOAT;
+  depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  depth_attachment.finalLayout =
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+  VkAttachmentReference depth_attachment_ref{};
+  depth_attachment_ref.attachment = 1;
+  depth_attachment_ref.layout =
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
   VkSubpassDescription subpass{};
   subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
   subpass.colorAttachmentCount = 1;
   subpass.pColorAttachments = &color_attachment_ref;
+  subpass.pDepthStencilAttachment = &depth_attachment_ref;
+
+  std::array<VkAttachmentDescription, 2> attachments = {color_attachment,
+                                                        depth_attachment};
+
+  VkSubpassDependency dependency{};
+  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  dependency.dstSubpass = 0;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  dependency.srcAccessMask = 0;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
   VkRenderPassCreateInfo render_pass_info{};
   render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  render_pass_info.attachmentCount = 1;
-  render_pass_info.pAttachments = &color_attachment;
+  render_pass_info.attachmentCount = static_cast<uint32_t>(attachments.size());
+  render_pass_info.pAttachments = attachments.data();
   render_pass_info.subpassCount = 1;
   render_pass_info.pSubpasses = &subpass;
+  render_pass_info.dependencyCount = 1;
+  render_pass_info.pDependencies = &dependency;
 
   VkRenderPass render_pass;
   auto err =
@@ -395,7 +425,7 @@ Renderer::ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
   ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
   ds.depthTestEnable = VK_TRUE;
   ds.depthWriteEnable = VK_TRUE;
-  ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+  ds.depthCompareOp = VK_COMPARE_OP_LESS;
   pipeline_create_info.pDepthStencilState = &ds;
 
   VkPipelineColorBlendStateCreateInfo cb;
@@ -545,12 +575,10 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
                         {VkDescriptorBufferInfo{uniform_buffer.value(), 0,
                                                 sizeof(MvpUniform)}}));
 
-  VkClearColorValue clear_color = {{0, 0, 0, 1}};
-  VkClearDepthStencilValue clear_depth_stencil = {1, 0};
   std::array<VkClearValue, 2> clear_values{};
   memset(clear_values.data(), 0, sizeof(clear_values[0]) * clear_values.size());
-  clear_values[0].color = clear_color;
-  clear_values[1].depthStencil = clear_depth_stencil;
+  clear_values[0].color = {{0, 0, 0, 1}};
+  clear_values[1].depthStencil = {1, 0};
 
   VkRenderPassBeginInfo rpb{};
   rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -560,6 +588,7 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
   rpb.renderArea.extent.height = output_surface_size[1];
   rpb.clearValueCount = clear_values.size();
   rpb.pClearValues = clear_values.data();
+
   vkCmdBeginRenderPass(command_buffer, &rpb, VK_SUBPASS_CONTENTS_INLINE);
 
   if (vulkan_triangle_soup_) {
