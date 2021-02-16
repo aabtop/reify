@@ -207,10 +207,14 @@ bool MainWindow::Build(
     const std::optional<std::function<void()>>& build_complete_callback) {
   auto compile_complete_callback = [this, build_complete_callback]() {
     if (ui_->comboBox->currentIndex() == -1) {
-      QMessageBox::warning(this, "No symbol selected",
-                           QString("Choose an exported symbol to build "
-                                   "from the drop down box."));
-      return;
+      if (ui_->comboBox->count() == 0) {
+        QMessageBox::warning(
+            this, "No symbols available",
+            QString("You must export symbols of the correct type."));
+        return;
+      } else if (ui_->comboBox->count() > 0) {
+        ui_->comboBox->setCurrentIndex(0);
+      }
     }
 
     std::string symbol_name = ui_->comboBox->currentText().toStdString();
