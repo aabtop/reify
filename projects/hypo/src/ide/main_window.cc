@@ -143,7 +143,7 @@ bool MainWindow::Save(
 
 bool MainWindow::SaveAs(
     const std::optional<std::function<void()>>& save_complete_callback) {
-  if (save_complete_callback_) {
+  if (HasPendingOperation()) {
     return false;
   }
 
@@ -166,6 +166,10 @@ bool MainWindow::SaveAs(
 
 bool MainWindow::Compile(
     const std::optional<std::function<void()>>& compile_complete_callback) {
+  if (HasPendingOperation()) {
+    return false;
+  }
+
   auto save_complete_callback = [this, compile_complete_callback]() {
     if (!current_filepath_) {
       QMessageBox::warning(this, "Error compiling",
@@ -205,6 +209,10 @@ bool MainWindow::Compile(
 
 bool MainWindow::Build(
     const std::optional<std::function<void()>>& build_complete_callback) {
+  if (HasPendingOperation()) {
+    return false;
+  }
+
   auto compile_complete_callback = [this, build_complete_callback]() {
     if (ui_->comboBox->currentIndex() == -1) {
       if (ui_->comboBox->count() == 0) {
@@ -249,6 +257,18 @@ bool MainWindow::Build(
   return Compile(compile_complete_callback);
 }
 
+MainWindow::PendingOperation MainWindow::GetCurrentPendingOperation() const {
+  if (save_complete_callback_) {
+    return PendingOperation::Saving;
+  } else if (project_operation_) {
+    return PendingOperation::Compiling;
+  } else if (domain_build_active_) {
+    return PendingOperation::Building;
+  } else {
+    return PendingOperation::Idle;
+  }
+}
+
 void MainWindow::UpdateUiState() {
   if (current_filepath_) {
     setWindowTitle(default_title_ + " - " +
@@ -283,17 +303,22 @@ void MainWindow::UpdateUiState() {
     setWindowTitle(default_title_);
   }
 
-  if (save_complete_callback_) {
-    progress_bar_->setVisible(true);
-    statusBar()->showMessage(tr("Saving..."));
-  } else if (project_operation_) {
-    progress_bar_->setVisible(true);
-    statusBar()->showMessage(tr("Compiling..."));
-  } else if (domain_build_active_) {
-    progress_bar_->setVisible(true);
-    statusBar()->showMessage(tr("Building..."));
-  } else {
-    progress_bar_->setVisible(false);
-    statusBar()->clearMessage();
+  switch (GetCurrentPendingOperation()) {
+    case PendingOperation::Idle: {
+      progress_bar_->setVisible(false);
+      statusBar()->clearMessage();
+    } break;
+    case PendingOperation::Saving: {
+      progress_bar_->setVisible(true);
+      statusBar()->showMessage(tr("Saving..."));
+    } break;
+    case PendingOperation::Compiling: {
+      progress_bar_->setVisible(true);
+      statusBar()->showMessage(tr("Compiling..."));
+    } break;
+    case PendingOperation::Building: {
+      progress_bar_->setVisible(true);
+      statusBar()->showMessage(tr("Building..."));
+    } break;
   }
 }

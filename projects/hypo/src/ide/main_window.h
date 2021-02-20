@@ -52,6 +52,17 @@ class MainWindow : public QMainWindow {
   // that it would cause the UI to appear different.
   void UpdateUiState();
 
+  enum class PendingOperation {
+    Idle,
+    Saving,
+    Compiling,
+    Building,
+  };
+  PendingOperation GetCurrentPendingOperation() const;
+  bool HasPendingOperation() const {
+    return GetCurrentPendingOperation() != PendingOperation::Idle;
+  }
+
   QString default_title_;
 
   std::unique_ptr<Ui::MainWindow> ui_;
