@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>690</height>
+    <width>1024</width>
+    <height>500</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -86,14 +86,6 @@
          </sizepolicy>
         </property>
        </widget>
-      </widget>
-      <widget class="QPlainTextEdit" name="plainTextEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
       </widget>
      </widget>
     </item>
