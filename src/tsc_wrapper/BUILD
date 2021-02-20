@@ -15,7 +15,6 @@ webpack(
         "tsconfig.json",
         "yarn.lock",
         "webpack.config.js",
-        "@npm_tsc_wrapper//@types/node",
         "@npm_tsc_wrapper//typescript",
         "@npm_tsc_wrapper//ts-loader",
         "@npm_tsc_wrapper//raw-loader",
