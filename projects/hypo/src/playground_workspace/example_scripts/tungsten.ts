@@ -23,9 +23,19 @@ let subtraction_region = h.Extrude({
 
 
 export function Main() {
-  const sphere = h.GeodesicSphere(
-      {sphere: {radius: 0.15, center: [0, 0, 0]}, iterations: 2});
+  const sphere = h.GeodesicSphere({
+    sphere: {radius: 0.15, center: [0, 0, 0]},
+    iterations: 2
+  });
 
-  return h.MinkowskiSum3(
-      {regions: [sphere, h.Difference3({a: column, b: subtraction_region})]});
+  return h.Transform3({
+      source: h.MinkowskiSum3({
+          regions: [
+            sphere,
+            h.Difference3({a: column, b: subtraction_region})],
+      }),
+      transform: h.MMul4(
+        h.Rotate3X(90),
+        h.Translate3([0, 0, -height / 2.0]))
+  });
 }
