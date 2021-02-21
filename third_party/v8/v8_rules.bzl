@@ -23,7 +23,7 @@ def _v8_library_impl(ctx):
         progress_message = "Building V8",
         executable = ctx.executable.build_script,
         env = build_script_env,
-        execution_requirements = {"no-sandbox": "1", "local": "1"},
+        execution_requirements = {"no-sandbox": "1"},
     )
 
     return [
