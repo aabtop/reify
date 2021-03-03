@@ -4,10 +4,7 @@ load("@rules_haskell//haskell:repositories.bzl", "rules_haskell_dependencies")
 load("@rules_haskell//haskell:toolchain.bzl", "rules_haskell_toolchains")
 load("@rules_haskell//haskell:cabal.bzl", "stack_snapshot")
 load("@rules_sh//sh:posix.bzl", "sh_posix_configure")
-load("@com_github_zaucy_rules_7zip//:setup.bzl", "setup_7zip")
-load("@com_github_zaucy_rules_vulkan//:repo.bzl", "vulkan_repos")
-load("@os_specific_vulkan_sdk_rules//:current_os_repo.bzl", "setup_os_specific_vulkan_repos")
-load("@reify//third_party/qt:qt_repository_rules.bzl", "fetch_qt")
+load("@aabtop_rules_qt//:rules_qt_deps1.bzl", "rules_qt_deps1")
 
 def reify_deps2():
     yarn_install(
@@ -52,10 +49,4 @@ def reify_deps2():
     rules_haskell_dependencies()
     rules_haskell_toolchains(version = "8.6.5")
 
-    setup_7zip()
-    vulkan_repos()
-
-    setup_os_specific_vulkan_repos()
-    fetch_qt(
-        name = "qt",
-    )
+    rules_qt_deps1()

@@ -1,4 +1,4 @@
-load("@reify//third_party/qt:qt_rules.bzl", "qt_cc_library", "qt_cc_binary", "qt_resource")
+load("@aabtop_rules_qt//:qt_rules.bzl", "qt_cc_library", "qt_cc_binary", "qt_resource")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 
 qt_cc_binary(
@@ -9,7 +9,6 @@ qt_cc_binary(
   deps = [
     ":main_window",
   ],
-  qt_dep = "@qt//:qt",
 )
 
 copy_file(
@@ -62,7 +61,6 @@ qt_cc_library(
     ":domain_visualizer_hypo_qt",
     ":project",
   ],
-  qt_dep = "@qt//:qt",
 )
 
 cc_library(
@@ -73,7 +71,7 @@ cc_library(
 cc_library(
   name = "domain_visualizer_interface_qt",
   hdrs = ["domain_visualizer_qt.h"],
-  deps = [":domain_visualizer_interface", "@qt//:qt_lib"],
+  deps = [":domain_visualizer_interface", "@aabtop_qt_bin//:qt_lib"],
 )
 
 cc_library(
@@ -93,7 +91,6 @@ qt_cc_library(
   name = "domain_visualizer_hypo_qt_vulkan_window",
   srcs = ["domain_visualizer_hypo_qt_vulkan_window.cc"],
   hdr = "domain_visualizer_hypo_qt_vulkan_window.h",
-  qt_dep = "@qt//:qt",
   deps = [
     "//src/ide/vulkan:renderer",
   ],
@@ -116,7 +113,6 @@ qt_cc_library(
     "web_interface.cc",
   ],
   hdr = "web_interface.h",
-  qt_dep = "@qt//:qt",
 )
 
 qt_cc_library(
@@ -126,5 +122,4 @@ qt_cc_library(
   ],
   hdr = "about_dialog.h",
   ui_src = "about_dialog.ui",
-  qt_dep = "@qt//:qt",
 )

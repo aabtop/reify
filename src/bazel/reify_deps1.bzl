@@ -3,7 +3,6 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@reify//third_party/v8:v8_repository_rules.bzl", "fetch_v8")
-load("@reify//third_party/qt:qt_repository_rules.bzl", "setup_qt")
 
 def reify_deps1():
     # Setup NPM repositories required to build the `tsc_wrapper`.
@@ -37,20 +36,6 @@ def reify_deps1():
         shallow_since = "1598536904 -0400",
     )
 
-    http_archive(
-        name = "com_github_zaucy_rules_7zip",
-        strip_prefix = "rules_7zip-e95ba876db445cf2c925c02c4bc18ed37a503fd8",
-        url = "https://github.com/zaucy/rules_7zip/archive/e95ba876db445cf2c925c02c4bc18ed37a503fd8.zip",
-        sha256 = "b66e1c712577b0c029d4c94228dba9c8aacdcdeb88c3b1eeeffd00247ba5a856",
-    )
-
-    git_repository(
-        name = "com_github_zaucy_rules_vulkan",
-        remote = "https://github.com/zaucy/rules_vulkan",
-        commit = "ebfb9377f616cf12ffe0a9e1088ca0c005bd2db4",
-        shallow_since = "1611480038 +0000",
-    )
-
     fetch_v8(
         name = "v8",
         branch = "8.6.395.10",
@@ -71,4 +56,10 @@ def reify_deps1():
         sha256 = "4605259c22feadf35388c027f07b345ad3aa3b12631a5a316347f7566c6f1839",
         build_file = "@reify//:third_party/glm/glm.BUILD",
     )
-    setup_qt()
+
+    http_archive(
+        name = "aabtop_rules_qt",
+        strip_prefix = "rules_qt-541d66b500f3436c2fc27781ce3cfd79b402abfc",
+        url = "https://github.com/aabtop/rules_qt/archive/541d66b500f3436c2fc27781ce3cfd79b402abfc.zip",
+        sha256 = "bf4653a64812dd19f729f72c3c1945a63d0afda5dcec414f84018004f365e605",
+    )
