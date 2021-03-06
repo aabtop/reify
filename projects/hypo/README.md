@@ -134,7 +134,7 @@ Note that there are some prerequisites for setting up your environment.  The
 best source of truth for what that is are the Dockerfiles:
 
  * [Linux Dev Environment Dockerfile](/dockerdev/linux/Dockerfile)
- * [Windows Dev Environment Dockerfile](/dockerdev/linux/Dockerfile)
+ * [Windows Dev Environment Dockerfile](/dockerdev/windows/Dockerfile)
 
 Once built, you can find the binary at `bazel-bin/hypo` and run it directly, or
 you can run it through Bazel with `bazel run //:hypo -- ...` .
