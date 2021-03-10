@@ -83,3 +83,8 @@ cc_binary(
         "@reify//third_party:CLI11",
     ],
 )
+
+alias(
+    name = "ide",
+    actual = "//src/ide:ide",
+)

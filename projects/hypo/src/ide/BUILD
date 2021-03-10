@@ -1,6 +1,8 @@
 load("@aabtop_rules_qt//:qt_rules.bzl", "qt_cc_library", "qt_cc_binary", "qt_resource")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 
+package(default_visibility = ["//visibility:public"])
+
 qt_cc_binary(
   name = "ide",
   srcs = [
