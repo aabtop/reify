@@ -1,7 +1,7 @@
 load("@aabtop_rules_qt//:qt_rules.bzl", "qt_cc_library", "qt_cc_binary", "qt_resource")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 
-qt_cc_binary(
+cc_binary(
   name = "ide",
   srcs = [
     "main.cc",
@@ -104,6 +104,10 @@ cc_library(
     ":domain_visualizer_interface_qt",
     ":domain_visualizer_hypo_qt_vulkan_window",
   ],
+  defines = select({
+            "@bazel_tools//src/conditions:windows": ["BAZEL_TARGET_OS=WINDOWS"],
+            "//conditions:default": ["BAZEL_TARGET_OS=LINUX"],
+        }),
 )
 
 
