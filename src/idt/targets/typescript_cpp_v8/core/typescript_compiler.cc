@@ -394,14 +394,25 @@ auto TypeScriptCompiler::TranspileToJavaScript(
            .ToLocal(&call_return_value) ||
       !call_return_value->IsObject()) {
     context->SetAlignedPointerInEmbedderData(1, nullptr);
-    v8::String::Utf8Value error_string(
-        isolate_, try_catch.StackTrace(context).ToLocalChecked());
-    return Error{
-        "Internal Error",
-        0,
-        0,
-        std::string(*error_string, error_string.length()),
-    };
+    auto maybe_stack_trace = try_catch.StackTrace(context);
+    if (maybe_stack_trace.IsEmpty()) {
+      return Error{
+          "Internal Error",
+          0,
+          0,
+          "Unknown JS error while running TypeScript compiler.",
+      };
+
+    } else {
+      v8::String::Utf8Value error_string(
+          isolate_, try_catch.StackTrace(context).ToLocalChecked());
+      return Error{
+          "Internal Error",
+          0,
+          0,
+          std::string(*error_string, error_string.length()),
+      };
+    }
   }
 
   v8::Local<v8::Object> result = call_return_value.As<v8::Object>();
