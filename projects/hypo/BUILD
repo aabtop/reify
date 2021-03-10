@@ -2,6 +2,7 @@ load("@reify//src/idt/targets/pure_cpp:pure_cpp.bzl", "idt_as_purecpp")
 load("@reify//src/idt/targets/typescript:typescript.bzl", "idt_as_typescript")
 load("@reify//src/idt:rules.bzl", "idt")
 load("@reify//src/idt/targets/typescript_cpp_v8:typescript_cpp_v8.bzl", "idt_as_typescript_cpp_v8")
+load("@aabtop_rules_qt//:qt_rules.bzl", "qt_cc_binary")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -84,7 +85,12 @@ cc_binary(
     ],
 )
 
-alias(
-    name = "ide",
-    actual = "//src/ide:ide",
+qt_cc_binary(
+  name = "ide",
+  srcs = [
+    "//src/ide:main.cc",
+  ],
+  deps = [
+    "//src/ide:main_window",
+  ],
 )

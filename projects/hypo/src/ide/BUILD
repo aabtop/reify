@@ -3,15 +3,7 @@ load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 
 package(default_visibility = ["//visibility:public"])
 
-qt_cc_binary(
-  name = "ide",
-  srcs = [
-    "main.cc",
-  ],
-  deps = [
-    ":main_window",
-  ],
-)
+exports_files(["main.cc"])
 
 copy_file(
   name = "index_html",
