@@ -31,7 +31,6 @@ class Project {
   const std::vector<reify::CompilerEnvironment::InputModule>
       initial_input_modules_;
   std::optional<reify::MountedHostFolderFilesystem> vfs_;
-  std::optional<reify::CompilerEnvironment> compile_env_;
 
   // Map from virtual filepath to compiled module.
   std::map<std::string, std::shared_ptr<reify::CompiledModule>>

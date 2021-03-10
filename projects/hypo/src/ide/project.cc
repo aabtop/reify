@@ -14,8 +14,6 @@ Project::Project(const std::filesystem::path& filepath,
   auto project_directory = absolute_input_source_file.parent_path();
 
   vfs_.emplace(project_directory);
-
-  compile_env_.emplace(&(*vfs_), &initial_input_modules_);
 }
 
 std::variant<std::shared_ptr<reify::CompiledModule>, Project::CompileError>
@@ -28,7 +26,15 @@ Project::CompileFile(const std::filesystem::path& filepath) {
            vfs_->host_root().string();
   }
 
-  auto result = compile_env_->Compile(*virtual_path);
+  // V8 doesn't like being initialized on one thread and then used on another,
+  // so we just recreate the compiler environment each time.  This means we need
+  // to reload the TypeScript compiler every time we want to compile something,
+  // which kind of sucks.  The output of the Compile() call is completely
+  // independent of the compiler environment, so at least we're safe there.
+  auto result = [&]() {
+    reify::CompilerEnvironment compile_env(&(*vfs_), &initial_input_modules_);
+    return compile_env.Compile(*virtual_path);
+  }();
 
   if (auto error = std::get_if<0>(&result)) {
     std::ostringstream oss;
