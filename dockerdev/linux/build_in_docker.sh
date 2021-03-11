@@ -21,3 +21,4 @@ fi
 
 mkdir -p ${IDE_DIR}
 cp -rL /bazel-bin/ide.runfiles/hypo/* ${IDE_DIR}
+strip -s ${IDE_DIR}/ide
