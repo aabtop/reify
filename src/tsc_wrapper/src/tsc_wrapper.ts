@@ -102,6 +102,14 @@ function GetDiagnosticsError(diagnostic: ts.Diagnostic): TranspileError {
 export function TranspileModule(
   path: string, text: string, systemModules: { [key: string]: string; },
   generate_declarations: boolean): TranspileResults {
+
+  if (!path.includes('.')) {
+    return {
+      success: false,
+      error: { message: 'Path must have a `.ts` extension.', line: 0, column: 0, path: path },
+    };
+  }
+
   let results: TranspilationOutput = {
     js_modules: {},
     declaration_files: {},
@@ -194,13 +202,19 @@ export function TranspileModule(
     if (Object.keys(results.js_modules).length == 0) {
       return {
         success: false,
-        error: { message: 'No output generated.', line: 0, column: 0, path: '' },
+        error: { message: 'No output generated.', line: 0, column: 0, path: path },
       };
     } else {
       let sourceFile = program.getSourceFile(path)!;
 
       let checker = program.getTypeChecker();
-      let module_symbol = checker.getSymbolAtLocation(sourceFile)!;
+      let module_symbol = checker.getSymbolAtLocation(sourceFile);
+      if (module_symbol === undefined) {
+        return {
+          success: false,
+          error: { message: 'Error looking up module symbol for source file.', line: 0, column: 0, path: path },
+        };
+      }
       const moduleExports = checker.getExportsOfModule(module_symbol);
       results.module_exports = moduleExports.map(exportedSymbol => {
         const symbol = exportedSymbol;
