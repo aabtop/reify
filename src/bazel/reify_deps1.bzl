@@ -59,7 +59,7 @@ def reify_deps1():
 
     http_archive(
         name = "aabtop_rules_qt",
-        strip_prefix = "rules_qt-f64ef32ce3b0735d00d5f59367326f93ea9b4a82",
-        url = "https://github.com/aabtop/rules_qt/archive/f64ef32ce3b0735d00d5f59367326f93ea9b4a82.zip",
-        sha256 = "ae5e97291701f5e5a340809aea2e048756673bf043596b9a61d24bec09b9ae13",
+        strip_prefix = "rules_qt-cce50d2a41c4d4664b7b67781312f68ce3eaa82c",
+        url = "https://github.com/aabtop/rules_qt/archive/cce50d2a41c4d4664b7b67781312f68ce3eaa82c.zip",
+        sha256 = "ff6178ffba5604f6162a637b18fd286a837d3de33abba18570c71e9bf155b646",
     )
