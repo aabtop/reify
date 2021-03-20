@@ -75,7 +75,8 @@ class DomainVisualizerQtVulkan : public DomainVisualizer {
     if (maybe_vulkan_so_1_path) {
       // Qt doesn't know where our custom built Vulkan loader is on Linux, so
       // we have to find it and specify it manually.
-      qputenv("QT_VULKAN_LIB", QByteArray(maybe_vulkan_so_1_path->c_str()));
+      qputenv("QT_VULKAN_LIB", QByteArray(reinterpret_cast<const char*>(
+                                   maybe_vulkan_so_1_path->c_str())));
     } else {
       std::cerr << "Could not find local build of vulkan.so.1. "
                 << "Maybe the system version will work..." << std::endl;
