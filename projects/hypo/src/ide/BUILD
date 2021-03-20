@@ -99,8 +99,8 @@ cc_library(
     ":domain_visualizer_hypo_qt_vulkan_window",
   ],
   defines = select({
-            "@bazel_tools//src/conditions:windows": ["BAZEL_TARGET_OS=WINDOWS"],
-            "//conditions:default": ["BAZEL_TARGET_OS=LINUX"],
+            "@bazel_tools//src/conditions:windows": ["BAZEL_TARGET_OS_WINDOWS"],
+            "//conditions:default": ["BAZEL_TARGET_OS_LINUX"],
         }),
 )
 

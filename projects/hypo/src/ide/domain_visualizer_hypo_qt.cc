@@ -9,7 +9,7 @@
 
 namespace {
 
-#if defined(BAZEL_TARGET_OS) && BAZEL_TARGET_OS == LINUX
+#if defined(BAZEL_TARGET_OS_LINUX)
 
 // Returns an absolute path to the current executable.
 std::filesystem::path GetAbsoluteExecutableDir() {
@@ -60,11 +60,11 @@ std::optional<std::filesystem::path> FindVulkanSo1() {
   return std::nullopt;
 }
 
-#else  // #if defined(BAZEL_TARGET_OS) && BAZEL_TARGET_OS == LINUX
+#else  // #if defined(BAZEL_TARGET_OS_LINUX)
 
 std::optional<std::filesystem::path> FindVulkanSo1() { return std::nullopt; }
 
-#endif  // #if defined(BAZEL_TARGET_OS) && BAZEL_TARGET_OS == LINUX
+#endif  // #if defined(BAZEL_TARGET_OS_LINUX)
 
 }  // namespace
 
