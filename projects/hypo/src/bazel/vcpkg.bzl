@@ -16,6 +16,7 @@ def _vcpkg_impl(repository_ctx):
     BOOTSTRAP_SCRIPT = "vcpkg/bootstrap-vcpkg.sh"
   result = repository_ctx.execute(
     [BOOTSTRAP_SCRIPT],
+    quiet = False,
   )
   if result.return_code:
     fail("Error executing vcpkg bootstrap script.")
