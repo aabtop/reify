@@ -1,3 +1,5 @@
+load("@bazel_skylib//lib:paths.bzl", "paths")
+
 def _vcpkg_impl(repository_ctx):
   release = "2020.07"
   repository_ctx.report_progress("Downloding vcpkg source...")
@@ -9,13 +11,17 @@ def _vcpkg_impl(repository_ctx):
   )
   repository_ctx.report_progress("Executing vcpkg bootstrap script...")
 
-  BOOTSTRAP_SCRIPT = None
+  BOOTSTRAP_CMD_ARGS = []
   if "windows" in repository_ctx.os.name:
-    BOOTSTRAP_SCRIPT = "vcpkg/bootstrap-vcpkg.bat"
+    BOOTSTRAP_CMD_ARGS = ["vcpkg/bootstrap-vcpkg.bat"] + (
+      ["-withVSPath", paths.dirname(repository_ctx.os.environ["BAZEL_VC"]).replace("/", "\\")]
+      if "BAZEL_VC" in repository_ctx.os.environ else []
+    )
   else:
-    BOOTSTRAP_SCRIPT = "vcpkg/bootstrap-vcpkg.sh"
+    BOOTSTRAP_CMD_ARGS = ["vcpkg/bootstrap-vcpkg.sh"]
+
   result = repository_ctx.execute(
-    [BOOTSTRAP_SCRIPT],
+    BOOTSTRAP_CMD_ARGS,
     quiet = False,
   )
   if result.return_code:
