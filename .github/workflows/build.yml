@@ -19,6 +19,15 @@ jobs:
     env:
       build_artifact: hypo-x64-${{ matrix.os }}
     steps:
+      # Linux can sometimes run out of disk space, so this step buys us a bit
+      # more by cleaning up the existing runner instance.
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v3
+        if: ${{ matrix.os == 'ubuntu' }}
+        with:
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
       - uses: actions/checkout@v2
       - name: Build
         run: ${{ matrix.build-script }} ${{ env.build_artifact }}
