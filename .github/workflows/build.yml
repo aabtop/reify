@@ -12,9 +12,11 @@ jobs:
           - os: ubuntu
             runs-on: ubuntu-20.04
             build-script: ./build.sh
+            sign-script: ''
           - os: windows
             runs-on: windows-2019
             build-script: ./build.bat
+            sign-script: ./sign.bat
     runs-on: ${{ matrix.runs-on }}
     env:
       build_artifact: hypo-x64-${{ matrix.os }}
@@ -31,6 +33,14 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build
         run: ${{ matrix.build-script }} ${{ env.build_artifact }}
+      # On some platforms, we need to sign the executables, so we do that here
+      # so that the secret environment variables will have a more limited scope.
+      - name: Sign Executables
+        if: ${{ matrix.sign-script != '' }}
+        env:
+          CODE_SIGNING_CERTIFICATE_WIN_PFX_SHA256_BASE64: ${{ secrets.CODE_SIGNING_CERTIFICATE_WIN_PFX_SHA256_BASE64 }}
+          CODE_SIGNING_CERTIFICATE_WIN_PASSWORD: ${{ secrets.CODE_SIGNING_CERTIFICATE_WIN_PASSWORD }}
+        run: ${{ matrix.sign-script }} ${{ env.build_artifact }}
       - name: Archive resulting executable
         uses: actions/upload-artifact@v2
         with:
