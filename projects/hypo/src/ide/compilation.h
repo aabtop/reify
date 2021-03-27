@@ -7,7 +7,6 @@
 #include <variant>
 
 #include "reify/typescript_cpp_v8.h"
-#include "src/ide/thread_checker.h"
 
 using CompileError = std::string;
 using CompileResult =
