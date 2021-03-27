@@ -28,6 +28,9 @@ MainWindow::MainWindow(QWidget* parent)
           SIGNAL(OnSaveAsReply(const QString&, const QString&)), this,
           SLOT(SaveAsReply(const QString&, const QString&)));
 
+  connect(monaco_interface_.get(), SIGNAL(OnQueryContentReply(const QString&)),
+          this, SLOT(QueryContentReply(const QString&)));
+
   ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
 
   domain_visualizer_ = CreateDefaultQtWidgetDomainVisualizer(ui_->visualizer);
@@ -52,7 +55,7 @@ MainWindow::~MainWindow() {}
 
 void MainWindow::on_actionNew_triggered() {
   current_filepath_ = std::nullopt;
-  OnCurrentFileChanged();
+  UpdateUiState();
   emit monaco_interface_->NewFile();
 }
 
@@ -75,7 +78,7 @@ void MainWindow::on_actionOpen_triggered() {
   }
 
   current_filepath_ = filepath.toStdString();
-  OnCurrentFileChanged();
+  UpdateUiState();
   emit monaco_interface_->Open(filepath, QString(content.str().c_str()));
 }
 
@@ -119,13 +122,16 @@ void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
   }
 }
 
-void MainWindow::OnCurrentFileChanged() {
-  if (current_filepath_) {
-    project_.emplace(*current_filepath_,
-                     domain_visualizer_->GetTypeScriptModules());
-  } else {
-    project_.reset();
+void MainWindow::QueryContentReply(const QString& content) {
+  std::optional<std::function<void(const std::string&)>>
+      query_content_complete_callback =
+          std::move(query_content_complete_callback_);
+  query_content_complete_callback_.reset();
+
+  if (query_content_complete_callback) {
+    (*query_content_complete_callback)(content.toStdString());
   }
+
   UpdateUiState();
 }
 
@@ -155,7 +161,6 @@ bool MainWindow::SaveAs(
   }
 
   current_filepath_ = filepath.toStdString();
-  OnCurrentFileChanged();
   emit monaco_interface_->SaveAs(filepath);
 
   save_complete_callback_ = save_complete_callback;
@@ -164,47 +169,66 @@ bool MainWindow::SaveAs(
   return true;
 }
 
+void MainWindow::QueryContent(
+    std::optional<std::function<void(const std::string&)>>&
+        query_content_complete_callback) {
+  assert(!HasPendingOperation());
+  emit monaco_interface_->QueryContent();
+  query_content_complete_callback_ = query_content_complete_callback;
+  UpdateUiState();
+}
+
 bool MainWindow::Compile(
-    const std::optional<std::function<void()>>& compile_complete_callback) {
+    const std::optional<
+        std::function<void(std::shared_ptr<reify::CompiledModule>)>>&
+        compile_complete_callback) {
   if (HasPendingOperation()) {
     return false;
   }
 
-  auto save_complete_callback = [this, compile_complete_callback]() {
-    if (!current_filepath_) {
-      QMessageBox::warning(this, "Error compiling",
-                           "No file is marked as the current file.");
-      return;
-    }
+  std::function<void(const std::string&)> query_content_complete_callback =
+      [this, compile_complete_callback](const std::string& content) {
+        assert(!project_operation_);
+        project_operation_.emplace([this, content = content,
+                                    compile_complete_callback]() {
+          auto result = [typescript_modules =
+                             domain_visualizer_->GetTypeScriptModules(),
+                         &content, current_filepath = current_filepath_]() {
+            if (current_filepath) {
+              return CompileFile(typescript_modules, *current_filepath);
+            } else {
+              return CompileContents(typescript_modules, content);
+            }
+          }();
 
-    assert(!project_operation_);
-    project_operation_.emplace([this, &project = project_,
-                                current_filepath = *current_filepath_,
-                                compile_complete_callback]() {
-      auto result = project->CompileFile(current_filepath);
-      QMetaObject::invokeMethod(
-          this, [this, result, compile_complete_callback]() {
+          QMetaObject::invokeMethod(this, [this, result,
+                                           compile_complete_callback]() {
             project_operation_->join();
             project_operation_.reset();
-            UpdateUiState();
 
-            if (auto* error = std::get_if<Project::CompileError>(&result)) {
+            if (auto* error = std::get_if<CompileError>(&result)) {
+              UpdateUiState();
               QMessageBox::warning(this, "Error compiling",
                                    QString(error->c_str()));
               return;
             }
 
+            most_recent_compilation_results_ =
+                std::get<std::shared_ptr<reify::CompiledModule>>(result);
+
             UpdateUiState();
 
             if (compile_complete_callback) {
-              (*compile_complete_callback)();
+              (*compile_complete_callback)(most_recent_compilation_results_);
             }
           });
-    });
-    UpdateUiState();
-  };
+        });
+        UpdateUiState();
+      };
 
-  return Save(save_complete_callback);
+  QueryContent(std::optional<std::function<void(const std::string&)>>(
+      query_content_complete_callback));
+  return true;
 }
 
 bool MainWindow::Build(
@@ -213,53 +237,54 @@ bool MainWindow::Build(
     return false;
   }
 
-  auto compile_complete_callback = [this, build_complete_callback]() {
-    if (ui_->comboBox->currentIndex() == -1) {
-      if (ui_->comboBox->count() == 0) {
-        QMessageBox::warning(
-            this, "No symbols available",
-            QString("You must export symbols of the correct type."));
-        return;
-      } else if (ui_->comboBox->count() > 0) {
-        ui_->comboBox->setCurrentIndex(0);
-      }
-    }
+  auto compile_complete_callback =
+      [this, build_complete_callback](
+          std::shared_ptr<reify::CompiledModule> compiled_module) {
+        if (ui_->comboBox->currentIndex() == -1) {
+          if (ui_->comboBox->count() == 0) {
+            QMessageBox::warning(
+                this, "No symbols available",
+                QString("You must export symbols of the correct type."));
+            return;
+          } else if (ui_->comboBox->count() > 0) {
+            ui_->comboBox->setCurrentIndex(0);
+          }
+        }
 
-    std::string symbol_name = ui_->comboBox->currentText().toStdString();
+        std::string symbol_name = ui_->comboBox->currentText().toStdString();
 
-    std::shared_ptr<reify::CompiledModule> compiled_module =
-        *(project_->GetCompiledModules(*current_filepath_));
+        domain_build_active_ = true;
+        UpdateUiState();
 
-    domain_build_active_ = true;
-    UpdateUiState();
+        domain_visualizer_->ConsumeSymbol(
+            compiled_module, *compiled_module->GetExportedSymbol(symbol_name),
+            [this, build_complete_callback](
+                std::optional<DomainVisualizer::ConsumeError>&& error) {
+              QMetaObject::invokeMethod(this, [this, error = std::move(error),
+                                               build_complete_callback]() {
+                domain_build_active_ = false;
+                UpdateUiState();
 
-    domain_visualizer_->ConsumeSymbol(
-        compiled_module, *compiled_module->GetExportedSymbol(symbol_name),
-        [this, build_complete_callback](
-            std::optional<DomainVisualizer::ConsumeError>&& error) {
-          QMetaObject::invokeMethod(this, [this, error = std::move(error),
-                                           build_complete_callback]() {
-            domain_build_active_ = false;
-            UpdateUiState();
+                if (error) {
+                  QMessageBox::warning(this, "Error building symbol",
+                                       QString(error->c_str()));
+                  return;
+                }
 
-            if (error) {
-              QMessageBox::warning(this, "Error building symbol",
-                                   QString(error->c_str()));
-              return;
-            }
-
-            if (build_complete_callback) {
-              (*build_complete_callback)();
-            }
-          });
-        });
-  };
+                if (build_complete_callback) {
+                  (*build_complete_callback)();
+                }
+              });
+            });
+      };
   return Compile(compile_complete_callback);
 }
 
 MainWindow::PendingOperation MainWindow::GetCurrentPendingOperation() const {
   if (save_complete_callback_) {
     return PendingOperation::Saving;
+  } else if (query_content_complete_callback_) {
+    return PendingOperation::QueryingContent;
   } else if (project_operation_) {
     return PendingOperation::Compiling;
   } else if (domain_build_active_) {
@@ -273,34 +298,33 @@ void MainWindow::UpdateUiState() {
   if (current_filepath_) {
     setWindowTitle(default_title_ + " - " +
                    QString(current_filepath_->string().c_str()));
-
-    if (project_) {
-      std::optional<QString> previous_combo_box_text;
-      if (ui_->comboBox->currentIndex() != -1) {
-        previous_combo_box_text = ui_->comboBox->currentText();
-      }
-
-      std::optional<std::shared_ptr<reify::CompiledModule>> compiled_module =
-          project_->GetCompiledModules(*current_filepath_);
-      ui_->comboBox->clear();
-      if (compiled_module) {
-        for (const auto& symbol : (*compiled_module)->exported_symbols()) {
-          if (domain_visualizer_->CanConsumeSymbol(symbol)) {
-            ui_->comboBox->addItem(QString(symbol.name.c_str()));
-          }
-        }
-      }
-
-      if (!previous_combo_box_text) {
-        // If nothing was selected before the compile, maintain this.
-        ui_->comboBox->setCurrentIndex(-1);
-      } else {
-        ui_->comboBox->setCurrentIndex(
-            ui_->comboBox->findText(*previous_combo_box_text));
-      }
-    }
   } else {
     setWindowTitle(default_title_);
+  }
+
+  if (most_recent_compilation_results_) {
+    std::optional<QString> previous_combo_box_text;
+    if (ui_->comboBox->currentIndex() != -1) {
+      previous_combo_box_text = ui_->comboBox->currentText();
+    }
+
+    ui_->comboBox->clear();
+    if (most_recent_compilation_results_) {
+      for (const auto& symbol :
+           most_recent_compilation_results_->exported_symbols()) {
+        if (domain_visualizer_->CanConsumeSymbol(symbol)) {
+          ui_->comboBox->addItem(QString(symbol.name.c_str()));
+        }
+      }
+    }
+
+    if (!previous_combo_box_text) {
+      // If nothing was selected before the compile, maintain this.
+      ui_->comboBox->setCurrentIndex(-1);
+    } else {
+      ui_->comboBox->setCurrentIndex(
+          ui_->comboBox->findText(*previous_combo_box_text));
+    }
   }
 
   switch (GetCurrentPendingOperation()) {

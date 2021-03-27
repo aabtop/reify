@@ -6,3 +6,7 @@ void WebInterface::SaveAsReply(const QString& filepath,
                                const QString& content) {
   emit OnSaveAsReply(filepath, content);
 }
+
+void WebInterface::QueryContentReply(const QString& content) {
+  emit OnQueryContentReply(content);
+}

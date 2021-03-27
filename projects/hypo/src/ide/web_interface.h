@@ -15,15 +15,21 @@ class WebInterface : public QObject {
   void SaveAsReply(const QString& filepath,
                    const QString& content);  // Called by the QWebEngine.
 
+  void QueryContentReply(const QString& content);  // Called by the QWebEngine.
+
  signals:
   // Signals emitted by C++.
   void NewFile();
   void SaveAs(const QString& filepath);
   void Open(const QString& filepath, const QString& content);
+  void QueryContent();
 
   // Signals emitted by the QWebEngine.
   void OnSaveAsReply(const QString& filepath,
                      const QString& content);  // Fired in response to SaveAs().
+  // Signals emitted by the QWebEngine.
+  void OnQueryContentReply(
+      const QString& content);  // Fired in response to SaveAs().
 };
 
 #endif  // WEB_INTERFACE_H_

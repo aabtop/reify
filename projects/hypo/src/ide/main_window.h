@@ -7,8 +7,8 @@
 #include <optional>
 #include <string>
 
+#include "src/ide/compilation.h"
 #include "src/ide/domain_visualizer.h"
-#include "src/ide/project.h"
 #include "src/ide/web_interface.h"
 
 QT_BEGIN_NAMESPACE
@@ -37,14 +37,18 @@ class MainWindow : public QMainWindow {
   void on_actionAbout_triggered();
 
   void SaveAsReply(const QString& filepath, const QString& content);
+  void QueryContentReply(const QString& content);
 
  private:
-  void OnCurrentFileChanged();
   bool Save(const std::optional<std::function<void()>>& save_complete_callback);
   bool SaveAs(
       const std::optional<std::function<void()>>& save_complete_callback);
-  bool Compile(
-      const std::optional<std::function<void()>>& compile_complete_callback);
+  void QueryContent(std::optional<std::function<void(const std::string&)>>&
+                        query_content_complete_callback);
+
+  bool Compile(const std::optional<
+               std::function<void(std::shared_ptr<reify::CompiledModule>)>>&
+                   compile_complete_callback);
   bool Build(
       const std::optional<std::function<void()>>& build_complete_callback);
 
@@ -54,6 +58,7 @@ class MainWindow : public QMainWindow {
 
   enum class PendingOperation {
     Idle,
+    QueryingContent,
     Saving,
     Compiling,
     Building,
@@ -75,9 +80,11 @@ class MainWindow : public QMainWindow {
   bool domain_build_active_ = false;
 
   std::optional<std::function<void()>> save_complete_callback_;
+  std::optional<std::function<void(const std::string&)>>
+      query_content_complete_callback_;
 
   std::optional<std::filesystem::path> current_filepath_;
-  std::optional<Project> project_;
+  std::shared_ptr<reify::CompiledModule> most_recent_compilation_results_;
 
   std::optional<std::thread> project_operation_;
 };

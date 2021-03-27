@@ -47,6 +47,10 @@ new QWebChannel(qt.webChannelTransport, function (channel: QWebChannel) {
     monaco_qt_bridge.SaveAsReply(filepath, editor.getValue());
   });
 
+  monaco_qt_bridge.QueryContent.connect(() => {
+    monaco_qt_bridge.QueryContentReply(editor.getValue());
+  });
+
   monaco_qt_bridge.Open.connect((filepath: string, content: string) => {
     current_filepath = filepath;
     editor.setValue(content);

@@ -30,20 +30,12 @@ qt_resource(
   srcs = ["index.html", "monaco_wrapper.js", "editor.worker.js", "ts.worker.js"],
 )
 
-cc_library(
-  name = "project",
-  srcs = ["project.cc"],
-  hdrs = [
-    "project.h",
-    "thread_checker.h"
-  ],
-  deps = ["@reify//src/idt/targets/typescript_cpp_v8:core"],
-)
-
 qt_cc_library(
   name = "main_window",
   srcs = [
     "main_window.cc",
+    "compilation.cc",
+    "compilation.h",
   ],
   hdr = "main_window.h",
   ui_src = "main_window.ui",
@@ -53,7 +45,6 @@ qt_cc_library(
     ":about_dialog",
     ":domain_visualizer_interface",
     ":domain_visualizer_hypo_qt",
-    ":project",
   ],
 )
 
