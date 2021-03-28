@@ -170,7 +170,7 @@ bool MainWindow::SaveAs(
 }
 
 void MainWindow::QueryContent(
-    std::optional<std::function<void(const std::string&)>>&
+    const std::optional<std::function<void(const std::string&)>>&
         query_content_complete_callback) {
   assert(!HasPendingOperation());
   emit monaco_interface_->QueryContent();
@@ -331,6 +331,10 @@ void MainWindow::UpdateUiState() {
     case PendingOperation::Idle: {
       progress_bar_->setVisible(false);
       statusBar()->clearMessage();
+    } break;
+    case PendingOperation::QueryingContent: {
+      progress_bar_->setVisible(true);
+      statusBar()->showMessage(tr("Querying text content..."));
     } break;
     case PendingOperation::Saving: {
       progress_bar_->setVisible(true);

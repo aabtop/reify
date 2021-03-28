@@ -43,8 +43,9 @@ class MainWindow : public QMainWindow {
   bool Save(const std::optional<std::function<void()>>& save_complete_callback);
   bool SaveAs(
       const std::optional<std::function<void()>>& save_complete_callback);
-  void QueryContent(std::optional<std::function<void(const std::string&)>>&
-                        query_content_complete_callback);
+  void QueryContent(
+      const std::optional<std::function<void(const std::string&)>>&
+          query_content_complete_callback);
 
   bool Compile(const std::optional<
                std::function<void(std::shared_ptr<reify::CompiledModule>)>>&
