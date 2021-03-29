@@ -102,6 +102,7 @@ qt_cc_library(
     "web_interface.cc",
   ],
   hdr = "web_interface.h",
+  deps = ["//:hypo-typescript_cpp_v8",],
 )
 
 qt_cc_library(

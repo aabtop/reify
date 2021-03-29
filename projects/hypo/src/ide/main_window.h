@@ -3,7 +3,6 @@
 
 #include <QMainWindow>
 #include <QProgressBar>
-#include <QWebChannel>
 #include <optional>
 #include <string>
 
@@ -69,15 +68,14 @@ class MainWindow : public QMainWindow {
     return GetCurrentPendingOperation() != PendingOperation::Idle;
   }
 
+  std::unique_ptr<Ui::MainWindow> ui_;
   QString default_title_;
 
-  std::unique_ptr<Ui::MainWindow> ui_;
-  std::unique_ptr<QWebChannel> web_channel_;
+  std::unique_ptr<DomainVisualizer> domain_visualizer_;
   std::unique_ptr<WebInterface> monaco_interface_;
 
   std::unique_ptr<QProgressBar> progress_bar_;
 
-  std::unique_ptr<DomainVisualizer> domain_visualizer_;
   bool domain_build_active_ = false;
 
   std::optional<std::function<void()>> save_complete_callback_;

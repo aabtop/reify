@@ -17,12 +17,10 @@ MainWindow::MainWindow(QWidget* parent)
   ui_->setupUi(this);
   default_title_ = windowTitle();
 
-  web_channel_.reset(new QWebChannel(ui_->editor->page()));
-  ui_->editor->page()->setWebChannel(web_channel_.get());
+  domain_visualizer_ = CreateDefaultQtWidgetDomainVisualizer(ui_->visualizer);
 
-  monaco_interface_.reset(new WebInterface(this));
-  web_channel_->registerObject(QStringLiteral("monaco_qt_bridge"),
-                               monaco_interface_.get());
+  monaco_interface_.reset(new WebInterface(
+      ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(), this));
 
   connect(monaco_interface_.get(),
           SIGNAL(OnSaveAsReply(const QString&, const QString&)), this,
@@ -32,8 +30,6 @@ MainWindow::MainWindow(QWidget* parent)
           this, SLOT(QueryContentReply(const QString&)));
 
   ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
-
-  domain_visualizer_ = CreateDefaultQtWidgetDomainVisualizer(ui_->visualizer);
 
   progress_bar_.reset(new QProgressBar(this));
   statusBar()->addPermanentWidget(progress_bar_.get());
