@@ -184,7 +184,7 @@ idt =
     extrudeRegion2 =
       NamedType
           "Extrude"
-          "Results in a `region3` derived from connecting together the edges of all the `region2 transformed into 3D for the given sequence of transforms. If `closed` is true, the last transform will have its edges connected back to the first transform."
+          "Results in a `region3` derived from connecting together the edges of all the `region2` transformed into 3D for the given sequence of transforms. If `closed` is true, the last transform will have its edges connected back to the first transform."
         $ Struct
             [ ( "source"
               , "The `region2` that acts as the source 2D shape."

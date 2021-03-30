@@ -9,6 +9,9 @@ import           Panic
 import           Idt
 import           IdtProcessing
 
+tsdocComment :: String -> String
+tsdocComment x = "/** " ++ x ++ " */"
+
 enumConstructorFunctionString :: String -> (String, String, [Type]) -> String
 enumConstructorFunctionString enumName (cn, _, ts) =
   let structConstructors = ("__kind: " ++ "'" ++ cn ++ "'")
@@ -46,13 +49,11 @@ enumEntryString (n, ts) =
 
 simpleEnumString :: String -> String -> [(String, String)] -> String
 simpleEnumString n c ens =
-  "// "
-    ++ c
-    ++ "\n"
+  tsdocComment c ++ "\n"
     ++ "export const enum "
     ++ n
     ++ " {\n"
-    ++ unlines [ "  // " ++ ec ++ "\n  " ++ en ++ "," | (en, ec) <- ens ]
+    ++ unlines [ "  " ++ tsdocComment ec ++ "\n  " ++ en ++ "," | (en, ec) <- ens ]
     ++ "}\n"
 
 enumString :: String -> String -> [(String, String, [Type])] -> String
@@ -60,8 +61,7 @@ enumString n c cs = if isSimpleEnum cs
   then simpleEnumString n c (map (\(en, ec, _) -> (en, ec)) cs)
   else
     concatMap (\co -> enumConstructorFunctionString n co ++ "\n") cs
-    ++ "// "
-    ++ c
+    ++ tsdocComment c
     ++ "\n"
     ++ "export type "
     ++ n
@@ -97,7 +97,7 @@ typeString (Struct l) =
   "{ "
     ++ concatMap
          (\(n, c, t) ->
-           "\n  // " ++ c ++ "\n  " ++ n ++ ": " ++ typeString t ++ ";"
+           "\n  " ++ tsdocComment c ++ "\n  " ++ n ++ ": " ++ typeString t ++ ";"
          )
          l
     ++ "\n}"
@@ -110,18 +110,14 @@ namedTypeDefinition t = case t of
   ForwardDeclaration _                          -> ""
   TypeDeclaration    (NamedType n c t@(Enum l)) -> enumString n c l
   TypeDeclaration (NamedType n c t@(TaggedUnion tuts)) ->
-    "// "
-      ++ c
-      ++ "\n"
+    tsdocComment c ++ "\n"
       ++ "export type "
       ++ n
       ++ " = "
       ++ intercalate " | " (map taggedUnionTypeName tuts)
       ++ ";\n"
   TypeDeclaration (NamedType n c t@(Struct l)) ->
-    (  "// "
-      ++ c
-      ++ "\n"
+    (  tsdocComment c ++ "\n"
       ++ "export type "
       ++ n
       ++ "Params = "
@@ -142,11 +138,12 @@ namedTypeDefinition t = case t of
          ++ n
          ++ "WithKind> {}\n"
          )
-      ++ (  "export function "
+      ++ (  tsdocComment c ++ "\n"
+         ++ "export function "
          ++ n
          ++ "(x: "
-         ++ n
-         ++ "Params): "
+         ++ typeString t
+         ++ "): "
          ++ n
          ++ " {\n"
          ++ (  "  return withInternalField(withKind(x, '"
@@ -158,7 +155,7 @@ namedTypeDefinition t = case t of
          ++ "};\n"
          )
   TypeDeclaration (NamedType n c t) ->
-    "// " ++ c ++ "\n" ++ "export type " ++ n ++ " = " ++ typeString t ++ ";\n"
+    tsdocComment c ++ "\n" ++ "export type " ++ n ++ " = " ++ typeString t ++ ";\n"
 
 preamble =
   "\
