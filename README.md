@@ -53,7 +53,7 @@ As a bonus, a description of the IDT types themselves can be defined by IDT, as 
 The best source of truth for what that is are the Dockerfiles:
 
  * [Linux Dev Environment Dockerfile](/dockerdev/linux/Dockerfile)
- * [Windows Dev Environment Dockerfile](/dockerdev/linux/Dockerfile)
+ * [Windows Dev Environment Dockerfile](/dockerdev/windows/Dockerfile)
 
 Projects depend on Reify via the [Bazel](https://bazel.build/) build system. Bazel offers the ability
 to specify at build time which targets you would like generated, and how they
