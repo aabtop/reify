@@ -208,30 +208,30 @@ export function MMul433(a: rgi.Matrix43, b: rgi.Matrix33): rgi.Matrix43 {
 
 /** Applies a translation to a 3D region to produce a translated 3D region. */
 export function TranslatedRegion3(
-  params: { source: rgi.Region3; translation: rgi.Vec3; }): rgi.Region3 {
+  x: { source: rgi.Region3; translation: rgi.Vec3; }): rgi.Region3 {
   return rgi.Transform3(
-    { source: params.source, transform: Translate3(params.translation) });
+    { source: x.source, transform: Translate3(x.translation) });
 }
 
 /** Embeds the 2D region onto the xy plane and then extrudes it by the given height along the z axis. */
 export function ExtrudeFromZPlane(
-  params: {
+  x: {
     /** The 2D region to be embedded into the xy plane and extruded. */
     source: rgi.Region2;
     /** The height that the input region should be extruded by from the xy plane. */
     height: number;
   }): rgi.Region3 {
   return rgi.Extrude({
-    source: params.source,
+    source: x.source,
     transforms: [
-      EmbedOnZPlane, MMul443(Translate3([0, 0, params.height]), EmbedOnZPlane)
+      EmbedOnZPlane, MMul443(Translate3([0, 0, x.height]), EmbedOnZPlane)
     ],
     closed: false
   });
 }
 
 /** Embeds the 2D region onto the xy plane and then extrudes it by the given height along the z axis, twisting it as it is extruded. */
-export function TwistExtrudeFromZPlane(params: {
+export function TwistExtrudeFromZPlane(x: {
   /** The 2D region to be embedded into the xy plane and extruded. */
   source: rgi.Region2,
   /** The height that the input region should be extruded by from the xy plane. */
@@ -242,21 +242,21 @@ export function TwistExtrudeFromZPlane(params: {
   num_slices: number
 }): rgi.Region3 {
   return rgi.Extrude({
-    source: params.source,
-    transforms: [...Array(params.num_slices).keys()].map(slice => {
-      const progress = slice / (params.num_slices - 1);
+    source: x.source,
+    transforms: [...Array(x.num_slices).keys()].map(slice => {
+      const progress = slice / (x.num_slices - 1);
       return MMul443(
-        Translate3([0, 0, progress * params.height]),
+        Translate3([0, 0, progress * x.height]),
         MMul433(
           EmbedOnZPlane,
-          Rotate2(progress * params.twist_amount_in_degrees)));
+          Rotate2(progress * x.twist_amount_in_degrees)));
     }),
     closed: false
   });
 }
 
 /** Creates a torus in the xy plane. */
-export function Torus(params: {
+export function Torus(x: {
   /** The torus' inner radius in the xy plane. */
   inner_radius: number,
   /** The torus' outer radius in the xy plane. */
@@ -268,16 +268,16 @@ export function Torus(params: {
 }): rgi.Region3 {
   let crossSection = rgi.CircleAsPolygon({
     circle: {
-      radius: (params.outer_radius - params.inner_radius) / 2,
-      center: [(params.outer_radius + params.inner_radius) / 2, 0]
+      radius: (x.outer_radius - x.inner_radius) / 2,
+      center: [(x.outer_radius + x.inner_radius) / 2, 0]
     },
-    num_points: params.num_cross_section_points
+    num_points: x.num_cross_section_points
   });
 
   return rgi.Extrude({
     source: crossSection,
-    transforms: [...Array(params.num_slices).keys()].map(slice => {
-      const progress = slice / params.num_slices;
+    transforms: [...Array(x.num_slices).keys()].map(slice => {
+      const progress = slice / x.num_slices;
       return MMul443(
         Rotate3Z(progress * 360), MMul443(Rotate3X(90), EmbedOnZPlane));
     }),
@@ -286,7 +286,7 @@ export function Torus(params: {
 }
 
 /** Creates a cylinder along the z axis. */
-export function Cylinder(params: {
+export function Cylinder(x: {
   /** Radius of the cylinder cross section in the xy plane. */
   radius: number;
   /** Height of the cylinder along the z axis. */
@@ -296,22 +296,22 @@ export function Cylinder(params: {
 }): rgi.Region3 {
   return ExtrudeFromZPlane({
     source: rgi.CircleAsPolygon({
-      circle: { radius: params.radius, center: [0, 0] },
-      num_points: params.num_points
+      circle: { radius: x.radius, center: [0, 0] },
+      num_points: x.num_points
     }),
-    height: params.height
+    height: x.height
   });
 }
 
 /** Returns a geodesic sphere, i.e. a subdivided icosahedron. */
-export function GeodesicSphere(params: {
+export function GeodesicSphere(x: {
   /** Sphere parameters that will be approximated by the geodesic sphere. */
   sphere: rgi.SphereParams;
   /** Number of subdivision iterations. */
   iterations: number;
 }): rgi.SubdivideSphere {
   return rgi.SubdivideSphere({
-    source: rgi.Icosahedron({ sphere: params.sphere }),
-    iterations: params.iterations
+    source: rgi.Icosahedron({ sphere: x.sphere }),
+    iterations: x.iterations
   });
 }
