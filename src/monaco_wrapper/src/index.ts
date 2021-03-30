@@ -16,6 +16,19 @@ function CreateEditor(extraLibs: { filepath: string, content: string }[]) {
       monaco.languages.typescript.typescriptDefaults.addExtraLib(x.content, "inmemory://model/" + x.filepath);
     }
   );
+  monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+    module: monaco.languages.typescript.ModuleKind.ES2015,
+    target: monaco.languages.typescript.ScriptTarget.ES2015,
+    lib: [
+      "es5",
+      "es2015.core",
+      "es2015.symbol",
+      "es2015.iterable",
+      "es2015.generator",
+    ],
+    strict: true,
+    allowNonTsExtensions: true,
+  });
 
   return monaco.editor.create(container, {
     // Without explicitly setting this I observed an extra space being added
