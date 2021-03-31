@@ -19,7 +19,7 @@ QPalette DarkModePalette() {
   palette.setColor(QPalette::ButtonText, QColor(255, 255, 255));
   palette.setColor(QPalette::BrightText, QColor(255, 0, 0));
   palette.setColor(QPalette::Link, QColor(42, 130, 218));
-  palette.setColor(QPalette::Highlight, QColor(42, 130, 218));
+  palette.setColor(QPalette::Highlight, QColor(42, 160, 160));
   palette.setColor(QPalette::HighlightedText, QColor(0, 0, 0));
   palette.setColor(QPalette::Light, QColor(160, 160, 160));
   palette.setColor(QPalette::Midlight, QColor(140, 140, 140));
