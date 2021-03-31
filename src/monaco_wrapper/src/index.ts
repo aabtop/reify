@@ -49,7 +49,8 @@ function CreateEditor(extraLibs: { filepath: string, content: string }[]) {
       '}',
       '',
     ].join('\n'),
-    language: 'typescript'
+    language: 'typescript',
+    theme: 'vs-dark',
   });
 }
 

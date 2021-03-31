@@ -577,7 +577,7 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
 
   std::array<VkClearValue, 2> clear_values{};
   memset(clear_values.data(), 0, sizeof(clear_values[0]) * clear_values.size());
-  clear_values[0].color = {{0, 0, 0, 1}};
+  clear_values[0].color = {{0.11, 0.11, 0.11, 1}};
   clear_values[1].depthStencil = {1, 0};
 
   VkRenderPassBeginInfo rpb{};

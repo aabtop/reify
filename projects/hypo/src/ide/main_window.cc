@@ -17,6 +17,8 @@ MainWindow::MainWindow(QWidget* parent)
   ui_->setupUi(this);
   default_title_ = windowTitle();
 
+  ui_->visualizer->setAutoFillBackground(false);
+  ui_->visualizer->setStyleSheet("background-color:transparent;");
   domain_visualizer_ = CreateDefaultQtWidgetDomainVisualizer(ui_->visualizer);
 
   monaco_interface_.reset(new WebInterface(
@@ -32,17 +34,20 @@ MainWindow::MainWindow(QWidget* parent)
   ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
 
   progress_bar_.reset(new QProgressBar(this));
-  statusBar()->addPermanentWidget(progress_bar_.get());
   progress_bar_->setMaximum(0);
   progress_bar_->setMinimum(0);
   progress_bar_->setValue(0);
-
+  progress_bar_->setTextVisible(false);
+  statusBar()->addPermanentWidget(progress_bar_.get());
+  statusBar()->setContentsMargins(0, 0, 0, 2);
   UpdateUiState();
 
   int halfSplitterParentWidth =
       ui_->horizontalSplitter->parentWidget()->width() / 2;
   ui_->horizontalSplitter->setSizes(
       {halfSplitterParentWidth, 2 * halfSplitterParentWidth});
+
+  ui_->editor->page()->setBackgroundColor(Qt::transparent);
 
   ui_->editor->show();
 }
