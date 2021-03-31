@@ -4,12 +4,12 @@
 #include <QWebEnginePage>
 
 // static
-void WebInterface::EnsureModuleListIsRegistered() {
+void MonacoQtBridge::EnsureModuleListIsRegistered() {
   static int registered_pair = qRegisterMetaType<Module>("Module");
   static int registered_list = qRegisterMetaType<ModuleList>("ModuleList");
 }
 
-WebInterface::WebInterface(
+MonacoQtBridge::MonacoQtBridge(
     QWebEnginePage* page,
     const std::vector<reify::CompilerEnvironment::InputModule>&
         typescript_input_modules,
@@ -23,7 +23,11 @@ WebInterface::WebInterface(
   EnsureModuleListIsRegistered();
 }
 
-void WebInterface::WebChannelInitialized() {
+void MonacoQtBridge::AddCompletionCallback(std::any&& callback) {
+  completion_callbacks_.push(std::move(callback));
+}
+
+void MonacoQtBridge::WebChannelInitialized() {
   ModuleList qlist;
   for (const auto& module : typescript_input_modules_) {
     Module qmodule;
@@ -34,11 +38,40 @@ void WebInterface::WebChannelInitialized() {
   emit TypeScriptWrapperConstructor(qlist);
 }
 
-void WebInterface::SaveAsReply(const QString& filepath,
-                               const QString& content) {
-  emit OnSaveAsReply(filepath, content);
+void MonacoQtBridge::SaveAsReply(const QString& filepath,
+                                 const QString& content) {
+  std::any_cast<const SaveAsReplyFunction&>(completion_callbacks_.front())(
+      filepath, content);
+  completion_callbacks_.pop();
 }
 
-void WebInterface::QueryContentReply(const QString& content) {
-  emit OnQueryContentReply(content);
+void MonacoQtBridge::QueryContentReply(const QString& content) {
+  std::any_cast<const QueryContentReplyFunction&>(
+      completion_callbacks_.front())(content);
+  completion_callbacks_.pop();
+}
+
+WebInterface::WebInterface(
+    QWebEnginePage* page,
+    const std::vector<reify::CompilerEnvironment::InputModule>&
+        typescript_input_modules,
+    QWidget* parent)
+    : bridge_(page, typescript_input_modules, parent) {}
+
+void WebInterface::NewFile() { emit bridge_.NewFile(); }
+
+void WebInterface::SaveAs(const QString& filepath,
+                          const SaveAsReplyFunction& on_completion) {
+  bridge_.AddCompletionCallback(on_completion);
+  emit bridge_.SaveAs(filepath);
+}
+
+void WebInterface::Open(const QString& filepath, const QString& content) {
+  emit bridge_.Open(filepath, content);
+}
+
+void WebInterface::QueryContent(
+    const QueryContentReplyFunction& on_completion) {
+  bridge_.AddCompletionCallback(on_completion);
+  emit bridge_.QueryContent();
 }

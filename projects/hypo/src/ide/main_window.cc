@@ -24,13 +24,6 @@ MainWindow::MainWindow(QWidget* parent)
   monaco_interface_.reset(new WebInterface(
       ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(), this));
 
-  connect(monaco_interface_.get(),
-          SIGNAL(OnSaveAsReply(const QString&, const QString&)), this,
-          SLOT(SaveAsReply(const QString&, const QString&)));
-
-  connect(monaco_interface_.get(), SIGNAL(OnQueryContentReply(const QString&)),
-          this, SLOT(QueryContentReply(const QString&)));
-
   ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
 
   progress_bar_.reset(new QProgressBar(this));
@@ -57,7 +50,7 @@ MainWindow::~MainWindow() {}
 void MainWindow::on_actionNew_triggered() {
   current_filepath_ = std::nullopt;
   UpdateUiState();
-  emit monaco_interface_->NewFile();
+  monaco_interface_->NewFile();
 }
 
 void MainWindow::on_actionOpen_triggered() {
@@ -80,7 +73,7 @@ void MainWindow::on_actionOpen_triggered() {
 
   current_filepath_ = filepath.toStdString();
   UpdateUiState();
-  emit monaco_interface_->Open(filepath, QString(content.str().c_str()));
+  monaco_interface_->Open(filepath, QString(content.str().c_str()));
 }
 
 void MainWindow::on_actionSave_triggered() { Save(std::nullopt); }
@@ -97,51 +90,15 @@ void MainWindow::on_actionAbout_triggered() {
   about_dialog.exec();
 }
 
-void MainWindow::SaveAsReply(const QString& filepath, const QString& content) {
-  std::optional<std::function<void()>> save_complete_callback =
-      std::move(save_complete_callback_);
-  save_complete_callback_.reset();
-  UpdateUiState();
-
-  {
-    std::ofstream file(filepath.toStdString().c_str());
-    file << content.toStdString();
-
-    if (file.fail()) {
-      QMessageBox::warning(
-          this, "Error saving file",
-          "Error while attempting to save to file " + filepath);
-      return;
-    }
-
-    // We need to ensure that the file is closed before we call any callbacks,
-    // which may rely on the contents being flushed.
-  }
-
-  if (save_complete_callback) {
-    (*save_complete_callback)();
-  }
-}
-
-void MainWindow::QueryContentReply(const QString& content) {
-  std::optional<std::function<void(const std::string&)>>
-      query_content_complete_callback =
-          std::move(query_content_complete_callback_);
-  query_content_complete_callback_.reset();
-
-  if (query_content_complete_callback) {
-    (*query_content_complete_callback)(content.toStdString());
-  }
-
-  UpdateUiState();
-}
-
 bool MainWindow::Save(
     const std::optional<std::function<void()>>& save_complete_callback) {
   if (current_filepath_) {
-    emit monaco_interface_->SaveAs(
-        QString(current_filepath_->string().c_str()));
     save_complete_callback_ = save_complete_callback;
+    monaco_interface_->SaveAs(
+        QString(current_filepath_->string().c_str()),
+        [this](const QString& filepath, const QString& content) {
+          OnSaveAsComplete(filepath, content);
+        });
     return true;
   } else {
     return SaveAs(save_complete_callback);
@@ -162,20 +119,62 @@ bool MainWindow::SaveAs(
   }
 
   current_filepath_ = filepath.toStdString();
-  emit monaco_interface_->SaveAs(filepath);
-
   save_complete_callback_ = save_complete_callback;
+
+  monaco_interface_->SaveAs(
+      filepath, [this](const QString& filepath, const QString& content) {
+        OnSaveAsComplete(filepath, content);
+      });
 
   UpdateUiState();
   return true;
+}
+
+void MainWindow::OnSaveAsComplete(const QString& filepath,
+                                  const QString& content) {
+  std::optional<std::function<void()>> save_complete_callback =
+      std::move(save_complete_callback_);
+  save_complete_callback_.reset();
+  UpdateUiState();
+
+  {
+    std::ofstream file(filepath.toStdString().c_str());
+    file << content.toStdString();
+
+    if (file.fail()) {
+      QMessageBox::warning(
+          this, "Error saving file",
+          "Error while attempting to save to file " + filepath);
+      return;
+    }
+
+    // We need to ensure that the file is closed before we call any
+    // callbacks, which may rely on the contents being flushed.
+  }
+
+  if (save_complete_callback) {
+    (*save_complete_callback)();
+  }
 }
 
 void MainWindow::QueryContent(
     const std::optional<std::function<void(const std::string&)>>&
         query_content_complete_callback) {
   assert(!HasPendingOperation());
-  emit monaco_interface_->QueryContent();
   query_content_complete_callback_ = query_content_complete_callback;
+  monaco_interface_->QueryContent([this](const QString& content) {
+    std::optional<std::function<void(const std::string&)>>
+        query_content_complete_callback =
+            std::move(query_content_complete_callback_);
+    query_content_complete_callback_.reset();
+
+    if (query_content_complete_callback) {
+      (*query_content_complete_callback)(content.toStdString());
+    }
+
+    UpdateUiState();
+  });
+
   UpdateUiState();
 }
 

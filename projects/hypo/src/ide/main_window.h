@@ -35,13 +35,11 @@ class MainWindow : public QMainWindow {
 
   void on_actionAbout_triggered();
 
-  void SaveAsReply(const QString& filepath, const QString& content);
-  void QueryContentReply(const QString& content);
-
  private:
   bool Save(const std::optional<std::function<void()>>& save_complete_callback);
   bool SaveAs(
       const std::optional<std::function<void()>>& save_complete_callback);
+  void OnSaveAsComplete(const QString& filepath, const QString& content);
   void QueryContent(
       const std::optional<std::function<void(const std::string&)>>&
           query_content_complete_callback);
