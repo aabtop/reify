@@ -22,7 +22,8 @@ MainWindow::MainWindow(QWidget* parent)
   domain_visualizer_ = CreateDefaultQtWidgetDomainVisualizer(ui_->visualizer);
 
   monaco_interface_.reset(new WebInterface(
-      ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(), this));
+      ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(),
+      [this]() { UpdateUiState(); }, this));
 
   ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
 
@@ -281,7 +282,9 @@ bool MainWindow::Build(
 }
 
 MainWindow::PendingOperation MainWindow::GetCurrentPendingOperation() const {
-  if (save_complete_callback_) {
+  if (!monaco_interface_->initialized()) {
+    return PendingOperation::Initializing;
+  } else if (save_complete_callback_) {
     return PendingOperation::Saving;
   } else if (query_content_complete_callback_) {
     return PendingOperation::QueryingContent;
@@ -328,6 +331,10 @@ void MainWindow::UpdateUiState() {
   }
 
   switch (GetCurrentPendingOperation()) {
+    case PendingOperation::Initializing: {
+      progress_bar_->setVisible(false);
+      statusBar()->showMessage(tr("Initializing..."));
+    } break;
     case PendingOperation::Idle: {
       progress_bar_->setVisible(false);
       statusBar()->clearMessage();

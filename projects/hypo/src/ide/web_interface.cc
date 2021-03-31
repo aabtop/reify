@@ -13,10 +13,11 @@ MonacoQtBridge::MonacoQtBridge(
     QWebEnginePage* page,
     const std::vector<reify::CompilerEnvironment::InputModule>&
         typescript_input_modules,
-    QWidget* parent)
+    const std::function<void()>& on_initialization_complete, QWidget* parent)
     : QObject(parent),
       typescript_input_modules_(typescript_input_modules),
-      web_channel_(page) {
+      web_channel_(page),
+      on_initialization_complete_(on_initialization_complete) {
   page->setWebChannel(&web_channel_);
 
   web_channel_.registerObject(QStringLiteral("monaco_qt_bridge"), this);
@@ -36,6 +37,10 @@ void MonacoQtBridge::WebChannelInitialized() {
     qlist.push_back(qmodule);
   }
   emit TypeScriptWrapperConstructor(qlist);
+
+  initialized_ = true;
+  (*on_initialization_complete_)();
+  on_initialization_complete_ = std::nullopt;
 }
 
 void MonacoQtBridge::SaveAsReply(const QString& filepath,
@@ -55,8 +60,9 @@ WebInterface::WebInterface(
     QWebEnginePage* page,
     const std::vector<reify::CompilerEnvironment::InputModule>&
         typescript_input_modules,
-    QWidget* parent)
-    : bridge_(page, typescript_input_modules, parent) {}
+    const std::function<void()>& on_initialization_complete, QWidget* parent)
+    : bridge_(page, typescript_input_modules, on_initialization_complete,
+              parent) {}
 
 void WebInterface::NewFile() { emit bridge_.NewFile(); }
 

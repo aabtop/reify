@@ -20,6 +20,7 @@ class MonacoQtBridge : public QObject {
   MonacoQtBridge(QWebEnginePage* page,
                  const std::vector<reify::CompilerEnvironment::InputModule>&
                      typescript_input_modules,
+                 const std::function<void()>& on_initialization_complete,
                  QWidget* parent);
 
   using SaveAsReplyFunction =
@@ -27,6 +28,8 @@ class MonacoQtBridge : public QObject {
   using QueryContentReplyFunction = std::function<void(const QString&)>;
 
   void AddCompletionCallback(std::any&& callback);
+
+  bool initialized() const { return initialized_; }
 
  private:
   using Module = QList<QString>;  // A pair of strings: content and filename.
@@ -57,6 +60,9 @@ class MonacoQtBridge : public QObject {
       typescript_input_modules_;
 
   std::queue<std::any> completion_callbacks_;
+
+  bool initialized_ = false;
+  std::optional<std::function<void()>> on_initialization_complete_;
 };
 
 class WebInterface {
@@ -64,10 +70,13 @@ class WebInterface {
   WebInterface(QWebEnginePage* page,
                const std::vector<reify::CompilerEnvironment::InputModule>&
                    typescript_input_modules,
+               const std::function<void()>& on_initialization_complete,
                QWidget* parent);
 
   using SaveAsReplyFunction = MonacoQtBridge::SaveAsReplyFunction;
   using QueryContentReplyFunction = MonacoQtBridge::QueryContentReplyFunction;
+
+  bool initialized() const { return bridge_.initialized(); };
 
   void NewFile();
   void SaveAs(const QString& filepath,

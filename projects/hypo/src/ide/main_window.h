@@ -55,6 +55,7 @@ class MainWindow : public QMainWindow {
   void UpdateUiState();
 
   enum class PendingOperation {
+    Initializing,
     Idle,
     QueryingContent,
     Saving,
