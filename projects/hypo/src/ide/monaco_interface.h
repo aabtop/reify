@@ -54,10 +54,9 @@ class MonacoQtBridge : public QObject {
   void TypeScriptWrapperConstructor(const ModuleList& modules);
 
  private:
-  QWebChannel web_channel_;
-
   const std::vector<reify::CompilerEnvironment::InputModule>
       typescript_input_modules_;
+  QWebChannel web_channel_;
 
   std::queue<std::any> completion_callbacks_;
 

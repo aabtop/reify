@@ -5,8 +5,13 @@
 
 // static
 void MonacoQtBridge::EnsureModuleListIsRegistered() {
-  static int registered_pair = qRegisterMetaType<Module>("Module");
-  static int registered_list = qRegisterMetaType<ModuleList>("ModuleList");
+  static bool executed = []() {
+    qRegisterMetaType<Module>("Module");
+    qRegisterMetaType<ModuleList>("ModuleList");
+    return true;
+  }();
+
+  assert(executed);
 }
 
 MonacoQtBridge::MonacoQtBridge(
