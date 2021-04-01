@@ -77,14 +77,22 @@ void MainWindow::on_actionOpen_triggered() {
   monaco_interface_->Open(filepath, QString(content.str().c_str()));
 }
 
-void MainWindow::on_actionSave_triggered() { Save(std::nullopt); }
+void MainWindow::on_actionSave_triggered() {
+  Save([](const QString&, const QString&) {});
+}
 
-void MainWindow::on_actionSave_As_triggered() { SaveAs(std::nullopt); }
+void MainWindow::on_actionSave_As_triggered() {
+  SaveAs([](const QString&, const QString&) {});
+}
 
 void MainWindow::on_actionExit_triggered() { close(); }
 
-void MainWindow::on_actionBuild_triggered() { Build(std::nullopt); }
-void MainWindow::on_actionCompile_triggered() { Compile(std::nullopt); }
+void MainWindow::on_actionBuild_triggered() {
+  Build([]() {});
+}
+void MainWindow::on_actionCompile_triggered() {
+  Compile([](std::shared_ptr<reify::CompiledModule>) {});
+}
 
 void MainWindow::on_actionAbout_triggered() {
   AboutDialog about_dialog;
@@ -92,7 +100,7 @@ void MainWindow::on_actionAbout_triggered() {
 }
 
 bool MainWindow::Save(
-    const std::optional<std::function<void()>>& save_complete_callback) {
+    const WebInterface::SaveAsReplyFunction& save_complete_callback) {
   if (current_filepath_) {
     save_complete_callback_ = save_complete_callback;
     monaco_interface_->SaveAs(
@@ -100,6 +108,7 @@ bool MainWindow::Save(
         [this](const QString& filepath, const QString& content) {
           OnSaveAsComplete(filepath, content);
         });
+    UpdateUiState();
     return true;
   } else {
     return SaveAs(save_complete_callback);
@@ -107,7 +116,7 @@ bool MainWindow::Save(
 }
 
 bool MainWindow::SaveAs(
-    const std::optional<std::function<void()>>& save_complete_callback) {
+    const WebInterface::SaveAsReplyFunction& save_complete_callback) {
   if (HasPendingOperation()) {
     return false;
   }
@@ -133,8 +142,7 @@ bool MainWindow::SaveAs(
 
 void MainWindow::OnSaveAsComplete(const QString& filepath,
                                   const QString& content) {
-  std::optional<std::function<void()>> save_complete_callback =
-      std::move(save_complete_callback_);
+  auto save_complete_callback = std::move(save_complete_callback_);
   save_complete_callback_.reset();
   UpdateUiState();
 
@@ -154,23 +162,21 @@ void MainWindow::OnSaveAsComplete(const QString& filepath,
   }
 
   if (save_complete_callback) {
-    (*save_complete_callback)();
+    (*save_complete_callback)(filepath, content);
   }
 }
 
-void MainWindow::QueryContent(
-    const std::optional<std::function<void(const std::string&)>>&
-        query_content_complete_callback) {
+void MainWindow::QueryContent(const WebInterface::QueryContentReplyFunction&
+                                  query_content_complete_callback) {
   assert(!HasPendingOperation());
   query_content_complete_callback_ = query_content_complete_callback;
   monaco_interface_->QueryContent([this](const QString& content) {
-    std::optional<std::function<void(const std::string&)>>
-        query_content_complete_callback =
-            std::move(query_content_complete_callback_);
+    auto query_content_complete_callback =
+        std::move(query_content_complete_callback_);
     query_content_complete_callback_.reset();
 
     if (query_content_complete_callback) {
-      (*query_content_complete_callback)(content.toStdString());
+      (*query_content_complete_callback)(content);
     }
 
     UpdateUiState();
@@ -180,17 +186,16 @@ void MainWindow::QueryContent(
 }
 
 bool MainWindow::Compile(
-    const std::optional<
-        std::function<void(std::shared_ptr<reify::CompiledModule>)>>&
+    const std::function<void(std::shared_ptr<reify::CompiledModule>)>&
         compile_complete_callback) {
   if (HasPendingOperation()) {
     return false;
   }
 
-  std::function<void(const std::string&)> query_content_complete_callback =
-      [this, compile_complete_callback](const std::string& content) {
+  auto query_content_complete_callback =
+      [this, compile_complete_callback](const QString& content) {
         assert(!project_operation_);
-        project_operation_.emplace([this, content = content,
+        project_operation_.emplace([this, content = content.toStdString(),
                                     compile_complete_callback]() {
           auto result = [typescript_modules =
                              domain_visualizer_->GetTypeScriptModules(),
@@ -202,38 +207,41 @@ bool MainWindow::Compile(
             }
           }();
 
-          QMetaObject::invokeMethod(this, [this, result,
-                                           compile_complete_callback]() {
-            project_operation_->join();
-            project_operation_.reset();
+          QMetaObject::invokeMethod(
+              this, [this, result, compile_complete_callback]() {
+                project_operation_->join();
+                project_operation_.reset();
 
-            if (auto* error = std::get_if<CompileError>(&result)) {
-              UpdateUiState();
-              QMessageBox::warning(this, "Error compiling",
-                                   QString(error->c_str()));
-              return;
-            }
+                if (auto* error = std::get_if<CompileError>(&result)) {
+                  UpdateUiState();
+                  QMessageBox::warning(this, "Error compiling",
+                                       QString(error->c_str()));
+                  return;
+                }
 
-            most_recent_compilation_results_ =
-                std::get<std::shared_ptr<reify::CompiledModule>>(result);
+                most_recent_compilation_results_ =
+                    std::get<std::shared_ptr<reify::CompiledModule>>(result);
 
-            UpdateUiState();
+                UpdateUiState();
 
-            if (compile_complete_callback) {
-              (*compile_complete_callback)(most_recent_compilation_results_);
-            }
-          });
+                compile_complete_callback(most_recent_compilation_results_);
+              });
         });
         UpdateUiState();
       };
 
-  QueryContent(std::optional<std::function<void(const std::string&)>>(
-      query_content_complete_callback));
+  if (current_filepath_) {
+    Save([query_content_complete_callback](const QString&,
+                                           const QString& content) {
+      query_content_complete_callback(content);
+    });
+  } else {
+    QueryContent(query_content_complete_callback);
+  }
   return true;
 }
 
-bool MainWindow::Build(
-    const std::optional<std::function<void()>>& build_complete_callback) {
+bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
   if (HasPendingOperation()) {
     return false;
   }
@@ -272,9 +280,7 @@ bool MainWindow::Build(
                   return;
                 }
 
-                if (build_complete_callback) {
-                  (*build_complete_callback)();
-                }
+                build_complete_callback();
               });
             });
       };

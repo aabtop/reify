@@ -36,19 +36,16 @@ class MainWindow : public QMainWindow {
   void on_actionAbout_triggered();
 
  private:
-  bool Save(const std::optional<std::function<void()>>& save_complete_callback);
-  bool SaveAs(
-      const std::optional<std::function<void()>>& save_complete_callback);
+  bool Save(const WebInterface::SaveAsReplyFunction& save_complete_callback);
+  bool SaveAs(const WebInterface::SaveAsReplyFunction& save_complete_callback);
   void OnSaveAsComplete(const QString& filepath, const QString& content);
-  void QueryContent(
-      const std::optional<std::function<void(const std::string&)>>&
-          query_content_complete_callback);
+  void QueryContent(const WebInterface::QueryContentReplyFunction&
+                        query_content_complete_callback);
 
-  bool Compile(const std::optional<
-               std::function<void(std::shared_ptr<reify::CompiledModule>)>>&
-                   compile_complete_callback);
-  bool Build(
-      const std::optional<std::function<void()>>& build_complete_callback);
+  bool Compile(
+      const std::function<void(std::shared_ptr<reify::CompiledModule>)>&
+          compile_complete_callback);
+  bool Build(const std::function<void()>& build_complete_callback);
 
   // Should be called whenever the internal state data changes in such a way
   // that it would cause the UI to appear different.
@@ -77,8 +74,8 @@ class MainWindow : public QMainWindow {
 
   bool domain_build_active_ = false;
 
-  std::optional<std::function<void()>> save_complete_callback_;
-  std::optional<std::function<void(const std::string&)>>
+  std::optional<WebInterface::SaveAsReplyFunction> save_complete_callback_;
+  std::optional<WebInterface::QueryContentReplyFunction>
       query_content_complete_callback_;
 
   std::optional<std::filesystem::path> current_filepath_;
