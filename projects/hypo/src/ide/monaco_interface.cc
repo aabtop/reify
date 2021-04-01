@@ -18,11 +18,14 @@ MonacoQtBridge::MonacoQtBridge(
     QWebEnginePage* page,
     const std::vector<reify::CompilerEnvironment::InputModule>&
         typescript_input_modules,
-    const std::function<void()>& on_initialization_complete, QWidget* parent)
+    const std::function<void()>& on_initialization_complete,
+    const std::function<void(bool)>& on_file_dirty_status_change,
+    QWidget* parent)
     : QObject(parent),
       typescript_input_modules_(typescript_input_modules),
       web_channel_(page),
-      on_initialization_complete_(on_initialization_complete) {
+      on_initialization_complete_(on_initialization_complete),
+      on_file_dirty_status_change_(on_file_dirty_status_change) {
   page->setWebChannel(&web_channel_);
 
   web_channel_.registerObject(QStringLiteral("monaco_qt_bridge"), this);
@@ -61,13 +64,21 @@ void MonacoQtBridge::QueryContentReply(const QString& content) {
   completion_callbacks_.pop();
 }
 
+void MonacoQtBridge::FileDirtyStatusChanged(bool is_dirty) {
+  if (on_file_dirty_status_change_) {
+    (*on_file_dirty_status_change_)(is_dirty);
+  }
+}
+
 MonacoInterface::MonacoInterface(
     QWebEnginePage* page,
     const std::vector<reify::CompilerEnvironment::InputModule>&
         typescript_input_modules,
-    const std::function<void()>& on_initialization_complete, QWidget* parent)
+    const std::function<void()>& on_initialization_complete,
+    const std::function<void(bool)>& on_file_dirty_status_change,
+    QWidget* parent)
     : bridge_(page, typescript_input_modules, on_initialization_complete,
-              parent) {}
+              on_file_dirty_status_change, parent) {}
 
 void MonacoInterface::NewFile() { emit bridge_.NewFile(); }
 

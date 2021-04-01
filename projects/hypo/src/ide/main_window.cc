@@ -23,7 +23,8 @@ MainWindow::MainWindow(QWidget* parent)
 
   monaco_interface_.reset(new MonacoInterface(
       ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(),
-      [this]() { UpdateUiState(); }, this));
+      [this]() { UpdateUiState(); },
+      [this](bool is_dirty) { FileDirtyStatusChange(is_dirty); }, this));
 
   ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
 
@@ -50,6 +51,7 @@ MainWindow::~MainWindow() {}
 
 void MainWindow::on_actionNew_triggered() {
   current_filepath_ = std::nullopt;
+  current_file_is_dirty_ = true;
   UpdateUiState();
   monaco_interface_->NewFile();
 }
@@ -73,6 +75,7 @@ void MainWindow::on_actionOpen_triggered() {
   }
 
   current_filepath_ = filepath.toStdString();
+  current_file_is_dirty_ = false;
   UpdateUiState();
   monaco_interface_->Open(filepath, QString(content.str().c_str()));
 }
@@ -161,6 +164,9 @@ void MainWindow::OnSaveAsComplete(const QString& filepath,
     // We need to ensure that the file is closed before we call any
     // callbacks, which may rely on the contents being flushed.
   }
+
+  current_file_is_dirty_ = false;
+  UpdateUiState();
 
   if (save_complete_callback) {
     (*save_complete_callback)(filepath, content);
@@ -288,6 +294,11 @@ bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
   return Compile(compile_complete_callback);
 }
 
+void MainWindow::FileDirtyStatusChange(bool is_dirty) {
+  current_file_is_dirty_ = is_dirty;
+  UpdateUiState();
+}
+
 MainWindow::PendingOperation MainWindow::GetCurrentPendingOperation() const {
   if (!monaco_interface_->initialized()) {
     return PendingOperation::Initializing;
@@ -305,12 +316,16 @@ MainWindow::PendingOperation MainWindow::GetCurrentPendingOperation() const {
 }
 
 void MainWindow::UpdateUiState() {
+  QString title = default_title_ + " - ";
   if (current_filepath_) {
-    setWindowTitle(default_title_ + " - " +
-                   QString(current_filepath_->string().c_str()));
+    title += QString(current_filepath_->string().c_str());
   } else {
-    setWindowTitle(default_title_);
+    title += "untitled";
   }
+  if (current_file_is_dirty_) {
+    title += " *";
+  }
+  setWindowTitle(title);
 
   if (most_recent_compilation_results_) {
     std::optional<QString> previous_combo_box_text;

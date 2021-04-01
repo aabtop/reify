@@ -21,6 +21,7 @@ class MonacoQtBridge : public QObject {
                  const std::vector<reify::CompilerEnvironment::InputModule>&
                      typescript_input_modules,
                  const std::function<void()>& on_initialization_complete,
+                 const std::function<void(bool)>& on_file_dirty_status_change,
                  QWidget* parent);
 
   using SaveAsReplyFunction =
@@ -44,6 +45,8 @@ class MonacoQtBridge : public QObject {
 
   void QueryContentReply(const QString& content);  // Called by the QWebEngine.
 
+  void FileDirtyStatusChanged(bool is_dirty);
+
  signals:
   // Signals emitted by C++.
   void NewFile();
@@ -62,6 +65,7 @@ class MonacoQtBridge : public QObject {
 
   bool initialized_ = false;
   std::optional<std::function<void()>> on_initialization_complete_;
+  std::optional<std::function<void(bool)>> on_file_dirty_status_change_;
 };
 
 class MonacoInterface {
@@ -70,6 +74,7 @@ class MonacoInterface {
                   const std::vector<reify::CompilerEnvironment::InputModule>&
                       typescript_input_modules,
                   const std::function<void()>& on_initialization_complete,
+                  const std::function<void(bool)>& on_file_dirty_status_change,
                   QWidget* parent);
 
   using SaveAsReplyFunction = MonacoQtBridge::SaveAsReplyFunction;

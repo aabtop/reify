@@ -47,6 +47,8 @@ class MainWindow : public QMainWindow {
           compile_complete_callback);
   bool Build(const std::function<void()>& build_complete_callback);
 
+  void FileDirtyStatusChange(bool is_dirty);
+
   // Should be called whenever the internal state data changes in such a way
   // that it would cause the UI to appear different.
   void UpdateUiState();
@@ -82,5 +84,8 @@ class MainWindow : public QMainWindow {
   std::shared_ptr<reify::CompiledModule> most_recent_compilation_results_;
 
   std::optional<std::thread> project_operation_;
+
+  // Are the contents of the current file equivalent to what's saved on disk?
+  bool current_file_is_dirty_ = true;
 };
 #endif  // MAINWINDOW_H

@@ -7,6 +7,10 @@ if (!maybe_container) {
 
 let container = maybe_container;
 
+let lastSavedVersionId = -1;
+let fileIsDirty = false;
+let supressDirtyNotifications = false;
+
 function CreateEditor(extraLibs: { filepath: string, content: string }[]) {
   // It's not clear why, but setting the extra libs directly in the
   // `setExtraLibs` call doesn't seem to work as expected.
@@ -74,6 +78,19 @@ new QWebChannel(qt.webChannelTransport, function (channel: QWebChannel) {
     });
 
     editor = CreateEditor(extraLibs);
+    let model = editor.getModel()!;
+    lastSavedVersionId = model.getAlternativeVersionId();
+    model.onDidChangeContent((e) => {
+      if (supressDirtyNotifications) {
+        return;
+      }
+
+      const fileWasDirty = fileIsDirty;
+      fileIsDirty = (lastSavedVersionId !== model.getAlternativeVersionId());
+      if (fileWasDirty !== fileIsDirty) {
+        monaco_qt_bridge.FileDirtyStatusChanged(fileIsDirty);
+      }
+    });
   });
 
   monaco_qt_bridge.NewFile.connect(() => {
@@ -81,6 +98,7 @@ new QWebChannel(qt.webChannelTransport, function (channel: QWebChannel) {
       throw new Error('Editor not created yet while calling NewFile().');
     }
     current_filepath = '';
+    lastSavedVersionId = -1;
     editor.setValue('');
   });
 
@@ -89,6 +107,8 @@ new QWebChannel(qt.webChannelTransport, function (channel: QWebChannel) {
       throw new Error('Editor not created yet while calling SaveAs().');
     }
     current_filepath = filepath;
+    lastSavedVersionId = editor.getModel()!.getAlternativeVersionId();
+    fileIsDirty = false;
     monaco_qt_bridge.SaveAsReply(filepath, editor.getValue());
   });
 
@@ -104,7 +124,11 @@ new QWebChannel(qt.webChannelTransport, function (channel: QWebChannel) {
       throw new Error('Editor not created yet while calling Open().');
     }
     current_filepath = filepath;
+    supressDirtyNotifications = true;
     editor.setValue(content);
+    lastSavedVersionId = editor.getModel()!.getAlternativeVersionId();
+    fileIsDirty = false;
+    supressDirtyNotifications = false;
   });
 
   monaco_qt_bridge.WebChannelInitialized();
