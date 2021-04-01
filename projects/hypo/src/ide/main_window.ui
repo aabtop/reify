@@ -128,8 +128,7 @@
     <property name="title">
      <string>Build</string>
     </property>
-    <addaction name="actionBuild"/>
-    <addaction name="actionCompile"/>
+    <addaction name="actionPreview"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menuBuild"/>
@@ -178,20 +177,12 @@
     <string>About</string>
    </property>
   </action>
-  <action name="actionBuild">
+  <action name="actionPreview">
    <property name="text">
-    <string>Build</string>
+    <string>Preview</string>
    </property>
    <property name="shortcut">
     <string>F5</string>
-   </property>
-  </action>
-  <action name="actionCompile">
-   <property name="text">
-    <string>&amp;Compile</string>
-   </property>
-   <property name="shortcut">
-    <string>F7</string>
    </property>
   </action>
  </widget>

@@ -87,11 +87,8 @@ void MainWindow::on_actionSave_As_triggered() {
 
 void MainWindow::on_actionExit_triggered() { close(); }
 
-void MainWindow::on_actionBuild_triggered() {
+void MainWindow::on_actionPreview_triggered() {
   Build([]() {});
-}
-void MainWindow::on_actionCompile_triggered() {
-  Compile([](std::shared_ptr<reify::CompiledModule>) {});
 }
 
 void MainWindow::on_actionAbout_triggered() {

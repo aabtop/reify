@@ -30,8 +30,7 @@ class MainWindow : public QMainWindow {
   void on_actionSave_As_triggered();
   void on_actionExit_triggered();
 
-  void on_actionBuild_triggered();
-  void on_actionCompile_triggered();
+  void on_actionPreview_triggered();
 
   void on_actionAbout_triggered();
 
