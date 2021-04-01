@@ -41,7 +41,7 @@ qt_cc_library(
   ui_src = "main_window.ui",
   deps = [
     ":monaco_wrapper_resources",
-    ":web_interface",
+    ":monaco_interface",
     ":about_dialog",
     ":domain_visualizer_interface",
     ":domain_visualizer_hypo_qt",
@@ -97,11 +97,11 @@ cc_library(
 
 
 qt_cc_library(
-  name = "web_interface",
+  name = "monaco_interface",
   srcs = [
-    "web_interface.cc",
+    "monaco_interface.cc",
   ],
-  hdr = "web_interface.h",
+  hdr = "monaco_interface.h",
   deps = ["//:hypo-typescript_cpp_v8",],
 )
 

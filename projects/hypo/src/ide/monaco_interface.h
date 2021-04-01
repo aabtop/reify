@@ -65,13 +65,13 @@ class MonacoQtBridge : public QObject {
   std::optional<std::function<void()>> on_initialization_complete_;
 };
 
-class WebInterface {
+class MonacoInterface {
  public:
-  WebInterface(QWebEnginePage* page,
-               const std::vector<reify::CompilerEnvironment::InputModule>&
-                   typescript_input_modules,
-               const std::function<void()>& on_initialization_complete,
-               QWidget* parent);
+  MonacoInterface(QWebEnginePage* page,
+                  const std::vector<reify::CompilerEnvironment::InputModule>&
+                      typescript_input_modules,
+                  const std::function<void()>& on_initialization_complete,
+                  QWidget* parent);
 
   using SaveAsReplyFunction = MonacoQtBridge::SaveAsReplyFunction;
   using QueryContentReplyFunction = MonacoQtBridge::QueryContentReplyFunction;

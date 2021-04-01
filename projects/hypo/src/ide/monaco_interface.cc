@@ -1,4 +1,4 @@
-#include "src/ide/web_interface.h"
+#include "src/ide/monaco_interface.h"
 
 #include <QMetaType>
 #include <QWebEnginePage>
@@ -56,7 +56,7 @@ void MonacoQtBridge::QueryContentReply(const QString& content) {
   completion_callbacks_.pop();
 }
 
-WebInterface::WebInterface(
+MonacoInterface::MonacoInterface(
     QWebEnginePage* page,
     const std::vector<reify::CompilerEnvironment::InputModule>&
         typescript_input_modules,
@@ -64,19 +64,19 @@ WebInterface::WebInterface(
     : bridge_(page, typescript_input_modules, on_initialization_complete,
               parent) {}
 
-void WebInterface::NewFile() { emit bridge_.NewFile(); }
+void MonacoInterface::NewFile() { emit bridge_.NewFile(); }
 
-void WebInterface::SaveAs(const QString& filepath,
-                          const SaveAsReplyFunction& on_completion) {
+void MonacoInterface::SaveAs(const QString& filepath,
+                             const SaveAsReplyFunction& on_completion) {
   bridge_.AddCompletionCallback(on_completion);
   emit bridge_.SaveAs(filepath);
 }
 
-void WebInterface::Open(const QString& filepath, const QString& content) {
+void MonacoInterface::Open(const QString& filepath, const QString& content) {
   emit bridge_.Open(filepath, content);
 }
 
-void WebInterface::QueryContent(
+void MonacoInterface::QueryContent(
     const QueryContentReplyFunction& on_completion) {
   bridge_.AddCompletionCallback(on_completion);
   emit bridge_.QueryContent();

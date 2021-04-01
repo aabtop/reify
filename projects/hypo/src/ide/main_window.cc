@@ -9,8 +9,8 @@
 
 #include "src/ide/about_dialog.h"
 #include "src/ide/domain_visualizer_qt.h"
+#include "src/ide/monaco_interface.h"
 #include "src/ide/ui_main_window.h"
-#include "src/ide/web_interface.h"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), ui_(new Ui::MainWindow) {
@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget* parent)
   ui_->visualizer->setStyleSheet("background-color:transparent;");
   domain_visualizer_ = CreateDefaultQtWidgetDomainVisualizer(ui_->visualizer);
 
-  monaco_interface_.reset(new WebInterface(
+  monaco_interface_.reset(new MonacoInterface(
       ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(),
       [this]() { UpdateUiState(); }, this));
 
@@ -100,7 +100,7 @@ void MainWindow::on_actionAbout_triggered() {
 }
 
 bool MainWindow::Save(
-    const WebInterface::SaveAsReplyFunction& save_complete_callback) {
+    const MonacoInterface::SaveAsReplyFunction& save_complete_callback) {
   if (current_filepath_) {
     save_complete_callback_ = save_complete_callback;
     monaco_interface_->SaveAs(
@@ -116,7 +116,7 @@ bool MainWindow::Save(
 }
 
 bool MainWindow::SaveAs(
-    const WebInterface::SaveAsReplyFunction& save_complete_callback) {
+    const MonacoInterface::SaveAsReplyFunction& save_complete_callback) {
   if (HasPendingOperation()) {
     return false;
   }
@@ -166,7 +166,7 @@ void MainWindow::OnSaveAsComplete(const QString& filepath,
   }
 }
 
-void MainWindow::QueryContent(const WebInterface::QueryContentReplyFunction&
+void MainWindow::QueryContent(const MonacoInterface::QueryContentReplyFunction&
                                   query_content_complete_callback) {
   assert(!HasPendingOperation());
   query_content_complete_callback_ = query_content_complete_callback;

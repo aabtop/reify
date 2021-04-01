@@ -8,7 +8,7 @@
 
 #include "src/ide/compilation.h"
 #include "src/ide/domain_visualizer.h"
-#include "src/ide/web_interface.h"
+#include "src/ide/monaco_interface.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -36,10 +36,11 @@ class MainWindow : public QMainWindow {
   void on_actionAbout_triggered();
 
  private:
-  bool Save(const WebInterface::SaveAsReplyFunction& save_complete_callback);
-  bool SaveAs(const WebInterface::SaveAsReplyFunction& save_complete_callback);
+  bool Save(const MonacoInterface::SaveAsReplyFunction& save_complete_callback);
+  bool SaveAs(
+      const MonacoInterface::SaveAsReplyFunction& save_complete_callback);
   void OnSaveAsComplete(const QString& filepath, const QString& content);
-  void QueryContent(const WebInterface::QueryContentReplyFunction&
+  void QueryContent(const MonacoInterface::QueryContentReplyFunction&
                         query_content_complete_callback);
 
   bool Compile(
@@ -68,14 +69,14 @@ class MainWindow : public QMainWindow {
   QString default_title_;
 
   std::unique_ptr<DomainVisualizer> domain_visualizer_;
-  std::unique_ptr<WebInterface> monaco_interface_;
+  std::unique_ptr<MonacoInterface> monaco_interface_;
 
   std::unique_ptr<QProgressBar> progress_bar_;
 
   bool domain_build_active_ = false;
 
-  std::optional<WebInterface::SaveAsReplyFunction> save_complete_callback_;
-  std::optional<WebInterface::QueryContentReplyFunction>
+  std::optional<MonacoInterface::SaveAsReplyFunction> save_complete_callback_;
+  std::optional<MonacoInterface::QueryContentReplyFunction>
       query_content_complete_callback_;
 
   std::optional<std::filesystem::path> current_filepath_;
