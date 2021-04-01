@@ -101,6 +101,10 @@ void MainWindow::on_actionAbout_triggered() {
 
 bool MainWindow::Save(
     const MonacoInterface::SaveAsReplyFunction& save_complete_callback) {
+  if (HasPendingOperation()) {
+    return false;
+  }
+
   if (current_filepath_) {
     save_complete_callback_ = save_complete_callback;
     monaco_interface_->SaveAs(
@@ -231,14 +235,14 @@ bool MainWindow::Compile(
       };
 
   if (current_filepath_) {
-    Save([query_content_complete_callback](const QString&,
-                                           const QString& content) {
+    return Save([query_content_complete_callback](const QString&,
+                                                  const QString& content) {
       query_content_complete_callback(content);
     });
   } else {
     QueryContent(query_content_complete_callback);
+    return true;
   }
-  return true;
 }
 
 bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
