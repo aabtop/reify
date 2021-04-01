@@ -1,5 +1,6 @@
 #include "src/ide/main_window.h"
 
+#include <QCloseEvent>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QProgressBar>
@@ -49,6 +50,60 @@ MainWindow::MainWindow(QWidget* parent)
 
 MainWindow::~MainWindow() {}
 
+void MainWindow::ShowSaveErrorMessage(const QString& message) {
+  QMessageBox::warning(this, "Error saving", message);
+}
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+  if (HasPendingOperation()) {
+    event->ignore();
+    return;
+  }
+
+  if (current_file_is_dirty_) {
+    QMessageBox message_box(
+        QMessageBox::Question, "Save before exiting?",
+        "The document has been modified.",
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, this,
+        Qt::Dialog | Qt::Popup | Qt::FramelessWindowHint);
+    message_box.setModal(true);
+    message_box.setInformativeText("Do you want to save your changes?");
+    message_box.setDefaultButton(QMessageBox::Cancel);
+    int ret = message_box.exec();
+
+    switch (ret) {
+      case QMessageBox::Save:
+        // We uncondtionally ignore because if the save succeeds, we will
+        // actually exit in the callback.
+        event->ignore();
+        if (!Save([this](const ErrorOr<SaveResults>& maybe_results) {
+              if (auto* error = std::get_if<0>(&maybe_results)) {
+                ShowSaveErrorMessage(*error);
+              } else {
+                QApplication::quit();
+              }
+            })) {
+          ShowSaveErrorMessage("Unknown error while attempting to save.");
+          return;
+        }
+        break;
+      case QMessageBox::Discard:
+        // Don't Save was clicked
+        event->accept();
+        break;
+      case QMessageBox::Cancel:
+        event->ignore();
+        break;
+      default:
+        assert(false);
+        break;
+    }
+
+  } else {
+    event->accept();
+  }
+}
+
 void MainWindow::on_actionNew_triggered() {
   current_filepath_ = std::nullopt;
   current_file_is_dirty_ = true;
@@ -81,11 +136,11 @@ void MainWindow::on_actionOpen_triggered() {
 }
 
 void MainWindow::on_actionSave_triggered() {
-  Save([](const QString&, const QString&) {});
+  Save([](const auto&) {});
 }
 
 void MainWindow::on_actionSave_As_triggered() {
-  SaveAs([](const QString&, const QString&) {});
+  SaveAs([](const auto&) {});
 }
 
 void MainWindow::on_actionExit_triggered() { close(); }
@@ -99,8 +154,7 @@ void MainWindow::on_actionAbout_triggered() {
   about_dialog.exec();
 }
 
-bool MainWindow::Save(
-    const MonacoInterface::SaveAsReplyFunction& save_complete_callback) {
+bool MainWindow::Save(const SaveCompleteFunction& save_complete_callback) {
   if (HasPendingOperation()) {
     return false;
   }
@@ -119,8 +173,7 @@ bool MainWindow::Save(
   }
 }
 
-bool MainWindow::SaveAs(
-    const MonacoInterface::SaveAsReplyFunction& save_complete_callback) {
+bool MainWindow::SaveAs(const SaveCompleteFunction& save_complete_callback) {
   if (HasPendingOperation()) {
     return false;
   }
@@ -155,9 +208,11 @@ void MainWindow::OnSaveAsComplete(const QString& filepath,
     file << content.toStdString();
 
     if (file.fail()) {
-      QMessageBox::warning(
-          this, "Error saving file",
-          "Error while attempting to save to file " + filepath);
+      if (save_complete_callback) {
+        (*save_complete_callback)(
+            Error("Error while attempting to save to file " + filepath));
+      }
+
       return;
     }
 
@@ -169,7 +224,7 @@ void MainWindow::OnSaveAsComplete(const QString& filepath,
   UpdateUiState();
 
   if (save_complete_callback) {
-    (*save_complete_callback)(filepath, content);
+    (*save_complete_callback)(SaveResults{filepath, content});
   }
 }
 
@@ -238,9 +293,13 @@ bool MainWindow::Compile(
       };
 
   if (current_filepath_) {
-    return Save([query_content_complete_callback](const QString&,
-                                                  const QString& content) {
-      query_content_complete_callback(content);
+    return Save([this, query_content_complete_callback](
+                    const ErrorOr<SaveResults>& maybe_results) {
+      if (auto* error = std::get_if<0>(&maybe_results)) {
+        ShowSaveErrorMessage(*error);
+        return;
+      }
+      query_content_complete_callback(std::get<1>(maybe_results).contents);
     });
   } else {
     QueryContent(query_content_complete_callback);

@@ -23,6 +23,9 @@ class MainWindow : public QMainWindow {
   MainWindow(QWidget* parent = nullptr);
   ~MainWindow();
 
+ protected:
+  void closeEvent(QCloseEvent* event) override;
+
  private slots:
   void on_actionNew_triggered();
   void on_actionOpen_triggered();
@@ -35,9 +38,19 @@ class MainWindow : public QMainWindow {
   void on_actionAbout_triggered();
 
  private:
-  bool Save(const MonacoInterface::SaveAsReplyFunction& save_complete_callback);
-  bool SaveAs(
-      const MonacoInterface::SaveAsReplyFunction& save_complete_callback);
+  using Error = QString;
+  struct SaveResults {
+    QString filepath;
+    QString contents;
+  };
+  template <typename T>
+  using ErrorOr = std::variant<Error, T>;
+  using SaveCompleteFunction = std::function<void(const ErrorOr<SaveResults>&)>;
+
+  void ShowSaveErrorMessage(const QString& message);
+
+  bool Save(const SaveCompleteFunction& save_complete_callback);
+  bool SaveAs(const SaveCompleteFunction& save_complete_callback);
   void OnSaveAsComplete(const QString& filepath, const QString& content);
   void QueryContent(const MonacoInterface::QueryContentReplyFunction&
                         query_content_complete_callback);
@@ -76,7 +89,7 @@ class MainWindow : public QMainWindow {
 
   bool domain_build_active_ = false;
 
-  std::optional<MonacoInterface::SaveAsReplyFunction> save_complete_callback_;
+  std::optional<SaveCompleteFunction> save_complete_callback_;
   std::optional<MonacoInterface::QueryContentReplyFunction>
       query_content_complete_callback_;
 
