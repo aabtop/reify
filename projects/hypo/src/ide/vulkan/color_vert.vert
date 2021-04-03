@@ -22,6 +22,6 @@ void main()
     float cosLightAngle = dot(transformed_normal, LIGHT_DIRECTION);
     v_color = vec3(cosLightAngle);
 
-    mat4 mvp =  mvp_uniform.projection*mvp_uniform.view * mvp_uniform.model;
+    mat4 mvp =  mvp_uniform.projection * mvp_uniform.view * mvp_uniform.model;
     gl_Position = mvp * position;
 }

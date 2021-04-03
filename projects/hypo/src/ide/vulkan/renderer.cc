@@ -606,7 +606,8 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
                          VK_INDEX_TYPE_UINT32);
 
     VkViewport viewport;
-    viewport.x = viewport.y = 0;
+    viewport.x = 0;
+    viewport.y = 0;
     viewport.width = output_surface_size[0];
     viewport.height = output_surface_size[1];
     viewport.minDepth = 0;
@@ -614,9 +615,10 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
     VkRect2D scissor;
-    scissor.offset.x = scissor.offset.y = 0;
-    scissor.extent.width = viewport.width;
-    scissor.extent.height = viewport.height;
+    scissor.offset.x = 0;
+    scissor.offset.y = 0;
+    scissor.extent.width = output_surface_size[0];
+    scissor.extent.height = output_surface_size[1];
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     vkCmdDrawIndexed(

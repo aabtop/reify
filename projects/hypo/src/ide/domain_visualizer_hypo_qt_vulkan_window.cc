@@ -76,7 +76,7 @@ DomainVisualizerVulkanWindow::DomainVisualizerVulkanWindow()
 QVulkanWindowRenderer* DomainVisualizerVulkanWindow::createRenderer() {
   renderer_ = new DomainVisualizerVulkanWindowRenderer(
       this, [&free_camera_viewport = free_camera_viewport_]() {
-        return free_camera_viewport.view_matrix();
+        return free_camera_viewport.ViewMatrix();
       });
   if (pending_triangle_soup_) {
     renderer_->SetTriangleSoup(pending_triangle_soup_);
@@ -117,11 +117,11 @@ FreeCameraViewport3d::MouseButton ConvertMouseButtonFromQt(
 
 void DomainVisualizerVulkanWindow::mousePressEvent(QMouseEvent* event) {
   free_camera_viewport_.AccumulateMouseButtonEvent(
-      ConvertMouseButtonFromQt(event->button()), true);
+      ConvertMouseButtonFromQt(event->button()), true, event->x(), event->y());
 }
 void DomainVisualizerVulkanWindow::mouseReleaseEvent(QMouseEvent* event) {
   free_camera_viewport_.AccumulateMouseButtonEvent(
-      ConvertMouseButtonFromQt(event->button()), false);
+      ConvertMouseButtonFromQt(event->button()), false, event->x(), event->y());
 }
 
 namespace {
