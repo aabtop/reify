@@ -93,3 +93,49 @@ void DomainVisualizerVulkanWindow::SetTriangleSoup(
     pending_triangle_soup_ = triangle_soup;
   }
 }
+
+void DomainVisualizerVulkanWindow::resizeEvent(QResizeEvent* event) {
+  free_camera_viewport_.AccumulateViewportResize(event->size().width(),
+                                                 event->size().height());
+}
+
+void DomainVisualizerVulkanWindow::mouseMoveEvent(QMouseEvent* event) {
+  free_camera_viewport_.AccumulateMouseMove(event->x(), event->y());
+}
+
+namespace {
+FreeCameraViewport3d::MouseButton ConvertMouseButtonFromQt(
+    Qt::MouseButton qt_mouse_button) {
+  switch (qt_mouse_button) {
+    case Qt::LeftButton:
+      return FreeCameraViewport3d::MouseButton::Left;
+    default:
+      return FreeCameraViewport3d::MouseButton::Unknown;
+  }
+}
+}  // namespace
+
+void DomainVisualizerVulkanWindow::mousePressEvent(QMouseEvent* event) {
+  free_camera_viewport_.AccumulateMouseButtonEvent(
+      ConvertMouseButtonFromQt(event->button()), true);
+}
+void DomainVisualizerVulkanWindow::mouseReleaseEvent(QMouseEvent* event) {
+  free_camera_viewport_.AccumulateMouseButtonEvent(
+      ConvertMouseButtonFromQt(event->button()), false);
+}
+
+namespace {
+int ConvertKeyFromQt(int key) {
+  // Since the keycode accepted by FreeCameraViewport3d is defined by the Qt
+  // key mapping, the conversion is the identity.
+  return key;
+}
+}  // namespace
+void DomainVisualizerVulkanWindow::keyPressEvent(QKeyEvent* event) {
+  free_camera_viewport_.AccumulateKeyboardEvent(ConvertKeyFromQt(event->key()),
+                                                true);
+}
+void DomainVisualizerVulkanWindow::keyReleaseEvent(QKeyEvent* event) {
+  free_camera_viewport_.AccumulateKeyboardEvent(ConvertKeyFromQt(event->key()),
+                                                false);
+}

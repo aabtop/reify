@@ -16,6 +16,6 @@ void FreeCameraViewport3d::AccumulateViewportResize(
 }
 
 void FreeCameraViewport3d::AccumulateMouseMove(int x, int y) {}
-void FreeCameraViewport3d::AccumulateMouseButtonEvent(int button,
+void FreeCameraViewport3d::AccumulateMouseButtonEvent(MouseButton button,
                                                       bool pressed) {}
-void FreeCameraViewport3d::AccumulateKeyboardEvent(char key, bool pressed) {}
+void FreeCameraViewport3d::AccumulateKeyboardEvent(int key, bool pressed) {}

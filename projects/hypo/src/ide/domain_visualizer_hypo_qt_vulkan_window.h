@@ -1,6 +1,9 @@
 #ifndef _IDE_DOMAIN_VISUALIZER_HYPO_QT_VULKAN_WINDOW_H
 #define _IDE_DOMAIN_VISUALIZER_HYPO_QT_VULKAN_WINDOW_H
 
+#include <QKeyEvent>
+#include <QMouseEvent>
+#include <QResizeEvent>
 #include <QVulkanInstance>
 #include <QVulkanWindow>
 #include <optional>
@@ -46,6 +49,14 @@ class DomainVisualizerVulkanWindow : public QVulkanWindow {
 
  public slots:
   void SetTriangleSoup(std::shared_ptr<const TriangleSoup> triangle_soup);
+
+ protected:
+  void resizeEvent(QResizeEvent* event) override;
+  void mouseMoveEvent(QMouseEvent* event) override;
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
+  void keyPressEvent(QKeyEvent* event) override;
+  void keyReleaseEvent(QKeyEvent* event) override;
 
  private:
   DomainVisualizerVulkanWindowRenderer* renderer_ = nullptr;
