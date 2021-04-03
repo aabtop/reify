@@ -74,10 +74,14 @@ cc_library(
 
 qt_cc_library(
   name = "domain_visualizer_hypo_qt_vulkan_window",
-  srcs = ["domain_visualizer_hypo_qt_vulkan_window.cc"],
+  srcs = [
+    "domain_visualizer_hypo_qt_vulkan_window.cc",
+    "free_camera_viewport_3d.cc",
+    "free_camera_viewport_3d.h",],
   hdr = "domain_visualizer_hypo_qt_vulkan_window.h",
   deps = [
     "//src/ide/vulkan:renderer",
+    "@glm",
   ],
 )
 

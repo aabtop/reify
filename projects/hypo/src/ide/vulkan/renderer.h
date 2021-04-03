@@ -6,6 +6,7 @@
 #include <any>
 #include <array>
 #include <functional>
+#include <glm/glm.hpp>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -62,7 +63,8 @@ class Renderer {
 
   ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      const std::array<uint32_t, 2>& output_surface_size);
+      const std::array<uint32_t, 2>& output_surface_size,
+      const glm::mat4& view_matrix);
 
  private:
   struct RendererConstructorData {

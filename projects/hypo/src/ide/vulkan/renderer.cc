@@ -539,13 +539,12 @@ Renderer::~Renderer() {}
 
 auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
                            VkFramebuffer framebuffer,
-                           const std::array<uint32_t, 2>& output_surface_size)
+                           const std::array<uint32_t, 2>& output_surface_size,
+                           const glm::mat4& view_matrix)
     -> ErrorOr<FrameResources> {
   glm::mat4 projection_matrix = glm::perspective(
       45.0f, output_surface_size[0] / (float)output_surface_size[1], 0.01f,
       100.0f);
-  glm::mat4 view_matrix =
-      glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -8.0f));
   glm::mat4 model_matrix =
       glm::rotate(glm::mat4(1), rotation_, glm::vec3(0.0f, 1.0f, 0.0f));
   MvpUniform uniform_data{model_matrix, view_matrix, projection_matrix};

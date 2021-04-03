@@ -34,7 +34,8 @@ void DomainVisualizerVulkanWindowRenderer::startNextFrame() {
   auto error_or_frame_resources = renderer_->RenderFrame(
       window_->currentCommandBuffer(), window_->currentFramebuffer(),
       {static_cast<uint32_t>(image_size.width()),
-       static_cast<uint32_t>(image_size.height())});
+       static_cast<uint32_t>(image_size.height())},
+      get_view_matrix_());
   if (auto error = std::get_if<Renderer::Error>(&error_or_frame_resources)) {
     qFatal("Vulkan error while rendering frame: %s", error->msg.c_str());
   }
@@ -65,8 +66,18 @@ void DomainVisualizerVulkanWindowRenderer::SetTriangleSoupOnRenderer(
   }
 }
 
+DomainVisualizerVulkanWindow::DomainVisualizerVulkanWindow()
+    : free_camera_viewport_(0, 0) {
+  QSize viewport_size = swapChainImageSize();
+  free_camera_viewport_.AccumulateViewportResize(viewport_size.width(),
+                                                 viewport_size.height());
+}
+
 QVulkanWindowRenderer* DomainVisualizerVulkanWindow::createRenderer() {
-  renderer_ = new DomainVisualizerVulkanWindowRenderer(this);
+  renderer_ = new DomainVisualizerVulkanWindowRenderer(
+      this, [&free_camera_viewport = free_camera_viewport_]() {
+        return free_camera_viewport.view_matrix();
+      });
   if (pending_triangle_soup_) {
     renderer_->SetTriangleSoup(pending_triangle_soup_);
     pending_triangle_soup_ = nullptr;
