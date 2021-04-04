@@ -542,9 +542,12 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
                            const std::array<uint32_t, 2>& output_surface_size,
                            const glm::mat4& view_matrix)
     -> ErrorOr<FrameResources> {
-  glm::mat4 projection_matrix = glm::perspective(
-      45.0f, output_surface_size[0] / (float)output_surface_size[1], 0.01f,
-      100.0f);
+  glm::mat4 projection_matrix =
+      glm::perspective(45.0f,
+                       output_surface_size[0] / (float)output_surface_size[1],
+                       0.01f, 100.0f)
+      // Flip the y and z axes so that positive y is up and positive z is away.
+      * glm::scale(glm::mat4(1), glm::vec3(1.0f, -1.0f, -1.0f));
   glm::mat4 model_matrix =
       glm::rotate(glm::mat4(1), rotation_, glm::vec3(0.0f, 1.0f, 0.0f));
   MvpUniform uniform_data{model_matrix, view_matrix, projection_matrix};

@@ -29,7 +29,7 @@ void FreeCameraViewport3d::AccumulateMouseMove(int x, int y) {
   // one.
   glm::vec3 axis = glm::cross(*previous_arcball_point_, new_arcball_point);
   float cos_angle = glm::dot(*previous_arcball_point_, new_arcball_point);
-  glm::quat rotation = glm::normalize(glm::quat(cos_angle, -axis));
+  glm::quat rotation = glm::normalize(glm::quat(cos_angle, axis));
 
   // Finally apply the rotation from/two the specified amounts.
   camera_orientation_ = glm::normalize(rotation * camera_orientation_);
@@ -67,14 +67,14 @@ glm::vec3 FreeCameraViewport3d::ToArcballPoint(int x, int y) {
   // Project the 2D point onto the surface of the virtual arcball sphere
   // centered at the origin.
   return glm::vec3(viewport_point.x, viewport_point.y,
-                   glm::sqrt(1 - viewport_point.x * viewport_point.x -
-                             viewport_point.y * viewport_point.y));
+                   -glm::sqrt(1 - viewport_point.x * viewport_point.x -
+                              viewport_point.y * viewport_point.y));
 }
 
 glm::mat4 FreeCameraViewport3d::ViewMatrix() const {
   return glm::translate(
       glm::translate(glm::mat4(1.0f),
-                     glm::vec3(0.0f, 0.0f, -camera_distance_from_focus_)) *
+                     glm::vec3(0.0f, 0.0f, camera_distance_from_focus_)) *
           glm::mat4_cast(camera_orientation_),
       focus_position_);
 }

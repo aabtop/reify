@@ -15,7 +15,7 @@ out gl_PerVertex { vec4 gl_Position; };
 
 void main()
 {
-    const vec3 LIGHT_DIRECTION = normalize(vec3(1.0, -1.5, 1.0));
+    const vec3 LIGHT_DIRECTION = normalize(vec3(1.0, 1.5, -1.0));
     vec3 transformed_normal =
         normalize(transpose(inverse(mat3(mvp_uniform.model))) * normal);
 
