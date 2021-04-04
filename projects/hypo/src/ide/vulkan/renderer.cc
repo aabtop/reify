@@ -548,11 +548,8 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
                        0.0001f, 10000.0f)
       // Flip the y and z axes so that positive y is up and positive z is away.
       * glm::scale(glm::mat4(1), glm::vec3(1.0f, -1.0f, -1.0f));
-  glm::mat4 model_matrix =
-      glm::rotate(glm::mat4(1), rotation_, glm::vec3(0.0f, 1.0f, 0.0f));
+  glm::mat4 model_matrix = glm::mat4(1.0f);
   MvpUniform uniform_data{model_matrix, view_matrix, projection_matrix};
-
-  rotation_ += 0.01f;
 
   ASSIGN_OR_RETURN(uniform_buffer,
                    MakeBuffer(data_.device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,

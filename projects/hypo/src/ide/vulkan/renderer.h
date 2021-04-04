@@ -85,8 +85,6 @@ class Renderer {
 
   RendererConstructorData data_;
 
-  float rotation_ = 0.0f;
-
   std::shared_ptr<const TriangleSoup> triangle_soup_;
 
   struct VulkanTriangleSoup {
