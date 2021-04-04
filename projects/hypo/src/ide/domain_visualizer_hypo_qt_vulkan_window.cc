@@ -109,6 +109,8 @@ FreeCameraViewport3d::MouseButton ConvertMouseButtonFromQt(
   switch (qt_mouse_button) {
     case Qt::LeftButton:
       return FreeCameraViewport3d::MouseButton::Left;
+    case Qt::RightButton:
+      return FreeCameraViewport3d::MouseButton::Right;
     default:
       return FreeCameraViewport3d::MouseButton::Unknown;
   }

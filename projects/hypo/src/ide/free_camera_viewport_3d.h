@@ -9,7 +9,9 @@ class FreeCameraViewport3d {
  public:
   enum class MouseButton {
     Left,
+    Right,
     Unknown,
+    Count = Unknown,
   };
   FreeCameraViewport3d(int viewport_width_in_pixels,
                        int viewport_height_in_pixels);
@@ -26,17 +28,29 @@ class FreeCameraViewport3d {
   glm::mat4 ViewMatrix() const;
 
  private:
-  glm::vec3 ToArcballPoint(int x, int y);
+  glm::vec3 ToArcballPoint(const glm::vec2& viewport_point) const;
+  // Converts window coordinates from pixel units into units of a fraction
+  // of the viewport with the center as the origin.
+  glm::vec2 ToViewportPoint(int x, int y) const;
 
   int viewport_width_in_pixels_;
   int viewport_height_in_pixels_;
 
   // The optional is valid whenever the mouse button is pressed.
-  std::optional<glm::vec3> previous_arcball_point_;
+  std::optional<glm::vec2> previous_viewport_point_;
+
+  bool mouse_button_pressed_[static_cast<int>(MouseButton::Count)];
 
   // The camera's transform parameters.
+
+  // The position the arcball rotations are orbiting around.
   glm::vec3 focus_position_;
+
+  // The distance the camera is from the `focus_position_`.  In a way this can
+  // be thought of as the zoom level.
   float camera_distance_from_focus_;
+
+  // The camera's orientation around the focus point.
   glm::quat camera_orientation_;
 };
 
