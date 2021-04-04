@@ -1,9 +1,11 @@
 #ifndef _IDE_FREE_CAMERA_VIEWPORT_3D
 #define _IDE_FREE_CAMERA_VIEWPORT_3D
 
+#include <chrono>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <optional>
+#include <unordered_set>
 
 class FreeCameraViewport3d {
  public:
@@ -27,6 +29,8 @@ class FreeCameraViewport3d {
 
   void AccumulateMouseWheelEvent(float angle_in_degrees);
 
+  void AccumulateTimeDelta(std::chrono::duration<float> seconds);
+
   glm::mat4 ViewMatrix() const;
 
  private:
@@ -40,6 +44,8 @@ class FreeCameraViewport3d {
 
   // The optional is valid whenever the mouse button is pressed.
   std::optional<glm::vec2> previous_viewport_point_;
+
+  std::unordered_set<int> keys_pressed_;
 
   bool mouse_button_pressed_[static_cast<int>(MouseButton::Count)];
 

@@ -36,10 +36,10 @@ glm::quat ArcballRotation(const glm::vec3& new_arcball_point,
   return rotation;
 }
 
-glm::vec3 FocusPositionTranslation(const glm::vec2& new_viewport_point,
-                                   const glm::vec2& previous_viewport_point,
-                                   float camera_distance_from_focus,
-                                   const glm::quat& orientation) {
+glm::vec3 FocusPositionTranslationFromMousePan(
+    const glm::vec2& new_viewport_point,
+    const glm::vec2& previous_viewport_point, float camera_distance_from_focus,
+    const glm::quat& orientation) {
   glm::vec2 diff = new_viewport_point - previous_viewport_point;
 
   // Pull the horizontal and vertical direction vectors from the current view
@@ -48,8 +48,10 @@ glm::vec3 FocusPositionTranslation(const glm::vec2& new_viewport_point,
   glm::vec3 right = glm::row(orientation_matrix, 0);
   glm::vec3 up = glm::row(orientation_matrix, 1);
 
-  // Pan the focus position proportional to the zoom level.
-  return (right * diff.x + up * diff.y) * camera_distance_from_focus;
+  // Pan the focus position proportional to the zoom level. We negate the result
+  // because as we drag the mouse to the right, we want the *object* to appear
+  // to move to the right, and so the focus point must move to the left.
+  return -(right * diff.x + up * diff.y) * camera_distance_from_focus;
 }
 }  // namespace
 
@@ -69,7 +71,7 @@ void FreeCameraViewport3d::AccumulateMouseMove(int x, int y) {
         camera_orientation_);
   }
   if (mouse_button_pressed_[static_cast<int>(MouseButton::Right)]) {
-    focus_position_ += FocusPositionTranslation(
+    focus_position_ += FocusPositionTranslationFromMousePan(
         new_viewport_point, previous_viewport_point,
         camera_distance_from_focus_, camera_orientation_);
   }
@@ -112,14 +114,65 @@ void FreeCameraViewport3d::AccumulateMouseWheelEvent(float angle_in_degrees) {
       MIN_CAMERA_DISTANCE, MAX_CAMERA_DISTANCE);
 }
 
-void FreeCameraViewport3d::AccumulateKeyboardEvent(int key, bool pressed) {}
+void FreeCameraViewport3d::AccumulateKeyboardEvent(int key, bool pressed) {
+  if (pressed) {
+    keys_pressed_.insert(key);
+  } else {
+    keys_pressed_.erase(key);
+  }
+}
 
 glm::mat4 FreeCameraViewport3d::ViewMatrix() const {
   return glm::translate(
       glm::translate(glm::mat4(1.0f),
                      glm::vec3(0.0f, 0.0f, camera_distance_from_focus_)) *
           glm::mat4_cast(camera_orientation_),
-      focus_position_);
+      -focus_position_);
+}
+
+namespace {
+glm::vec3 PositionDeltaFromPressedKeys(
+    const std::unordered_set<int>& keys_pressed,
+    const glm::quat& camera_orientation, float camera_distance_from_focus,
+    std::chrono::duration<float> time_delta) {
+  auto key_is_pressed = [&keys_pressed](int key) {
+    return keys_pressed.find(key) != keys_pressed.end();
+  };
+
+  const glm::mat4 orientation_matrix = glm::mat4_cast(camera_orientation);
+
+  glm::vec3 velocity(0.0f, 0.0f, 0.0f);
+  if (key_is_pressed(0x41)) {
+    // The 'a' key is pressed.
+    velocity += -glm::vec3(glm::row(orientation_matrix, 0));
+  }
+  if (key_is_pressed(0x53)) {
+    // The 's' key is pressed.
+    velocity += -glm::vec3(glm::row(orientation_matrix, 2));
+  }
+  if (key_is_pressed(0x44)) {
+    // The 'd' key is pressed.
+    velocity += glm::vec3(glm::row(orientation_matrix, 0));
+  }
+  if (key_is_pressed(0x57)) {
+    // The 'w' key is pressed.
+    velocity += glm::vec3(glm::row(orientation_matrix, 2));
+  }
+
+  // Now scale the velocity both by how much time has passed and by how
+  // far the focal point is from the camera (i.e. how zoomed in we are).
+  constexpr float SPEED = 1.0f;
+  glm::vec3 position_delta =
+      velocity * SPEED * time_delta.count() * camera_distance_from_focus;
+  return position_delta;
+}
+}  // namespace
+
+void FreeCameraViewport3d::AccumulateTimeDelta(
+    std::chrono::duration<float> time_delta) {
+  focus_position_ +=
+      PositionDeltaFromPressedKeys(keys_pressed_, camera_orientation_,
+                                   camera_distance_from_focus_, time_delta);
 }
 
 glm::vec3 FreeCameraViewport3d::ToArcballPoint(

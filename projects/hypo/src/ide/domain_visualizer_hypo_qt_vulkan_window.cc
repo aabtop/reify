@@ -75,7 +75,14 @@ DomainVisualizerVulkanWindow::DomainVisualizerVulkanWindow()
 
 QVulkanWindowRenderer* DomainVisualizerVulkanWindow::createRenderer() {
   renderer_ = new DomainVisualizerVulkanWindowRenderer(
-      this, [&free_camera_viewport = free_camera_viewport_]() {
+      this, [&free_camera_viewport = free_camera_viewport_,
+             &last_tick_time = last_tick_time_]() {
+        auto current_time = std::chrono::high_resolution_clock::now();
+        if (last_tick_time) {
+          free_camera_viewport.AccumulateTimeDelta(current_time -
+                                                   *last_tick_time);
+        }
+        last_tick_time = current_time;
         return free_camera_viewport.ViewMatrix();
       });
   if (pending_triangle_soup_) {

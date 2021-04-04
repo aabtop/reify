@@ -65,6 +65,8 @@ class DomainVisualizerVulkanWindow : public QVulkanWindow {
   // In case a triangle soup becomes available before our renderer is created.
   std::shared_ptr<const TriangleSoup> pending_triangle_soup_;
 
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
+      last_tick_time_;
   FreeCameraViewport3d free_camera_viewport_;
 };
 
