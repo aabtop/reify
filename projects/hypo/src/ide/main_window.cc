@@ -106,7 +106,7 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
 void MainWindow::on_actionNew_triggered() {
   current_filepath_ = std::nullopt;
-  current_file_is_dirty_ = true;
+  current_file_is_dirty_ = false;
   UpdateUiState();
   monaco_interface_->NewFile();
 }

@@ -98,8 +98,12 @@ new QWebChannel(qt.webChannelTransport, function (channel: QWebChannel) {
       throw new Error('Editor not created yet while calling NewFile().');
     }
     current_filepath = '';
-    lastSavedVersionId = -1;
+
+    supressDirtyNotifications = true;
     editor.setValue('');
+    lastSavedVersionId = editor.getModel()!.getAlternativeVersionId();
+    fileIsDirty = false;
+    supressDirtyNotifications = false;
   });
 
   monaco_qt_bridge.SaveAs.connect((filepath: string) => {

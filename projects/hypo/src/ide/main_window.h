@@ -99,6 +99,6 @@ class MainWindow : public QMainWindow {
   std::optional<std::thread> project_operation_;
 
   // Are the contents of the current file equivalent to what's saved on disk?
-  bool current_file_is_dirty_ = true;
+  bool current_file_is_dirty_ = false;
 };
 #endif  // MAINWINDOW_H
