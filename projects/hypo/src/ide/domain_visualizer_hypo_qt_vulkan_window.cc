@@ -126,6 +126,11 @@ void DomainVisualizerVulkanWindow::mouseReleaseEvent(QMouseEvent* event) {
       ConvertMouseButtonFromQt(event->button()), false, event->x(), event->y());
 }
 
+void DomainVisualizerVulkanWindow::wheelEvent(QWheelEvent* event) {
+  free_camera_viewport_.AccumulateMouseWheelEvent(event->angleDelta().y() /
+                                                  8.0f);
+}
+
 namespace {
 int ConvertKeyFromQt(int key) {
   // Since the keycode accepted by FreeCameraViewport3d is defined by the Qt

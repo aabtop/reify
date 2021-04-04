@@ -96,11 +96,20 @@ void FreeCameraViewport3d::AccumulateMouseButtonEvent(MouseButton button,
           return true;
         }
       }
+      return false;
     }();
     if (!any_mouse_buttons_pressed) {
       previous_viewport_point_ = std::nullopt;
     }
   }
+}
+
+void FreeCameraViewport3d::AccumulateMouseWheelEvent(float angle_in_degrees) {
+  constexpr float MIN_CAMERA_DISTANCE = 0.001f;
+  constexpr float MAX_CAMERA_DISTANCE = 1000.0f;
+  camera_distance_from_focus_ = glm::clamp(
+      camera_distance_from_focus_ * glm::exp(-angle_in_degrees * 0.005f),
+      MIN_CAMERA_DISTANCE, MAX_CAMERA_DISTANCE);
 }
 
 void FreeCameraViewport3d::AccumulateKeyboardEvent(int key, bool pressed) {}

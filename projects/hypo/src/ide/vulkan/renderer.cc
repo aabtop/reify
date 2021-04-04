@@ -545,7 +545,7 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
   glm::mat4 projection_matrix =
       glm::perspective(45.0f,
                        output_surface_size[0] / (float)output_surface_size[1],
-                       0.01f, 100.0f)
+                       0.0001f, 10000.0f)
       // Flip the y and z axes so that positive y is up and positive z is away.
       * glm::scale(glm::mat4(1), glm::vec3(1.0f, -1.0f, -1.0f));
   glm::mat4 model_matrix =

@@ -25,6 +25,8 @@ class FreeCameraViewport3d {
   // https://doc.qt.io/qt-5/qt.html#Key-enum
   void AccumulateKeyboardEvent(int key, bool pressed);
 
+  void AccumulateMouseWheelEvent(float angle_in_degrees);
+
   glm::mat4 ViewMatrix() const;
 
  private:
