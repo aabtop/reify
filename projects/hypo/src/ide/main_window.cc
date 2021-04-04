@@ -54,85 +54,90 @@ void MainWindow::ShowSaveErrorMessage(const QString& message) {
   QMessageBox::warning(this, "Error saving", message);
 }
 
-void MainWindow::closeEvent(QCloseEvent* event) {
-  if (HasPendingOperation()) {
-    event->ignore();
+void MainWindow::SaveIfDirtyCheck(const std::function<void()>& and_then) {
+  if (!current_file_is_dirty_) {
+    and_then();
     return;
   }
 
-  if (current_file_is_dirty_) {
-    QMessageBox message_box(
-        QMessageBox::Question, "Save before exiting?",
-        "The document has been modified.",
-        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, this,
-        Qt::Dialog | Qt::Popup | Qt::FramelessWindowHint);
-    message_box.setModal(true);
-    message_box.setInformativeText("Do you want to save your changes?");
-    message_box.setDefaultButton(QMessageBox::Cancel);
-    int ret = message_box.exec();
+  QMessageBox message_box(
+      QMessageBox::Question, "Save?", "The document has been modified.",
+      QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, this,
+      Qt::Dialog | Qt::Popup | Qt::FramelessWindowHint);
+  message_box.setModal(true);
+  message_box.setInformativeText("Do you want to save your changes?");
+  message_box.setDefaultButton(QMessageBox::Cancel);
+  int ret = message_box.exec();
 
-    switch (ret) {
-      case QMessageBox::Save:
-        // We uncondtionally ignore because if the save succeeds, we will
-        // actually exit in the callback.
-        event->ignore();
-        if (!Save([this](const ErrorOr<SaveResults>& maybe_results) {
-              if (auto* error = std::get_if<0>(&maybe_results)) {
-                ShowSaveErrorMessage(*error);
-              } else {
-                QApplication::quit();
-              }
-            })) {
-          ShowSaveErrorMessage("Unknown error while attempting to save.");
-          return;
-        }
-        break;
-      case QMessageBox::Discard:
-        // Don't Save was clicked
-        event->accept();
-        break;
-      case QMessageBox::Cancel:
-        event->ignore();
-        break;
-      default:
-        assert(false);
-        break;
-    }
-
-  } else {
-    event->accept();
+  switch (ret) {
+    case QMessageBox::Save:
+      // We uncondtionally ignore because if the save succeeds, we will
+      // actually exit in the callback.
+      if (!Save([this, and_then](const ErrorOr<SaveResults>& maybe_results) {
+            if (auto* error = std::get_if<0>(&maybe_results)) {
+              ShowSaveErrorMessage(*error);
+            } else {
+              and_then();
+            }
+          })) {
+        ShowSaveErrorMessage("Unknown error while attempting to save.");
+        return;
+      }
+      break;
+    case QMessageBox::Discard:
+      // "Don't Save" was clicked.
+      and_then();
+      break;
+    case QMessageBox::Cancel:
+      break;
+    default:
+      assert(false);
+      break;
   }
+}
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+  event->ignore();
+  if (HasPendingOperation()) {
+    return;
+  }
+
+  SaveIfDirtyCheck([]() { QApplication::quit(); });
 }
 
 void MainWindow::on_actionNew_triggered() {
-  current_filepath_ = std::nullopt;
-  current_file_is_dirty_ = false;
-  UpdateUiState();
-  monaco_interface_->NewFile();
+  SaveIfDirtyCheck([this]() {
+    current_filepath_ = std::nullopt;
+    current_file_is_dirty_ = false;
+    UpdateUiState();
+    monaco_interface_->NewFile();
+  });
 }
 
 void MainWindow::on_actionOpen_triggered() {
-  QString filepath = QFileDialog::getOpenFileName(
-      this, tr("Open"), "", tr("Typescript (*.ts);;All Files (*)"));
+  SaveIfDirtyCheck([this]() {
+    QString filepath = QFileDialog::getOpenFileName(
+        this, tr("Open"), "", tr("Typescript (*.ts);;All Files (*)"));
 
-  if (filepath.isEmpty()) {
-    return;
-  }
+    if (filepath.isEmpty()) {
+      return;
+    }
 
-  std::ifstream file(filepath.toStdString().c_str());
-  std::stringstream content;
-  content << file.rdbuf();
+    std::ifstream file(filepath.toStdString().c_str());
+    std::stringstream content;
+    content << file.rdbuf();
 
-  if (file.fail()) {
-    QMessageBox::warning(this, "Error opening file",
-                         "Error while attempting to open file " + filepath);
-    return;
-  }
+    if (file.fail()) {
+      QMessageBox::warning(this, "Error opening file",
+                           "Error while attempting to open file " + filepath);
+      return;
+    }
 
-  current_filepath_ = filepath.toStdString();
-  current_file_is_dirty_ = false;
-  UpdateUiState();
-  monaco_interface_->Open(filepath, QString(content.str().c_str()));
+    current_filepath_ = filepath.toStdString();
+    current_file_is_dirty_ = false;
+    UpdateUiState();
+    monaco_interface_->Open(filepath, QString(content.str().c_str()));
+  });
 }
 
 void MainWindow::on_actionSave_triggered() {

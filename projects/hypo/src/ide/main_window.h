@@ -61,6 +61,7 @@ class MainWindow : public QMainWindow {
   bool Build(const std::function<void()>& build_complete_callback);
 
   void FileDirtyStatusChange(bool is_dirty);
+  void SaveIfDirtyCheck(const std::function<void()>& and_then);
 
   // Should be called whenever the internal state data changes in such a way
   // that it would cause the UI to appear different.
