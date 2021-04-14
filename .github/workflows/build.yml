@@ -13,13 +13,18 @@ jobs:
             runs-on: ubuntu-20.04
             build-script: ./build.sh
             sign-script: ''
+            archive_command: tar -czvf
+            archive_extension: .tar.gz
           - os: windows
             runs-on: windows-2019
             build-script: ./build.bat
             sign-script: ./sign.bat
+            archive_command: ''
+            archive_extension: ''
     runs-on: ${{ matrix.runs-on }}
     env:
-      build_artifact: hypo-x64-${{ matrix.os }}
+      build_artifact_directory: hypo-x64-${{ matrix.os }}
+      build_artifact: hypo-x64-${{ matrix.os }}${{ matrix.archive_extension }}
     steps:
       # Linux can sometimes run out of disk space, so this step buys us a bit
       # more by cleaning up the existing runner instance.
@@ -32,7 +37,7 @@ jobs:
           remove-haskell: 'true'
       - uses: actions/checkout@v2
       - name: Build
-        run: ${{ matrix.build-script }} ${{ env.build_artifact }}
+        run: ${{ matrix.build-script }} ${{ env.build_artifact_directory }}
       # On some platforms, we need to sign the executables, so we do that here
       # so that the secret environment variables will have a more limited scope.
       - name: Sign Executables
@@ -40,8 +45,11 @@ jobs:
         env:
           CODE_SIGNING_CERTIFICATE_WIN_PFX_SHA256_BASE64: ${{ secrets.CODE_SIGNING_CERTIFICATE_WIN_PFX_SHA256_BASE64 }}
           CODE_SIGNING_CERTIFICATE_WIN_PASSWORD: ${{ secrets.CODE_SIGNING_CERTIFICATE_WIN_PASSWORD }}
-        run: ${{ matrix.sign-script }} ${{ env.build_artifact }}
-      - name: Archive resulting executable
+        run: ${{ matrix.sign-script }} ${{ env.build_artifact_directory }}
+      - name: Archive output directory
+        if: ${{ matrix.archive_command != '' }}
+        run: ${{ matrix.archive_command }} ${{ env.build_artifact }} ${{ env.build_artifact_directory }}
+      - name: Upload resulting executable
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.build_artifact }}
@@ -86,26 +94,39 @@ jobs:
         os: [ubuntu, windows]
         include:
           - os: ubuntu
+            unarchive_command: tar -xvf
+            unarchive_extension: .tar.gz
             archive_command: tar -czvf
-            archive_extension: tar.gz
+            archive_extension: .tar.gz
             asset_content_type: application/gzip
           - os: windows
+            unarchive_command: ''
+            unarchive_extension: ''
             archive_command: zip -r
-            archive_extension: zip
+            archive_extension: .zip
             asset_content_type: application/zip
     env:
-      build_artifact: hypo-x64-${{ matrix.os }}
-      release_artifact: hypo-x64-${{ matrix.os }}-${{ needs.create_release.outputs.tag }}
-      release_artifact_archive_filename: hypo-x64-${{ matrix.os }}-${{ needs.create_release.outputs.tag }}.${{ matrix.archive_extension }}
+      build_artifact_directory: hypo-x64-${{ matrix.os }}
+      build_artifact: hypo-x64-${{ matrix.os }}${{ matrix.unarchive_extension }}
+      release_artifact_directory: hypo-x64-${{ matrix.os }}-${{ needs.create_release.outputs.tag }}
+      release_artifact_archive_filename: hypo-x64-${{ matrix.os }}-${{ needs.create_release.outputs.tag }}${{ matrix.archive_extension }}
     steps:
       # Download build artifacts emitted from the build step.
       - uses: actions/download-artifact@v2
         with:
           name: ${{ env.build_artifact }}
-          path: ./${{ env.release_artifact }}
+          path: downloaded_build_artifact
+      - name: Unarchive build artifact
+        if: ${{ env.build_artifact_directory != env.build_artifact }}
+        run: ${{ matrix.unarchive_command }} downloaded_build_artifact/${{ env.build_artifact }}
+      - name: Unarchive build artifact
+        if: ${{ env.build_artifact_directory == env.build_artifact }}
+        run: mv downloaded_build_artifact ${{ env.build_artifact_directory }} 
+      - name: Copy build artifact directory to release artifact directory
+        run: mv ${{ env.build_artifact_directory }} ${{ env.release_artifact_directory }}
       # Package up the artifacts into an archive native to the OS.
       - name: Package Artifacts
-        run: ${{ matrix.archive_command }} ${{ env.release_artifact_archive_filename }} ${{ env.release_artifact }}
+        run: ${{ matrix.archive_command }} ${{ env.release_artifact_archive_filename }} ${{ env.release_artifact_directory }}
       # Finally upload the resulting archive packages to the draft release we
       # created a few steps ago.
       - name: Attach packaged artifact to release
