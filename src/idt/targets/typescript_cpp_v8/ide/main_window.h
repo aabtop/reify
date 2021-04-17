@@ -6,9 +6,9 @@
 #include <optional>
 #include <string>
 
-#include "src/ide/compilation.h"
-#include "src/ide/domain_visualizer.h"
-#include "src/ide/monaco_interface.h"
+#include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/compilation.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -16,11 +16,19 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+namespace reify {
+namespace typescript_cpp_v8 {
+namespace ide {
+
 class MainWindow : public QMainWindow {
   Q_OBJECT
 
  public:
-  MainWindow(QWidget* parent = nullptr);
+  MainWindow(
+      const std::string& window_title,
+      const std::function<std::unique_ptr<DomainVisualizer>(QWidget* parent)>&
+          make_visualizer,
+      QWidget* parent = nullptr);
   ~MainWindow();
 
  protected:
@@ -102,4 +110,9 @@ class MainWindow : public QMainWindow {
   // Are the contents of the current file equivalent to what's saved on disk?
   bool current_file_is_dirty_ = false;
 };
+
+}  // namespace ide
+}  // namespace typescript_cpp_v8
+}  // namespace reify
+
 #endif  // MAINWINDOW_H

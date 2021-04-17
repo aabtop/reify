@@ -1,6 +1,6 @@
-#include "src/ide/about_dialog.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/about_dialog.h"
 
-#include "src/ide/ui_about_dialog.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/ui_about_dialog.h"
 
 AboutDialog::AboutDialog(QWidget* parent)
     : QDialog(parent, Qt::WindowTitleHint | Qt::WindowCloseButtonHint),

@@ -73,11 +73,19 @@ cc_library(
     includes = [
         "command_line_tool/include",
     ],
-    visibility = ["//visibility:public"],
     deps = [
         ":core",
         "//third_party:CLI11",
     ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "ide",
+    deps = [
+        "//src/idt/targets/typescript_cpp_v8/ide:ide",
+    ],
+    visibility = ["//visibility:public"],
 )
 
 exports_files(["Main.hs"])

@@ -1,4 +1,4 @@
-#include "src/ide/main_window.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/main_window.h"
 
 #include <QCloseEvent>
 #include <QFileDialog>
@@ -8,26 +8,34 @@
 #include <fstream>
 #include <sstream>
 
-#include "src/ide/about_dialog.h"
-#include "src/ide/domain_visualizer_qt.h"
-#include "src/ide/monaco_interface.h"
-#include "src/ide/ui_main_window.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/about_dialog.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/ui_main_window.h"
 
-MainWindow::MainWindow(QWidget* parent)
+namespace reify {
+namespace typescript_cpp_v8 {
+namespace ide {
+
+MainWindow::MainWindow(
+    const std::string& window_title,
+    const std::function<std::unique_ptr<DomainVisualizer>(QWidget* parent)>&
+        make_visualizer,
+    QWidget* parent)
     : QMainWindow(parent), ui_(new Ui::MainWindow) {
   ui_->setupUi(this);
-  default_title_ = windowTitle();
+  default_title_ = QString(window_title.c_str());
 
   ui_->visualizer->setAutoFillBackground(false);
   ui_->visualizer->setStyleSheet("background-color:transparent;");
-  domain_visualizer_ = CreateDefaultQtWidgetDomainVisualizer(ui_->visualizer);
+  domain_visualizer_ = make_visualizer(ui_->visualizer);
 
   monaco_interface_.reset(new MonacoInterface(
       ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(),
       [this]() { UpdateUiState(); },
       [this](bool is_dirty) { FileDirtyStatusChange(is_dirty); }, this));
 
-  ui_->editor->load(QUrl("qrc:/src/ide/index.html"));
+  ui_->editor->load(
+      QUrl("qrc:/src/idt/targets/typescript_cpp_v8/ide/index.html"));
 
   progress_bar_.reset(new QProgressBar(this));
   progress_bar_->setMaximum(0);
@@ -443,3 +451,7 @@ void MainWindow::UpdateUiState() {
     } break;
   }
 }
+
+}  // namespace ide
+}  // namespace typescript_cpp_v8
+}  // namespace reify

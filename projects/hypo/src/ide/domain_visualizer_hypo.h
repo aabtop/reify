@@ -1,10 +1,10 @@
 #ifndef _IDE_DOMAIN_VISUALIZER_HYPO_H
 #define _IDE_DOMAIN_VISUALIZER_HYPO_H
 
-#include "src/ide/domain_visualizer.h"
+#include "reify/typescript_cpp_v8/domain_visualizer.h"
 #include "src/ide/vulkan/triangle_soup.h"
 
-class DomainVisualizerHypo : public DomainVisualizer {
+class DomainVisualizerHypo : public reify::typescript_cpp_v8::DomainVisualizer {
  public:
   DomainVisualizerHypo(const std::function<void(TriangleSoup&&)>& produce_mesh);
 

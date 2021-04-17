@@ -1,4 +1,4 @@
-#include "src/ide/monaco_interface.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
 
 #include <QMetaType>
 #include <QWebEnginePage>

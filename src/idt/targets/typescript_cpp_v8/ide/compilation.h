@@ -8,6 +8,10 @@
 
 #include "reify/typescript_cpp_v8.h"
 
+namespace reify {
+namespace typescript_cpp_v8 {
+namespace ide {
+
 using CompileError = std::string;
 using CompileResult =
     std::variant<CompileError, std::shared_ptr<reify::CompiledModule>>;
@@ -19,5 +23,9 @@ CompileResult CompileContents(
     const std::vector<reify::CompilerEnvironment::InputModule>&
         typescript_input_modules,
     const std::string& contents);
+
+}  // namespace ide
+}  // namespace typescript_cpp_v8
+}  // namespace reify
 
 #endif  // _IDE_COMPILATION_H_

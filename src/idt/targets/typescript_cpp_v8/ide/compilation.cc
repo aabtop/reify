@@ -1,7 +1,11 @@
-#include "src/ide/compilation.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/compilation.h"
 
 #include <filesystem>
 #include <sstream>
+
+namespace reify {
+namespace typescript_cpp_v8 {
+namespace ide {
 
 namespace {
 
@@ -70,3 +74,7 @@ CompileResult CompileContents(
   return CompileVirtualFile(typescript_input_modules, input_virtual_filepath,
                             &in_memory_filesystem);
 }
+
+}  // namespace ide
+}  // namespace typescript_cpp_v8
+}  // namespace reify

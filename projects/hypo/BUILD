@@ -91,6 +91,7 @@ qt_cc_binary(
     "//src/ide:main.cc",
   ],
   deps = [
-    "//src/ide:main_window",
+    "@reify//src/idt/targets/typescript_cpp_v8:ide",
+    "//src/ide:domain_visualizer_hypo_qt",
   ],
 )

@@ -8,6 +8,9 @@
 
 #include "reify/typescript_cpp_v8.h"
 
+namespace reify {
+namespace typescript_cpp_v8 {
+
 class DomainVisualizer {
  public:
   virtual ~DomainVisualizer(){};
@@ -25,5 +28,8 @@ class DomainVisualizer {
       const std::function<void(std::optional<ConsumeError>&&)>&
           on_consumed) = 0;
 };
+
+}  // namespace typescript_cpp_v8
+}  // namespace reify
 
 #endif  // _IDE_DOMAIN_VISUALIZER_H

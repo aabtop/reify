@@ -1,3 +1,5 @@
+#include "src/ide/domain_visualizer_hypo_qt.h"
+
 #include <QCoreApplication>
 #include <QVBoxLayout>
 #include <filesystem>
@@ -5,7 +7,6 @@
 
 #include "src/ide/domain_visualizer_hypo.h"
 #include "src/ide/domain_visualizer_hypo_qt_vulkan_window.h"
-#include "src/ide/domain_visualizer_qt.h"
 
 namespace {
 
@@ -68,70 +69,54 @@ std::optional<std::filesystem::path> FindVulkanSo1() { return std::nullopt; }
 
 }  // namespace
 
-class DomainVisualizerQtVulkan : public DomainVisualizer {
- public:
-  DomainVisualizerQtVulkan(QWidget* frame) {
-    auto maybe_vulkan_so_1_path = FindVulkanSo1();
-    if (maybe_vulkan_so_1_path) {
-      // Qt doesn't know where our custom built Vulkan loader is on Linux, so
-      // we have to find it and specify it manually.
-      qputenv("QT_VULKAN_LIB", QByteArray(reinterpret_cast<const char*>(
-                                   maybe_vulkan_so_1_path->c_str())));
-    } else {
-      std::cerr << "Could not find local build of vulkan.so.1. "
-                << "Maybe the system version will work..." << std::endl;
-    }
-    q_vulkan_instance_.setLayers(QByteArrayList()
-                                 << "VK_LAYER_LUNARG_standard_validation");
-    if (!q_vulkan_instance_.create())
-      qFatal("Failed to create Vulkan instance: %d",
-             q_vulkan_instance_.errorCode());
-
-    auto vulkan_window = new DomainVisualizerVulkanWindow();
-    vulkan_window->setVulkanInstance(&q_vulkan_instance_);
-
-    vulkan_window_widget_.reset(
-        QWidget::createWindowContainer(vulkan_window, frame));
-
-    QVBoxLayout* layout = new QVBoxLayout();
-    layout->addWidget(vulkan_window_widget_.get());
-    frame->setLayout(layout);
-
-    wrapped_domain_visualizer_.reset(
-        new DomainVisualizerHypo([vulkan_window](TriangleSoup&& x) {
-          emit vulkan_window->SetTriangleSoup(
-              std::make_shared<const TriangleSoup>(std::move(x)));
-        }));
+DomainVisualizerHypoQtVulkan::DomainVisualizerHypoQtVulkan(QWidget* frame) {
+  auto maybe_vulkan_so_1_path = FindVulkanSo1();
+  if (maybe_vulkan_so_1_path) {
+    // Qt doesn't know where our custom built Vulkan loader is on Linux, so
+    // we have to find it and specify it manually.
+    qputenv("QT_VULKAN_LIB", QByteArray(reinterpret_cast<const char*>(
+                                 maybe_vulkan_so_1_path->c_str())));
+  } else {
+    std::cerr << "Could not find local build of vulkan.so.1. "
+              << "Maybe the system version will work..." << std::endl;
   }
+  q_vulkan_instance_.setLayers(QByteArrayList()
+                               << "VK_LAYER_LUNARG_standard_validation");
+  if (!q_vulkan_instance_.create())
+    qFatal("Failed to create Vulkan instance: %d",
+           q_vulkan_instance_.errorCode());
 
-  std::vector<reify::CompilerEnvironment::InputModule> GetTypeScriptModules()
-      override {
-    return wrapped_domain_visualizer_->GetTypeScriptModules();
-  }
+  auto vulkan_window = new DomainVisualizerVulkanWindow();
+  vulkan_window->setVulkanInstance(&q_vulkan_instance_);
 
-  bool CanConsumeSymbol(
-      const reify::CompiledModule::ExportedSymbol& symbol) override {
-    return wrapped_domain_visualizer_->CanConsumeSymbol(symbol);
-  }
+  vulkan_window_widget_.reset(
+      QWidget::createWindowContainer(vulkan_window, frame));
 
-  void ConsumeSymbol(std::shared_ptr<reify::CompiledModule> module,
-                     const reify::CompiledModule::ExportedSymbol& symbol,
-                     const std::function<void(std::optional<ConsumeError>&&)>&
-                         on_consumed) override {
-    return wrapped_domain_visualizer_->ConsumeSymbol(module, symbol,
-                                                     std::move(on_consumed));
-  }
+  QVBoxLayout* layout = new QVBoxLayout();
+  layout->addWidget(vulkan_window_widget_.get());
+  frame->setLayout(layout);
 
- private:
-  QVulkanInstance q_vulkan_instance_;
-  std::unique_ptr<QWidget>
-      vulkan_window_widget_;  // This is a unique_ptr to ensure it is destroyed
-                              // before the QVulkanInstance object.
+  wrapped_domain_visualizer_.reset(
+      new DomainVisualizerHypo([vulkan_window](TriangleSoup&& x) {
+        emit vulkan_window->SetTriangleSoup(
+            std::make_shared<const TriangleSoup>(std::move(x)));
+      }));
+}
 
-  std::unique_ptr<DomainVisualizer> wrapped_domain_visualizer_;
-};
+std::vector<reify::CompilerEnvironment::InputModule>
+DomainVisualizerHypoQtVulkan::GetTypeScriptModules() {
+  return wrapped_domain_visualizer_->GetTypeScriptModules();
+}
 
-std::unique_ptr<DomainVisualizer> CreateDefaultQtWidgetDomainVisualizer(
-    QWidget* frame) {
-  return std::make_unique<DomainVisualizerQtVulkan>(frame);
+bool DomainVisualizerHypoQtVulkan::CanConsumeSymbol(
+    const reify::CompiledModule::ExportedSymbol& symbol) {
+  return wrapped_domain_visualizer_->CanConsumeSymbol(symbol);
+}
+
+void DomainVisualizerHypoQtVulkan::ConsumeSymbol(
+    std::shared_ptr<reify::CompiledModule> module,
+    const reify::CompiledModule::ExportedSymbol& symbol,
+    const std::function<void(std::optional<ConsumeError>&&)>& on_consumed) {
+  return wrapped_domain_visualizer_->ConsumeSymbol(module, symbol,
+                                                   std::move(on_consumed));
 }
