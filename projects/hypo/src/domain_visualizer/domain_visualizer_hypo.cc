@@ -1,4 +1,4 @@
-#include "src/ide/domain_visualizer_hypo.h"
+#include "src/domain_visualizer/domain_visualizer_hypo.h"
 
 #include <CGAL/boost/graph/convert_nef_polyhedron_to_polygon_mesh.h>
 

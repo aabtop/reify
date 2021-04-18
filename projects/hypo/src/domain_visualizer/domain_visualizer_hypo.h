@@ -2,9 +2,9 @@
 #define _IDE_DOMAIN_VISUALIZER_HYPO_H
 
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
-#include "src/ide/free_camera_viewport_3d.h"
-#include "src/ide/vulkan/mesh_renderer.h"
-#include "src/ide/vulkan/triangle_soup.h"
+#include "src/domain_visualizer/free_camera_viewport_3d.h"
+#include "src/domain_visualizer/vulkan/mesh_renderer.h"
+#include "src/domain_visualizer/vulkan/triangle_soup.h"
 
 class DomainVisualizerHypo : public reify::typescript_cpp_v8::DomainVisualizer {
  public:

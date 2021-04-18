@@ -69,10 +69,7 @@ cc_library(
 cc_binary(
     name = "hypo",
     srcs = [
-        "src/main.cc",
-    ],
-    includes = [
-        "src/",
+        "src/main_command_line.cc",
     ],
     linkstatic = 1,
     deps = [
@@ -88,10 +85,10 @@ cc_binary(
 qt_cc_binary(
   name = "ide",
   srcs = [
-    "//src/ide:main.cc",
+    "src/main_ide.cc",
   ],
   deps = [
     "@reify//src/idt/targets/typescript_cpp_v8:ide",
-    "//src/ide:domain_visualizer_hypo",
+    "//src/domain_visualizer:domain_visualizer_hypo",
   ],
 )
