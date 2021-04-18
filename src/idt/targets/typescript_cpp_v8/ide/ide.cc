@@ -34,17 +34,15 @@ QPalette DarkModePalette() {
 }
 }  // namespace
 
-int StartIdeWindow(
-    const std::string& window_title,
-    const std::function<std::unique_ptr<DomainVisualizer>(QWidget* parent)>&
-        make_visualizer) {
+int StartIdeWindow(const std::string& window_title,
+                   std::unique_ptr<DomainVisualizer> domain_visualizer) {
   QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   int argc;
   QApplication a(argc, nullptr);
 
   a.setPalette(DarkModePalette());
 
-  ide::MainWindow w(window_title, make_visualizer);
+  ide::MainWindow w(window_title, std::move(domain_visualizer));
   w.show();
   return a.exec();
 }

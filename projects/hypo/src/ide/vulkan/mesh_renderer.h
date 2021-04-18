@@ -1,5 +1,5 @@
-#ifndef _IDE_VULKAN_RENDERER_H
-#define _IDE_VULKAN_RENDERER_H
+#ifndef _IDE_VULKAN_MESH_RENDERER_H
+#define _IDE_VULKAN_MESH_RENDERER_H
 
 #include <vulkan/vulkan.h>
 
@@ -41,7 +41,7 @@ class WithDeleter {
   std::function<void(T&&)> deleter_;
 };
 
-class Renderer {
+class MeshRenderer {
  public:
   struct Error {
     std::string msg;
@@ -50,13 +50,13 @@ class Renderer {
   using ErrorOr = std::variant<Error, T>;
   using FrameResources = std::any;
 
-  static ErrorOr<Renderer> Create(VkInstance instance,
-                                  VkPhysicalDevice physical_device,
-                                  VkDevice device,
-                                  VkFormat output_image_format);
+  static ErrorOr<MeshRenderer> Create(VkInstance instance,
+                                      VkPhysicalDevice physical_device,
+                                      VkDevice device,
+                                      VkFormat output_image_format);
 
-  Renderer(Renderer&& other) = default;
-  ~Renderer();
+  MeshRenderer(MeshRenderer&& other) = default;
+  ~MeshRenderer();
 
   std::optional<Error> SetTriangleSoup(
       std::shared_ptr<const TriangleSoup> triangle_soup);
@@ -67,7 +67,7 @@ class Renderer {
       const glm::mat4& view_matrix);
 
  private:
-  struct RendererConstructorData {
+  struct MeshRendererConstructorData {
     VkInstance instance;
     VkPhysicalDevice physical_device;
     VkDevice device;
@@ -81,9 +81,9 @@ class Renderer {
     WithDeleter<VkPipeline> pipeline;
   };
 
-  Renderer(RendererConstructorData&& data) : data_(std::move(data)) {}
+  MeshRenderer(MeshRendererConstructorData&& data) : data_(std::move(data)) {}
 
-  RendererConstructorData data_;
+  MeshRendererConstructorData data_;
 
   std::shared_ptr<const TriangleSoup> triangle_soup_;
 
@@ -97,4 +97,4 @@ class Renderer {
   std::shared_ptr<VulkanTriangleSoup> vulkan_triangle_soup_;
 };
 
-#endif  // _IDE_VULKAN_RENDERER_H
+#endif  // _IDE_VULKAN_MESH_RENDERER_H

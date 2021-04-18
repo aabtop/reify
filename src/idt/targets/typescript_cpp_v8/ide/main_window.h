@@ -5,6 +5,7 @@
 #include <QProgressBar>
 #include <optional>
 #include <string>
+#include <thread>
 
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/compilation.h"
@@ -24,11 +25,9 @@ class MainWindow : public QMainWindow {
   Q_OBJECT
 
  public:
-  MainWindow(
-      const std::string& window_title,
-      const std::function<std::unique_ptr<DomainVisualizer>(QWidget* parent)>&
-          make_visualizer,
-      QWidget* parent = nullptr);
+  MainWindow(const std::string& window_title,
+             std::unique_ptr<DomainVisualizer> domain_visualizer,
+             QWidget* parent = nullptr);
   ~MainWindow();
 
  protected:
@@ -92,6 +91,7 @@ class MainWindow : public QMainWindow {
   QString default_title_;
 
   std::unique_ptr<DomainVisualizer> domain_visualizer_;
+  std::unique_ptr<QWidget> domain_visualizer_widget_;
   std::unique_ptr<MonacoInterface> monaco_interface_;
 
   std::unique_ptr<QProgressBar> progress_bar_;

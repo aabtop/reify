@@ -9,6 +9,7 @@
 #include <sstream>
 
 #include "src/idt/targets/typescript_cpp_v8/ide/about_dialog.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/domain_visualizer_qt_widget.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/ui_main_window.h"
 
@@ -16,18 +17,20 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace ide {
 
-MainWindow::MainWindow(
-    const std::string& window_title,
-    const std::function<std::unique_ptr<DomainVisualizer>(QWidget* parent)>&
-        make_visualizer,
-    QWidget* parent)
-    : QMainWindow(parent), ui_(new Ui::MainWindow) {
+MainWindow::MainWindow(const std::string& window_title,
+                       std::unique_ptr<DomainVisualizer> domain_visualizer,
+                       QWidget* parent)
+    : QMainWindow(parent),
+      ui_(new Ui::MainWindow),
+      default_title_(QString(window_title.c_str())),
+      domain_visualizer_(std::move(domain_visualizer)) {
   ui_->setupUi(this);
-  default_title_ = QString(window_title.c_str());
 
   ui_->visualizer->setAutoFillBackground(false);
   ui_->visualizer->setStyleSheet("background-color:transparent;");
-  domain_visualizer_ = make_visualizer(ui_->visualizer);
+
+  domain_visualizer_widget_ =
+      MakeDomainVisualizerWidget(domain_visualizer_.get(), ui_->visualizer);
 
   monaco_interface_.reset(new MonacoInterface(
       ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(),
@@ -344,23 +347,31 @@ bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
         domain_build_active_ = true;
         UpdateUiState();
 
-        domain_visualizer_->ConsumeSymbol(
+        domain_visualizer_->PrepareSymbolForPreview(
             compiled_module, *compiled_module->GetExportedSymbol(symbol_name),
             [this, build_complete_callback](
-                std::optional<DomainVisualizer::ConsumeError>&& error) {
-              QMetaObject::invokeMethod(this, [this, error = std::move(error),
-                                               build_complete_callback]() {
-                domain_build_active_ = false;
-                UpdateUiState();
+                DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol>
+                    prepared_symbol_or_error) {
+              // Since this callback could be called from any thread, we use
+              // `invokeMethod` to ensure we resolve this on the correct thread.
+              QMetaObject::invokeMethod(
+                  this, [this,
+                         prepared_symbol_or_error =
+                             std::move(prepared_symbol_or_error),
+                         build_complete_callback]() {
+                    domain_build_active_ = false;
+                    UpdateUiState();
 
-                if (error) {
-                  QMessageBox::warning(this, "Error building symbol",
-                                       QString(error->c_str()));
-                  return;
-                }
-
-                build_complete_callback();
-              });
+                    if (auto error =
+                            std::get_if<0>(&prepared_symbol_or_error)) {
+                      QMessageBox::warning(this, "Error building symbol",
+                                           QString(error->msg.c_str()));
+                      return;
+                    }
+                    domain_visualizer_->Preview(
+                        std::get<1>(prepared_symbol_or_error));
+                    build_complete_callback();
+                  });
             });
       };
   return Compile(compile_complete_callback);
@@ -409,7 +420,7 @@ void MainWindow::UpdateUiState() {
     if (most_recent_compilation_results_) {
       for (const auto& symbol :
            most_recent_compilation_results_->exported_symbols()) {
-        if (domain_visualizer_->CanConsumeSymbol(symbol)) {
+        if (domain_visualizer_->CanPreviewSymbol(symbol)) {
           ui_->comboBox->addItem(QString(symbol.name.c_str()));
         }
       }

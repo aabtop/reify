@@ -1,8 +1,6 @@
 load("@aabtop_rules_qt//:qt_rules.bzl", "qt_cc_library", "qt_cc_binary", "qt_resource")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 
-package(default_visibility = ["//visibility:public"])
-
 copy_file(
   name = "index_html",
   src = "//src/monaco_wrapper:index.html",
@@ -42,17 +40,7 @@ qt_cc_library(
     ":monaco_interface",
     ":about_dialog",
     ":domain_visualizer_interface",
-  ],
-)
-
-cc_library(
-  name = "domain_visualizer_interface",
-  hdrs = ["include/reify/typescript_cpp_v8/domain_visualizer.h"],
-  includes = [
-    "include",
-  ],
-  deps = [
-    "//src/idt/targets/typescript_cpp_v8:core",
+    ":domain_visualizer_qt_widget",
   ],
 )
 
@@ -76,6 +64,35 @@ qt_cc_library(
   ui_src = "about_dialog.ui",
 )
 
+# Embeds a DomainVisualizer into a Qt Widget for use in Qt applications.
+qt_cc_library(
+    name = "domain_visualizer_qt_widget",
+    srcs = [
+        "domain_visualizer_qt_widget.cc",
+    ],
+    hdr = "domain_visualizer_qt_widget.h",
+    defines = select({
+        "@bazel_tools//src/conditions:windows": ["BAZEL_TARGET_OS_WINDOWS"],
+        "//conditions:default": ["BAZEL_TARGET_OS_LINUX"],
+    }),
+    deps = [
+        ":domain_visualizer_interface",
+    ],
+)
+
+cc_library(
+  name = "domain_visualizer_interface",
+  hdrs = ["include/reify/typescript_cpp_v8/domain_visualizer.h"],
+  includes = [
+    "include",
+  ],
+  deps = [
+    "//src/idt/targets/typescript_cpp_v8:core",
+    "@vulkan_sdk//:vulkan",
+  ],
+  visibility = ["//visibility:public"],
+)
+
 cc_library(
   name = "ide",
   srcs = [
@@ -91,4 +108,5 @@ cc_library(
     ":main_window",
     ":domain_visualizer_interface",
   ],
+  visibility = ["//visibility:public"],
 )

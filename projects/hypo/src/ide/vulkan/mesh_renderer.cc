@@ -1,4 +1,4 @@
-#include "renderer.h"
+#include "mesh_renderer.h"
 
 #include <fmt/format.h>
 
@@ -24,7 +24,7 @@ struct MvpUniform {
   alignas(16) glm::mat4 projection;
 };
 
-Renderer::ErrorOr<uint32_t> FindMemoryTypeIndex(
+MeshRenderer::ErrorOr<uint32_t> FindMemoryTypeIndex(
     VkPhysicalDevice physical_device, uint32_t type_filter,
     VkMemoryPropertyFlags properties) {
   VkPhysicalDeviceMemoryProperties mem_properties;
@@ -38,12 +38,11 @@ Renderer::ErrorOr<uint32_t> FindMemoryTypeIndex(
     }
   }
 
-  return Renderer::Error{"Failed to find a suitable memory type."};
+  return MeshRenderer::Error{"Failed to find a suitable memory type."};
 }
 
-Renderer::ErrorOr<WithDeleter<VkShaderModule>> CreateShader(VkDevice device,
-                                                            const uint8_t* data,
-                                                            size_t size) {
+MeshRenderer::ErrorOr<WithDeleter<VkShaderModule>> CreateShader(
+    VkDevice device, const uint8_t* data, size_t size) {
   VkShaderModuleCreateInfo shader_module_create_info;
   memset(&shader_module_create_info, 0, sizeof(shader_module_create_info));
   shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -53,7 +52,7 @@ Renderer::ErrorOr<WithDeleter<VkShaderModule>> CreateShader(VkDevice device,
   VkResult err = vkCreateShaderModule(device, &shader_module_create_info,
                                       nullptr, &shader_module);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{
+    return MeshRenderer::Error{
         fmt::format("Failed to create shader module: {}", err)};
   }
 
@@ -63,7 +62,7 @@ Renderer::ErrorOr<WithDeleter<VkShaderModule>> CreateShader(VkDevice device,
       });
 }
 
-Renderer::ErrorOr<WithDeleter<VkDescriptorPool>> MakeDescriptorPool(
+MeshRenderer::ErrorOr<WithDeleter<VkDescriptorPool>> MakeDescriptorPool(
     VkDevice device,
     const std::vector<VkDescriptorPoolSize> descriptor_pool_sizes,
     uint32_t max_sets) {
@@ -79,7 +78,7 @@ Renderer::ErrorOr<WithDeleter<VkDescriptorPool>> MakeDescriptorPool(
   auto err = vkCreateDescriptorPool(device, &descriptor_pool_create_info,
                                     nullptr, &pool);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{
+    return MeshRenderer::Error{
         fmt::format("Failed to create descriptor pool: {}", err)};
   } else {
     return WithDeleter<VkDescriptorPool>(
@@ -89,7 +88,8 @@ Renderer::ErrorOr<WithDeleter<VkDescriptorPool>> MakeDescriptorPool(
   }
 }
 
-Renderer::ErrorOr<WithDeleter<VkDescriptorSetLayout>> MakeDescriptorSetLayout(
+MeshRenderer::ErrorOr<WithDeleter<VkDescriptorSetLayout>>
+MakeDescriptorSetLayout(
     VkDevice device,
     std::vector<VkDescriptorSetLayoutBinding> layout_bindings) {
   VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
@@ -99,7 +99,7 @@ Renderer::ErrorOr<WithDeleter<VkDescriptorSetLayout>> MakeDescriptorSetLayout(
   auto err =
       vkCreateDescriptorSetLayout(device, &descLayoutInfo, nullptr, &layout);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{
+    return MeshRenderer::Error{
         fmt::format("Failed to create descriptor set layout: {}", err)};
   } else {
     return WithDeleter<VkDescriptorSetLayout>(
@@ -109,7 +109,7 @@ Renderer::ErrorOr<WithDeleter<VkDescriptorSetLayout>> MakeDescriptorSetLayout(
   }
 }
 
-Renderer::ErrorOr<WithDeleter<VkDescriptorSet>> MakeDescriptorSet(
+MeshRenderer::ErrorOr<WithDeleter<VkDescriptorSet>> MakeDescriptorSet(
     VkDevice device, VkDescriptorPool pool, VkDescriptorSetLayout layout,
     const std::vector<
         std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>>&
@@ -123,7 +123,7 @@ Renderer::ErrorOr<WithDeleter<VkDescriptorSet>> MakeDescriptorSet(
   VkDescriptorSet descriptor_set;
   auto err = vkAllocateDescriptorSets(device, &alloc_info, &descriptor_set);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{
+    return MeshRenderer::Error{
         fmt::format("Failed to create descriptor set: {}", err)};
   }
 
@@ -159,16 +159,15 @@ Renderer::ErrorOr<WithDeleter<VkDescriptorSet>> MakeDescriptorSet(
       });
 }
 
-Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(VkDevice device,
-                                                        VkDeviceSize size,
-                                                        uint32_t memory_type) {
+MeshRenderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
+    VkDevice device, VkDeviceSize size, uint32_t memory_type) {
   VkMemoryAllocateInfo mem_alloc_info = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
                                          nullptr, size, memory_type};
 
   VkDeviceMemory vk_memory;
   auto err = vkAllocateMemory(device, &mem_alloc_info, nullptr, &vk_memory);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{
+    return MeshRenderer::Error{
         fmt::format("Failed to allocate {} bytes of memory: {}", size, err)};
   }
 
@@ -177,7 +176,7 @@ Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(VkDevice device,
       [device](VkDeviceMemory&& x) { vkFreeMemory(device, x, nullptr); });
 }
 
-Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
+MeshRenderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
     VkPhysicalDevice physical_device, VkDevice device, VkDeviceSize size,
     uint32_t type_filter, VkMemoryPropertyFlags memory_property_flags) {
   ASSIGN_OR_RETURN(
@@ -187,7 +186,7 @@ Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
   return Allocate(device, size, memory_type);
 }
 
-Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
+MeshRenderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
     VkPhysicalDevice physical_device, VkDevice device, VkBuffer buffer,
     VkMemoryPropertyFlags memory_property_flags) {
   VkMemoryRequirements mem_reqs;
@@ -197,7 +196,7 @@ Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
                   mem_reqs.memoryTypeBits, memory_property_flags);
 }
 
-Renderer::ErrorOr<WithDeleter<VkBuffer>> MakeBuffer(
+MeshRenderer::ErrorOr<WithDeleter<VkBuffer>> MakeBuffer(
     VkDevice device, VkBufferUsageFlagBits usage_flags, size_t data_size) {
   VkBufferCreateInfo vertex_buffer_create_info{};
   vertex_buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -208,14 +207,14 @@ Renderer::ErrorOr<WithDeleter<VkBuffer>> MakeBuffer(
   VkResult err =
       vkCreateBuffer(device, &vertex_buffer_create_info, nullptr, &buffer);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{fmt::format("Failed to create buffer: {}", err)};
+    return MeshRenderer::Error{fmt::format("Failed to create buffer: {}", err)};
   }
   return WithDeleter<VkBuffer>(std::move(buffer), [device](VkBuffer&& x) {
     vkDestroyBuffer(device, x, nullptr);
   });
 }
 
-Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindBufferMemory(
+MeshRenderer::ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindBufferMemory(
     VkPhysicalDevice physical_device, VkDevice device, VkBuffer buffer,
     const uint8_t* data, size_t data_size) {
   ASSIGN_OR_RETURN(buffer_mem,
@@ -225,7 +224,7 @@ Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindBufferMemory(
 
   VkResult err = vkBindBufferMemory(device, buffer, buffer_mem.value(), 0);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{
+    return MeshRenderer::Error{
         fmt::format("Failed to bind buffer memory: {}", err)};
   }
 
@@ -233,7 +232,7 @@ Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindBufferMemory(
   err = vkMapMemory(device, buffer_mem.value(), 0, data_size, 0,
                     reinterpret_cast<void**>(&p));
   if (err != VK_SUCCESS) {
-    return Renderer::Error{fmt::format("Failed to map memory: {}", err)};
+    return MeshRenderer::Error{fmt::format("Failed to map memory: {}", err)};
   }
 
   memcpy(p, data, data_size);
@@ -243,7 +242,7 @@ Renderer::ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindBufferMemory(
   return std::move(buffer_mem);
 }
 
-Renderer::ErrorOr<WithDeleter<VkPipelineCache>> MakePipelineCache(
+MeshRenderer::ErrorOr<WithDeleter<VkPipelineCache>> MakePipelineCache(
     VkDevice device) {
   VkPipelineCache pipeline_cache;
   VkPipelineCacheCreateInfo pipeline_cache_info{};
@@ -251,7 +250,7 @@ Renderer::ErrorOr<WithDeleter<VkPipelineCache>> MakePipelineCache(
   auto err = vkCreatePipelineCache(device, &pipeline_cache_info, nullptr,
                                    &pipeline_cache);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{
+    return MeshRenderer::Error{
         fmt::format("Failed to create pipeline cache: {}\n", err)};
   }
   return WithDeleter<VkPipelineCache>(
@@ -260,7 +259,7 @@ Renderer::ErrorOr<WithDeleter<VkPipelineCache>> MakePipelineCache(
       });
 }
 
-Renderer::ErrorOr<WithDeleter<VkPipelineLayout>> MakePipelineLayout(
+MeshRenderer::ErrorOr<WithDeleter<VkPipelineLayout>> MakePipelineLayout(
     VkDevice device, VkDescriptorSetLayout descriptor_set_layout) {
   VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
   pipeline_layout_create_info.sType =
@@ -272,7 +271,7 @@ Renderer::ErrorOr<WithDeleter<VkPipelineLayout>> MakePipelineLayout(
   auto err = vkCreatePipelineLayout(device, &pipeline_layout_create_info,
                                     nullptr, &pipeline_layout);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{
+    return MeshRenderer::Error{
         fmt::format("Failed to create pipeline layout: {}", err)};
   }
 
@@ -282,7 +281,7 @@ Renderer::ErrorOr<WithDeleter<VkPipelineLayout>> MakePipelineLayout(
       });
 }
 
-Renderer::ErrorOr<WithDeleter<VkRenderPass>> MakeRenderPass(
+MeshRenderer::ErrorOr<WithDeleter<VkRenderPass>> MakeRenderPass(
     VkDevice device, VkFormat color_attachment_format) {
   VkAttachmentDescription color_attachment{};
   color_attachment.format = color_attachment_format;
@@ -343,7 +342,7 @@ Renderer::ErrorOr<WithDeleter<VkRenderPass>> MakeRenderPass(
   auto err =
       vkCreateRenderPass(device, &render_pass_info, nullptr, &render_pass);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{
+    return MeshRenderer::Error{
         fmt::format("Failed to create render pass: {}", err)};
   }
 
@@ -352,7 +351,7 @@ Renderer::ErrorOr<WithDeleter<VkRenderPass>> MakeRenderPass(
       [device](VkRenderPass&& x) { vkDestroyRenderPass(device, x, nullptr); });
 }
 
-Renderer::ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
+MeshRenderer::ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
     VkDevice device, VkPipelineLayout pipeline_layout, VkRenderPass render_pass,
     VkPipelineCache pipeline_cache, VkShaderModule vertex_shader_module,
     const std::vector<VkVertexInputBindingDescription>&
@@ -455,7 +454,7 @@ Renderer::ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
   auto err = vkCreateGraphicsPipelines(
       device, pipeline_cache, 1, &pipeline_create_info, nullptr, &pipeline);
   if (err != VK_SUCCESS) {
-    return Renderer::Error{
+    return MeshRenderer::Error{
         fmt::format("Failed to create graphics pipeline: {}", err)};
   }
 
@@ -467,10 +466,9 @@ Renderer::ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
 }  // namespace
 
 // static
-Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
-                                             VkPhysicalDevice physical_device,
-                                             VkDevice device,
-                                             VkFormat output_image_format) {
+MeshRenderer::ErrorOr<MeshRenderer> MeshRenderer::Create(
+    VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
+    VkFormat output_image_format) {
   ASSIGN_OR_RETURN(descriptor_set_layout,
                    MakeDescriptorSetLayout(
                        device, {VkDescriptorSetLayoutBinding{
@@ -523,7 +521,7 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
                    },
                    fragment_shader_module.value()));
 
-  return Renderer(RendererConstructorData{
+  return MeshRenderer(MeshRendererConstructorData{
       instance,
       physical_device,
       device,
@@ -535,13 +533,12 @@ Renderer::ErrorOr<Renderer> Renderer::Create(VkInstance instance,
   });
 }
 
-Renderer::~Renderer() {}
+MeshRenderer::~MeshRenderer() {}
 
-auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
-                           VkFramebuffer framebuffer,
-                           const std::array<uint32_t, 2>& output_surface_size,
-                           const glm::mat4& view_matrix)
-    -> ErrorOr<FrameResources> {
+auto MeshRenderer::RenderFrame(
+    VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+    const std::array<uint32_t, 2>& output_surface_size,
+    const glm::mat4& view_matrix) -> ErrorOr<FrameResources> {
   glm::mat4 projection_matrix =
       glm::perspective(45.0f,
                        output_surface_size[0] / (float)output_surface_size[1],
@@ -638,7 +635,7 @@ auto Renderer::RenderFrame(VkCommandBuffer command_buffer,
       std::make_shared<decltype(resources)>(std::move(resources)));
 }
 
-std::optional<Renderer::Error> Renderer::SetTriangleSoup(
+std::optional<MeshRenderer::Error> MeshRenderer::SetTriangleSoup(
     std::shared_ptr<const TriangleSoup> triangle_soup) {
   triangle_soup_ = triangle_soup;
 

@@ -7,14 +7,12 @@
 #include <optional>
 #include <unordered_set>
 
+#include "reify/typescript_cpp_v8/domain_visualizer.h"
+
 class FreeCameraViewport3d {
  public:
-  enum class MouseButton {
-    Left,
-    Right,
-    Unknown,
-    Count = Unknown,
-  };
+  using MouseButton = reify::typescript_cpp_v8::DomainVisualizer::MouseButton;
+
   FreeCameraViewport3d(int viewport_width_in_pixels,
                        int viewport_height_in_pixels);
 
