@@ -39,8 +39,8 @@ qt_cc_library(
     ":monaco_wrapper_resources",
     ":monaco_interface",
     ":about_dialog",
-    ":domain_visualizer_interface",
     ":domain_visualizer_qt_widget",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
   ],
 )
 
@@ -76,21 +76,8 @@ qt_cc_library(
         "//conditions:default": ["BAZEL_TARGET_OS_LINUX"],
     }),
     deps = [
-        ":domain_visualizer_interface",
+        "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
     ],
-)
-
-cc_library(
-  name = "domain_visualizer_interface",
-  hdrs = ["include/reify/typescript_cpp_v8/domain_visualizer.h"],
-  includes = [
-    "include",
-  ],
-  deps = [
-    "//src/idt/targets/typescript_cpp_v8:core",
-    "@vulkan_sdk//:vulkan",
-  ],
-  visibility = ["//visibility:public"],
 )
 
 cc_library(
@@ -106,7 +93,7 @@ cc_library(
   ],
   deps = [
     ":main_window",
-    ":domain_visualizer_interface",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
   ],
   visibility = ["//visibility:public"],
 )

@@ -63,3 +63,11 @@ def reify_deps1():
         url = "https://github.com/aabtop/rules_qt/archive/4703da94a8a996e9372e6ec3d33bb082a2882e8d.zip",
         sha256 = "ba7912fe87a6a389bb83f83baa1d89d9f899abf1739b3aaf972169d934da6c9b",
     )
+
+    http_archive(
+        name = "imgui",
+        strip_prefix = "imgui-1.82",
+        url = "https://github.com/ocornut/imgui/archive/v1.82.zip",
+        sha256 = "e5d450c8b3ebfb7fa2fbef5528e3e80f9df7a459e5a3ac29a29409a022f4c2d8",
+        build_file = "@reify//:third_party/imgui/imgui.BUILD",
+    )

@@ -89,6 +89,7 @@ qt_cc_binary(
   ],
   deps = [
     "@reify//src/idt/targets/typescript_cpp_v8:ide",
+    "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:gui",
     "//src/domain_visualizer:domain_visualizer_hypo",
   ],
 )

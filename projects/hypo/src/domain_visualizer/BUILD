@@ -11,7 +11,7 @@ cc_library(
         "//:hypo-typescript_cpp_v8",
         "//:hypo_lib",
         "//src/domain_visualizer/vulkan:mesh_renderer",
-        "@reify//src/idt/targets/typescript_cpp_v8/ide:domain_visualizer_interface",
+        "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
     ],
     visibility = ["//visibility:public"],
 )
