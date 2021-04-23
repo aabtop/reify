@@ -75,6 +75,8 @@ class GuiLayer {
   GuiLayer(ConstructorData&& data) : data_(std::move(data)) {}
 
   ConstructorData data_;
+
+  bool created_imgui_fonts_texture_ = false;
 };
 
 GuiLayer::~GuiLayer() {
@@ -89,7 +91,53 @@ GuiLayer::Render(VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
   io.DisplaySize = ImVec2(output_surface_size[0], output_surface_size[1]);
   io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
-  return vulkan_utils::Error{"nope not implemented."};
+  if (!created_imgui_fonts_texture_) {
+    created_imgui_fonts_texture_ = true;
+    ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+  }
+
+  ImGui_ImplVulkan_NewFrame();
+  ImGui::NewFrame();
+  {
+    bool checkbox = false;
+    float f = 0.25f;
+    static int counter = 5;
+
+    ImGui::Begin("Hello, world!");
+
+    ImGui::Text("This is some useful text.");
+    ImGui::Checkbox("Demo Window", &checkbox);
+
+    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+
+    if (ImGui::Button("Button")) {
+      counter++;
+    }
+    ImGui::SameLine();
+    ImGui::Text("counter = %d", counter);
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+                1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+  }
+  ImGui::Render();
+
+  VkRenderPassBeginInfo rpb{};
+  rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  rpb.renderPass = data_.render_pass.value();
+  rpb.framebuffer = framebuffer;
+  rpb.renderArea.extent.width = output_surface_size[0];
+  rpb.renderArea.extent.height = output_surface_size[1];
+  rpb.clearValueCount = 0;
+  rpb.pClearValues = nullptr;
+
+  vkCmdBeginRenderPass(command_buffer, &rpb, VK_SUBPASS_CONTENTS_INLINE);
+
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
+
+  vkCmdEndRenderPass(command_buffer);
+
+  return 1;
 }
 
 vulkan_utils::ErrorOr<std::unique_ptr<GuiLayer>> GuiLayer::Create(
