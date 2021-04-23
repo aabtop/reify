@@ -88,6 +88,7 @@ GuiLayer::Render(VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
   ImGuiIO& io = ImGui::GetIO();
   io.DisplaySize = ImVec2(output_surface_size[0], output_surface_size[1]);
   io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+
   return vulkan_utils::Error{"nope not implemented."};
 }
 
@@ -202,8 +203,20 @@ class RendererGui : public DomainVisualizer::Renderer {
   ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
       const std::array<uint32_t, 2>& output_surface_size) override {
-    return wrapped_->RenderFrame(command_buffer, framebuffer,
-                                 output_surface_size);
+    VULKAN_UTILS_ASSIGN_OR_RETURN(
+        wrapped_resources, wrapped_->RenderFrame(command_buffer, framebuffer,
+                                                 output_surface_size));
+    // We can't use the VULKAN_UTILS_ASSIGN_OR_RETURN here because the error
+    // type is subtly different (`vulkan_utils::Error` versus
+    // `DomainVisualizer::Error`), so the error would actually get stuffed into
+    // the `std::any`.
+    auto maybe_gui_layer_resources =
+        gui_layer_->Render(command_buffer, framebuffer, output_surface_size);
+    if (auto error = std::get_if<0>(&maybe_gui_layer_resources)) {
+      return DomainVisualizer::Error{error->msg};
+    }
+
+    return std::pair{wrapped_resources, std::get<1>(maybe_gui_layer_resources)};
   }
 
  private:
