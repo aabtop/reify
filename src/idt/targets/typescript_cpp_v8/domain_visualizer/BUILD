@@ -24,6 +24,7 @@ cc_library(
     ":interface",
     "@imgui//:frontend",
     "@imgui//:vulkan_backend",
+    "//src/vulkan_utils",
   ],
   visibility = ["//visibility:public"],
 )
