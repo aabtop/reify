@@ -21,7 +21,6 @@ cc_library(
     "@vulkan_sdk//:vulkan",
     ":color_vert_as_header",
     ":color_frag_as_header",
-    "@fmtlib",
     "@glm",
     "@reify//src/vulkan_utils",
   ],

@@ -8,7 +8,11 @@ namespace typescript_cpp_v8 {
 
 class DomainVisualizerGui : public DomainVisualizer {
  public:
+  // Called during each rendered frame to enable code to apply ImGui elements.
+  using ImGuiLayer = std::function<void()>;
+
   DomainVisualizerGui(std::unique_ptr<DomainVisualizer> wrapped);
+  ~DomainVisualizerGui();
 
   std::vector<reify::CompilerEnvironment::InputModule> GetTypeScriptModules()
       override;
@@ -35,6 +39,7 @@ class DomainVisualizerGui : public DomainVisualizer {
 
  private:
   std::unique_ptr<DomainVisualizer> wrapped_;
+  std::vector<ImGuiLayer> im_gui_layers_;
 };
 
 }  // namespace typescript_cpp_v8

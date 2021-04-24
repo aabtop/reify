@@ -1,5 +1,6 @@
 #include "reify/typescript_cpp_v8/domain_visualizer_gui.h"
 
+#include <fmt/format.h>
 #include <vulkan/vulkan.h>
 
 #include <iostream>
@@ -11,9 +12,55 @@
 namespace reify {
 namespace typescript_cpp_v8 {
 
+namespace {
+// ImGui kind of forces us to use global variables :(.
+VkResult* GetImGuiVulkanResult() {
+  static VkResult result = VK_SUCCESS;
+  return &result;
+}
+}  // namespace
+
 DomainVisualizerGui::DomainVisualizerGui(
     std::unique_ptr<DomainVisualizer> wrapped)
-    : wrapped_(std::move(wrapped)) {}
+    : wrapped_(std::move(wrapped)) {
+  im_gui_layers_.push_back([]() {
+    static bool checkbox = false;
+    static float f = 0.25f;
+    static int counter = 5;
+
+    ImGui::Begin("Hello, world!");
+
+    ImGui::Text("This is some useful text.");
+    ImGui::Checkbox("Demo Window", &checkbox);
+
+    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+
+    if (ImGui::Button("Button")) {
+      counter++;
+    }
+    ImGui::SameLine();
+    ImGui::Text("counter = %d", counter);
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+                1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+  });
+  im_gui_layers_.push_back([]() { ImGui::ShowDemoWindow(); });
+
+  // Setup Dear ImGui context
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+
+  // Setup Dear ImGui style
+  ImGui::StyleColorsDark();
+  ImGuiIO& io = ImGui::GetIO();
+  // We set this to null to not save/restore UI layouts from run to run.
+  // Not sure if this is the best thing to do, but I'm preferring to err on
+  // the side of no IO.
+  io.IniFilename = nullptr;
+}
+
+DomainVisualizerGui::~DomainVisualizerGui() { ImGui::DestroyContext(); }
 
 std::vector<reify::CompilerEnvironment::InputModule>
 DomainVisualizerGui::GetTypeScriptModules() {
@@ -59,8 +106,9 @@ void DomainVisualizerGui::OnInputEvent(const InputEvent& input_event) {
       io.MouseDown[imgui_button] = event->pressed;
 
       if (io.WantCaptureMouse && event->pressed) {
-        // Only prevent the event from being passed on to the wrapped visualizer
-        // if it was a press event and ImGui really wanted to capture it.
+        // Only prevent the event from being passed on to the wrapped
+        // visualizer if it was a press event and ImGui really wanted to
+        // capture it.
         pass_input_onto_wrapped = false;
       }
     }
@@ -92,21 +140,9 @@ void DomainVisualizerGui::AdvanceTime(std::chrono::duration<float> seconds) {
 }
 
 namespace {
-
-class GuiLayer {
+class RendererImGui : public DomainVisualizer::Renderer {
  public:
-  ~GuiLayer();
-
-  vulkan_utils::ErrorOr<DomainVisualizer::Renderer::FrameResources> Render(
-      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      const std::array<uint32_t, 2>& output_surface_size);
-
-  static vulkan_utils::ErrorOr<std::unique_ptr<GuiLayer>> Create(
-      VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
-      VkFormat output_image_format);
-
- private:
-  struct ConstructorData {
+  struct VulkanConstructorData {
     VkInstance instance;
     VkPhysicalDevice physical_device;
     VkDevice device;
@@ -115,87 +151,63 @@ class GuiLayer {
     vulkan_utils::WithDeleter<VkDescriptorPool> descriptor_pool;
     vulkan_utils::WithDeleter<VkRenderPass> render_pass;
   };
-  GuiLayer(ConstructorData&& data) : data_(std::move(data)) {}
 
-  ConstructorData data_;
+  static vulkan_utils::ErrorOr<VulkanConstructorData>
+  CreateVulkanConstructorData(VkInstance instance,
+                              VkPhysicalDevice physical_device, VkDevice device,
+                              VkFormat output_image_format);
+  RendererImGui(
+      std::unique_ptr<Renderer>&& wrapped, VulkanConstructorData&& data,
+      const std::vector<DomainVisualizerGui::ImGuiLayer>& im_gui_layers)
+      : wrapped_(std::move(wrapped)),
+        vulkan_constructor_data_(std::move(data)),
+        im_gui_layers_(im_gui_layers) {}
+  ~RendererImGui() { ImGui_ImplVulkan_Shutdown(); }
+
+  ErrorOr<FrameResources> RenderFrame(
+      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+      const std::array<uint32_t, 2>& output_surface_size) override;
+
+ private:
+  std::unique_ptr<Renderer> wrapped_;
+
+  VulkanConstructorData vulkan_constructor_data_;
+
+  std::vector<DomainVisualizerGui::ImGuiLayer> im_gui_layers_;
 
   bool created_imgui_fonts_texture_ = false;
 };
 
-GuiLayer::~GuiLayer() {
-  ImGui_ImplVulkan_Shutdown();
-  ImGui::DestroyContext();
-}
+}  // namespace
 
-vulkan_utils::ErrorOr<DomainVisualizer::Renderer::FrameResources>
-GuiLayer::Render(VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-                 const std::array<uint32_t, 2>& output_surface_size) {
-  ImGuiIO& io = ImGui::GetIO();
-  io.DisplaySize = ImVec2(output_surface_size[0], output_surface_size[1]);
-  io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-
-  if (!created_imgui_fonts_texture_) {
-    created_imgui_fonts_texture_ = true;
-    ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+DomainVisualizer::ErrorOr<std::unique_ptr<DomainVisualizer::Renderer>>
+DomainVisualizerGui::CreateRenderer(VkInstance instance,
+                                    VkPhysicalDevice physical_device,
+                                    VkDevice device,
+                                    VkFormat output_image_format) {
+  auto error_or_wrapped_renderer = wrapped_->CreateRenderer(
+      instance, physical_device, device, output_image_format);
+  if (auto error = std::get_if<0>(&error_or_wrapped_renderer)) {
+    return *error;
   }
 
-  ImGui_ImplVulkan_NewFrame();
-  ImGui::NewFrame();
-  {
-    static bool checkbox = false;
-    static float f = 0.25f;
-    static int counter = 5;
-
-    ImGui::Begin("Hello, world!");
-
-    ImGui::Text("This is some useful text.");
-    ImGui::Checkbox("Demo Window", &checkbox);
-
-    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-
-    if (ImGui::Button("Button")) {
-      counter++;
-    }
-    ImGui::SameLine();
-    ImGui::Text("counter = %d", counter);
-
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-                1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::End();
+  auto error_or_vulkan_constructor_data =
+      RendererImGui::CreateVulkanConstructorData(instance, physical_device,
+                                                 device, output_image_format);
+  if (auto error = std::get_if<0>(&error_or_vulkan_constructor_data)) {
+    return Error{error->msg};
   }
-  { ImGui::ShowDemoWindow(); }
-  ImGui::Render();
 
-  VkRenderPassBeginInfo rpb{};
-  rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  rpb.renderPass = data_.render_pass.value();
-  rpb.framebuffer = framebuffer;
-  rpb.renderArea.extent.width = output_surface_size[0];
-  rpb.renderArea.extent.height = output_surface_size[1];
-  rpb.clearValueCount = 0;
-  rpb.pClearValues = nullptr;
-
-  vkCmdBeginRenderPass(command_buffer, &rpb, VK_SUBPASS_CONTENTS_INLINE);
-
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
-
-  vkCmdEndRenderPass(command_buffer);
-
-  return 1;
+  return std::make_unique<RendererImGui>(
+      std::move(std::get<1>(error_or_wrapped_renderer)),
+      std::move(std::get<1>(error_or_vulkan_constructor_data)), im_gui_layers_);
 }
 
-vulkan_utils::ErrorOr<std::unique_ptr<GuiLayer>> GuiLayer::Create(
-    VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
-    VkFormat output_image_format) {
-  // Setup Dear ImGui context
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-
-  // Setup Dear ImGui style
-  ImGui::StyleColorsDark();
-  ImGuiIO& io = ImGui::GetIO();
-  io.IniFilename = nullptr;
-
+vulkan_utils::ErrorOr<RendererImGui::VulkanConstructorData>
+RendererImGui::CreateVulkanConstructorData(VkInstance instance,
+                                           VkPhysicalDevice physical_device,
+                                           VkDevice device,
+                                           VkFormat output_image_format) {
   uint32_t queue_family;
   {
     uint32_t count;
@@ -255,10 +267,7 @@ vulkan_utils::ErrorOr<std::unique_ptr<GuiLayer>> GuiLayer::Create(
   init_info.ImageCount = 2;
   init_info.CheckVkResultFn = [](VkResult result) {
     if (result != VK_SUCCESS) {
-      std::cerr << "Error " << result
-                << " from ImGui, but error handling isn't properly hooked up "
-                   "here yet."
-                << std::endl;
+      *GetImGuiVulkanResult() = result;
     }
   };
 
@@ -276,70 +285,74 @@ vulkan_utils::ErrorOr<std::unique_ptr<GuiLayer>> GuiLayer::Create(
           std::nullopt));
 
   ImGui_ImplVulkan_Init(&init_info, render_pass.value());
+  if (*GetImGuiVulkanResult() != VK_SUCCESS) {
+    return vulkan_utils::Error{
+        fmt::format("ImGui encountered a Vulkan error while initializing: {}",
+                    *GetImGuiVulkanResult())};
+  }
 
-  return std::unique_ptr<GuiLayer>(new GuiLayer(ConstructorData{
+  return VulkanConstructorData{
       instance,
       physical_device,
       device,
       std::move(pipeline_cache),
       std::move(descriptor_pool),
       std::move(render_pass),
-  }));
+  };
 }
 
-class RendererGui : public DomainVisualizer::Renderer {
- public:
-  RendererGui(std::unique_ptr<GuiLayer> gui_layer,
-              std::unique_ptr<Renderer> wrapped)
-      : gui_layer_(std::move(gui_layer)), wrapped_(std::move(wrapped)) {}
-  ~RendererGui() {}
+DomainVisualizer::ErrorOr<DomainVisualizer::Renderer::FrameResources>
+RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
+                           VkFramebuffer framebuffer,
+                           const std::array<uint32_t, 2>& output_surface_size) {
+  VULKAN_UTILS_ASSIGN_OR_RETURN(
+      wrapped_resources,
+      wrapped_->RenderFrame(command_buffer, framebuffer, output_surface_size));
 
-  ErrorOr<FrameResources> RenderFrame(
-      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      const std::array<uint32_t, 2>& output_surface_size) override {
-    VULKAN_UTILS_ASSIGN_OR_RETURN(
-        wrapped_resources, wrapped_->RenderFrame(command_buffer, framebuffer,
-                                                 output_surface_size));
-    // We can't use the VULKAN_UTILS_ASSIGN_OR_RETURN here because the error
-    // type is subtly different (`vulkan_utils::Error` versus
-    // `DomainVisualizer::Error`), so the error would actually get stuffed into
-    // the `std::any`.
-    auto maybe_gui_layer_resources =
-        gui_layer_->Render(command_buffer, framebuffer, output_surface_size);
-    if (auto error = std::get_if<0>(&maybe_gui_layer_resources)) {
-      return DomainVisualizer::Error{error->msg};
-    }
+  ImGuiIO& io = ImGui::GetIO();
+  io.DisplaySize = ImVec2(output_surface_size[0], output_surface_size[1]);
+  io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
-    return std::pair{wrapped_resources, std::get<1>(maybe_gui_layer_resources)};
+  if (!created_imgui_fonts_texture_) {
+    created_imgui_fonts_texture_ = true;
+    ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
   }
 
- private:
-  std::unique_ptr<GuiLayer> gui_layer_;
-  std::unique_ptr<Renderer> wrapped_;
-};
-
-}  // namespace
-
-DomainVisualizer::ErrorOr<std::unique_ptr<DomainVisualizerGui::Renderer>>
-DomainVisualizerGui::CreateRenderer(VkInstance instance,
-                                    VkPhysicalDevice physical_device,
-                                    VkDevice device,
-                                    VkFormat output_image_format) {
-  auto error_or_wrapped_renderer = wrapped_->CreateRenderer(
-      instance, physical_device, device, output_image_format);
-  if (auto error = std::get_if<0>(&error_or_wrapped_renderer)) {
-    return *error;
+  ImGui_ImplVulkan_NewFrame();
+  if (*GetImGuiVulkanResult() != VK_SUCCESS) {
+    return vulkan_utils::Error{
+        fmt::format("ImGui encountered a Vulkan error while initializing: {}",
+                    *GetImGuiVulkanResult())};
   }
 
-  auto error_or_gui_layer =
-      GuiLayer::Create(instance, physical_device, device, output_image_format);
-  if (auto error = std::get_if<0>(&error_or_gui_layer)) {
-    return Error{error->msg};
+  ImGui::NewFrame();
+  for (const auto& im_gui_layer : im_gui_layers_) {
+    im_gui_layer();
   }
 
-  return std::make_unique<RendererGui>(
-      std::move(std::get<1>(error_or_gui_layer)),
-      std::move(std::get<1>(error_or_wrapped_renderer)));
+  ImGui::Render();
+  if (*GetImGuiVulkanResult() != VK_SUCCESS) {
+    return vulkan_utils::Error{
+        fmt::format("ImGui encountered a Vulkan error while initializing: {}",
+                    *GetImGuiVulkanResult())};
+  }
+
+  VkRenderPassBeginInfo rpb{};
+  rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  rpb.renderPass = vulkan_constructor_data_.render_pass.value();
+  rpb.framebuffer = framebuffer;
+  rpb.renderArea.extent.width = output_surface_size[0];
+  rpb.renderArea.extent.height = output_surface_size[1];
+  rpb.clearValueCount = 0;
+  rpb.pClearValues = nullptr;
+
+  vkCmdBeginRenderPass(command_buffer, &rpb, VK_SUBPASS_CONTENTS_INLINE);
+
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
+
+  vkCmdEndRenderPass(command_buffer);
+
+  return wrapped_resources;
 }
 
 }  // namespace typescript_cpp_v8
