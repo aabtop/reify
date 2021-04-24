@@ -37,7 +37,41 @@ void DomainVisualizerGui::Preview(const PreparedSymbol& prepared_symbol) {
 }
 
 void DomainVisualizerGui::OnInputEvent(const InputEvent& input_event) {
-  wrapped_->OnInputEvent(input_event);
+  ImGuiIO& io = ImGui::GetIO();
+
+  bool pass_input_onto_wrapped = true;
+
+  if (auto event = std::get_if<MouseMoveEvent>(&input_event)) {
+    io.MousePos = ImVec2(event->x, event->y);
+  } else if (auto event = std::get_if<MouseButtonEvent>(&input_event)) {
+    auto to_imgui_button = [](MouseButton button) -> int {
+      switch (button) {
+        case MouseButton::Left:
+          return 0;
+        case MouseButton::Right:
+          return 1;
+        default:
+          return -1;
+      }
+    };
+    int imgui_button = to_imgui_button(event->button);
+    if (imgui_button != -1) {
+      io.MouseDown[imgui_button] = event->pressed;
+
+      if (io.WantCaptureMouse && event->pressed) {
+        // Only prevent the event from being passed on to the wrapped visualizer
+        // if it was a press event and ImGui really wanted to capture it.
+        pass_input_onto_wrapped = false;
+      }
+    }
+  } else if (auto event = std::get_if<MouseWheelEvent>(&input_event)) {
+    io.MouseWheel += event->angle_in_degrees / 8.0f;
+  } else if (auto event = std::get_if<KeyboardEvent>(&input_event)) {
+  }
+
+  if (pass_input_onto_wrapped) {
+    wrapped_->OnInputEvent(input_event);
+  }
 }
 
 void DomainVisualizerGui::OnViewportResize(const std::array<int, 2>& size) {
@@ -99,8 +133,8 @@ GuiLayer::Render(VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
   ImGui_ImplVulkan_NewFrame();
   ImGui::NewFrame();
   {
-    bool checkbox = false;
-    float f = 0.25f;
+    static bool checkbox = false;
+    static float f = 0.25f;
     static int counter = 5;
 
     ImGui::Begin("Hello, world!");
@@ -149,6 +183,8 @@ vulkan_utils::ErrorOr<std::unique_ptr<GuiLayer>> GuiLayer::Create(
 
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
+  ImGuiIO& io = ImGui::GetIO();
+  io.IniFilename = nullptr;
 
   uint32_t queue_family;
   {
