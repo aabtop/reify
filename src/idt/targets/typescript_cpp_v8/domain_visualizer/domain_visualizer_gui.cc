@@ -65,8 +65,17 @@ void DomainVisualizerGui::OnInputEvent(const InputEvent& input_event) {
       }
     }
   } else if (auto event = std::get_if<MouseWheelEvent>(&input_event)) {
-    io.MouseWheel += event->angle_in_degrees / 8.0f;
+    if (io.WantCaptureMouse) {
+      io.MouseWheel += event->angle_in_degrees / 15.0f;
+      pass_input_onto_wrapped = false;
+    }
   } else if (auto event = std::get_if<KeyboardEvent>(&input_event)) {
+    if (io.WantCaptureKeyboard && event->pressed) {
+      // Only prevent the event from being passed on to the wrapped visualizer
+      // if it was a press event and ImGui really wanted to capture it.
+      pass_input_onto_wrapped = false;
+    }
+    // Not implemented!
   }
 
   if (pass_input_onto_wrapped) {
@@ -154,6 +163,7 @@ GuiLayer::Render(VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
   }
+  { ImGui::ShowDemoWindow(); }
   ImGui::Render();
 
   VkRenderPassBeginInfo rpb{};

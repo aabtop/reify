@@ -39,3 +39,13 @@ cc_library(
         "@vulkan_sdk//:vulkan",
     ],
 )
+
+cc_library(
+    name = "demo",
+    srcs = [
+        "imgui_demo.cpp",
+    ],
+    deps = [
+        ":frontend",
+    ],
+)
