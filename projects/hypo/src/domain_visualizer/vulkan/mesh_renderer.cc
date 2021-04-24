@@ -1,5 +1,6 @@
 #include "mesh_renderer.h"
 
+#include <cstring>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>

@@ -208,7 +208,7 @@ RendererImGui::CreateVulkanConstructorData(VkInstance instance,
                                            VkPhysicalDevice physical_device,
                                            VkDevice device,
                                            VkFormat output_image_format) {
-  uint32_t queue_family;
+  int32_t queue_family = -1;
   {
     uint32_t count;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, NULL);
@@ -222,7 +222,7 @@ RendererImGui::CreateVulkanConstructorData(VkInstance instance,
         break;
       }
     }
-    if (queue_family == count) {
+    if (queue_family == -1) {
       return vulkan_utils::Error{"Could not find a Vulkan graphics queue."};
     }
   }
