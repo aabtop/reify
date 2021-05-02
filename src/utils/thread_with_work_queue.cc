@@ -33,9 +33,7 @@ ThreadWithWorkQueue::~ThreadWithWorkQueue() {
 }
 
 void ThreadWithWorkQueue::Push(const std::function<void()>& task) {
-  if (!task) {
-    return;
-  }
+  assert(task);
 
   std::lock_guard lock(mutex_);
   queue_.push(task);

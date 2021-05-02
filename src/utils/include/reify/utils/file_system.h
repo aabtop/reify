@@ -2,6 +2,7 @@
 #define _SRC_UTILS_INCLUDE_REIFY_UTILS_FILE_SYSTEM_H_
 
 #include <filesystem>
+#include <optional>
 #include <regex>
 
 namespace reify {

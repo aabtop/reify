@@ -34,9 +34,7 @@ class ThreadWithWorkQueue {
 template <typename T>
 reify::utils::Future<T> ThreadWithWorkQueue::Push(
     const std::function<T()>& task) {
-  if (!task) {
-    return;
-  }
+  assert(task);
 
   // Semantically this doesn't really need to be a shared_ptr. It is though
   // because std::function must be copyable, and this lets us achieve that.

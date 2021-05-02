@@ -1,7 +1,10 @@
 #include "reify/utils/file_system.h"
 
 #include <cassert>
+#include <functional>
+#include <numeric>
 #include <random>
+#include <sstream>
 
 namespace reify {
 namespace utils {
