@@ -64,6 +64,10 @@ template <typename T>
 class Promise {
  public:
   Promise();
+  Promise(const Promise&) = delete;
+  Promise& operator=(const Promise&) = delete;
+  Promise(Promise&&) = default;
+  Promise& operator=(Promise&&) = default;
   ~Promise();
 
   void set(T&& x);
@@ -91,6 +95,10 @@ Promise<T>::Promise() {
 
 template <typename T>
 Promise<T>::~Promise() {
+  if (!shared_state_) {
+    return;
+  }
+
   std::lock_guard<std::mutex> lock(shared_state_->mutex);
   if (!shared_state_->result) {
     // Mark the shared state as being cancelled.
