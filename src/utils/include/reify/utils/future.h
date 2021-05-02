@@ -1,3 +1,6 @@
+#ifndef _SRC_UTILS_INCLUDE_REIFY_UTILS_FUTURE_H_
+#define _SRC_UTILS_INCLUDE_REIFY_UTILS_FUTURE_H_
+
 #include <cassert>
 #include <condition_variable>
 #include <functional>
@@ -140,3 +143,5 @@ typename Future<T>::Watch Future<T>::watch(
 
 }  // namespace utils
 }  // namespace reify
+
+#endif  // _SRC_UTILS_INCLUDE_REIFY_UTILS_FUTURE_H_

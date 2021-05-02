@@ -2,8 +2,9 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 cc_library(
     name = "utils",
-    srcs = [],
+    srcs = ["file_system.cc"],
     hdrs = [
+        "include/reify/utils/file_system.h",
         "include/reify/utils/future.h",
     ],
     includes = [
@@ -14,7 +15,10 @@ cc_library(
 
 cc_test(
     name = "utils_test",
-    srcs = ["future_test.cc"],
+    srcs = [
+        "file_system_test.cc",
+        "future_test.cc",
+    ],
     deps = [
         ":utils",
         "@com_google_googletest//:gtest_main",
