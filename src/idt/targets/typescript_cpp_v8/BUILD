@@ -46,6 +46,7 @@ cc_library(
         "core/generic_function_impl.h",
         "core/global_initialization.cc",
         "core/global_initialization.h",
+        "core/project.cc",
         "core/public_include/reify/typescript_cpp_v8.h",
         "core/public_include/reify/typescript_cpp_v8/common_types.h",
         "core/runtime_environment.cc",
@@ -60,6 +61,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/tsc_wrapper:tsc_wrapper_as_header",
+        "//src/utils",
         "@v8",
     ],
 )
@@ -73,19 +75,19 @@ cc_library(
     includes = [
         "command_line_tool/include",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         ":core",
         "//third_party:CLI11",
     ],
-    visibility = ["//visibility:public"],
 )
 
 cc_library(
     name = "ide",
-    deps = [
-        "//src/idt/targets/typescript_cpp_v8/ide:ide",
-    ],
     visibility = ["//visibility:public"],
+    deps = [
+        "//src/idt/targets/typescript_cpp_v8/ide",
+    ],
 )
 
 exports_files(["Main.hs"])

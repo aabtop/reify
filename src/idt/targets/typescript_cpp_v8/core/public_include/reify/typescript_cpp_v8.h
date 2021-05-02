@@ -15,6 +15,7 @@
 #include <v8.h>
 
 #include "reify/typescript_cpp_v8/common_types.h"
+#include "reify/utils/future.h"
 
 namespace reify {
 
@@ -257,6 +258,24 @@ class CompilerEnvironment {
   static bool CreateWorkspaceDirectory(
       const std::filesystem::path& out_dir_path,
       const std::vector<InputModule>& initial_modules);
+
+ private:
+  class Impl;
+  std::unique_ptr<Impl> impl_;
+};
+
+// Wraps a directory on the filesystem, treating it as a project directory
+// within which all recursively discovered TypeScript ".ts" files will be
+// compiled. Can persist and notify its owner whenever the files under the
+// directory are modified, indicating that previously compiled results will be
+// out of date.
+class Project {
+ public:
+  Project(const std::vector<CompilerEnvironment::InputModule>* initial_modules,
+          const std::filesystem::path& project_directory);
+  ~Project();
+
+  reify::utils::Future<std::vector<std::shared_ptr<CompiledModule>>> Compile();
 
  private:
   class Impl;
