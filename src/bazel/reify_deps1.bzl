@@ -71,3 +71,10 @@ def reify_deps1():
         sha256 = "e5d450c8b3ebfb7fa2fbef5528e3e80f9df7a459e5a3ac29a29409a022f4c2d8",
         build_file = "@reify//:third_party/imgui/imgui.BUILD",
     )
+
+    http_archive(
+        name = "platform_window",
+        strip_prefix = "platform_window-4ab3d73d4c49baf3d30225e4bc21be269994c8e8",
+        urls = ["https://github.com/aabtop/platform_window/archive/4ab3d73d4c49baf3d30225e4bc21be269994c8e8.zip"],
+        sha256 = "692c1715cb80a763dd6ba11d15d192679c2ee910b359289b39b9b326db9791a3",
+    )

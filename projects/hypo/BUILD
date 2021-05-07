@@ -93,3 +93,15 @@ qt_cc_binary(
     "//src/domain_visualizer:domain_visualizer_hypo",
   ],
 )
+
+cc_binary(
+  name = "visualizer",
+  srcs = [
+    "src/main_visualizer.cc",
+  ],
+  deps = [
+    "@reify//src/idt/targets/typescript_cpp_v8:visualizer_window",
+    "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:gui",
+    "//src/domain_visualizer:domain_visualizer_hypo",
+  ],
+)

@@ -1,31 +1,49 @@
 cc_library(
-  name = "interface",
-  hdrs = ["include/reify/typescript_cpp_v8/domain_visualizer.h"],
-  includes = [
-    "include",
-  ],
-  deps = [
-    "//src/idt/targets/typescript_cpp_v8:core",
-    "@vulkan_sdk//:vulkan",
-  ],
-  visibility = ["//visibility:public"],
+    name = "interface",
+    hdrs = ["include/reify/typescript_cpp_v8/domain_visualizer.h"],
+    includes = [
+        "include",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/idt/targets/typescript_cpp_v8:core",
+        "@vulkan_sdk//:vulkan",
+    ],
 )
 
 cc_library(
-  name = "gui",
-  srcs = [
-    "domain_visualizer_gui.cc",
-  ],
-  hdrs = ["include/reify/typescript_cpp_v8/domain_visualizer_gui.h"],
-  includes = [
-    "include",
-  ],
-  deps = [
-    ":interface",
-    "@imgui//:frontend",
-    "@imgui//:vulkan_backend",
-    "//src/vulkan_utils",
-    "@imgui//:demo",
-  ],
-  visibility = ["//visibility:public"],
+    name = "gui",
+    srcs = [
+        "domain_visualizer_gui.cc",
+    ],
+    hdrs = ["include/reify/typescript_cpp_v8/domain_visualizer_gui.h"],
+    includes = [
+        "include",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":interface",
+        "//src/vulkan_utils",
+        "@imgui//:demo",
+        "@imgui//:frontend",
+        "@imgui//:vulkan_backend",
+    ],
+)
+
+cc_library(
+    name = "visualizer_window",
+    srcs = [
+        "visualizer_window.cc",
+    ],
+    hdrs = [
+        "include/reify/typescript_cpp_v8/visualizer_window.h",
+    ],
+    includes = [
+        "include",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
+        "@platform_window",
+    ],
 )

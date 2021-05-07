@@ -90,4 +90,12 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "visualizer_window",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/idt/targets/typescript_cpp_v8/domain_visualizer:visualizer_window",
+    ],
+)
+
 exports_files(["Main.hs"])
