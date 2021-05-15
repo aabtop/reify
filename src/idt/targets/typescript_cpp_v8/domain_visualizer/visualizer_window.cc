@@ -214,9 +214,6 @@ int StartVisualizerWindow(const std::string& window_title,
     return 1;
   }
 
-  VkQueue graphics_queue;
-  vkGetDeviceQueue(device, graphics_queue_family_index, 0, &graphics_queue);
-
   PlatformWindow window = PlatformWindowMakeDefaultWindow(window_title.c_str());
   VkSurfaceKHR surface;
   result = PlatformWindowVulkanCreateSurface(vulkan_instance, window, &surface);
@@ -409,8 +406,14 @@ int StartVisualizerWindow(const std::string& window_title,
     return 1;
   }
 
-  PlatformWindowShow(window);
+  vulkan_utils::WithDeleter<VkSemaphore> image_available_semaphore =
+      std::get<1>(vulkan_utils::MakeSemaphore(device));
+  vulkan_utils::WithDeleter<VkSemaphore> render_finished_semaphore =
+      std::get<1>(vulkan_utils::MakeSemaphore(device));
 
+  // Prepare to spin up the main loop.
+  bool window_visible = false;
+  PlatformWindowEnqueueCustomEvent(window, {});
   while (true) {
     PlatformWindowEvent event = PlatformWindowWaitForNextEvent(window);
 
@@ -423,12 +426,121 @@ int StartVisualizerWindow(const std::string& window_title,
       } break;
       case kPlatformWindowEventTypeNoEvent: {
       } break;
+      case kPlatformWindowEventTypeCustom: {
+        uint32_t current_swap_chain_index;
+        vkAcquireNextImageKHR(device, swap_chain, UINT64_MAX,
+                              image_available_semaphore.value(), VK_NULL_HANDLE,
+                              &current_swap_chain_index);
+
+        VkCommandBuffer current_command_buffer =
+            command_buffers[current_swap_chain_index];
+        VkFramebuffer current_framebuffer =
+            swap_chain_framebuffers[current_swap_chain_index];
+
+        VkCommandBufferBeginInfo command_buffer_begin_info{};
+        command_buffer_begin_info.sType =
+            VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        command_buffer_begin_info.flags =
+            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        command_buffer_begin_info.pInheritanceInfo = nullptr;
+
+        result = vkBeginCommandBuffer(current_command_buffer,
+                                      &command_buffer_begin_info);
+        if (result != VK_SUCCESS) {
+          std::cerr << "Error starting new command buffer." << std::endl;
+          return 1;
+        }
+
+        // Draw some cool shit.
+        std::array<VkClearValue, 2> clear_values{};
+        memset(clear_values.data(), 0,
+               sizeof(clear_values[0]) * clear_values.size());
+        clear_values[0].color = {{0.11, 0.11, 0.11, 1}};
+        clear_values[1].depthStencil = {1, 0};
+
+        VkRenderPassBeginInfo rpb{};
+        rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rpb.renderPass = render_pass.value();
+        rpb.framebuffer = current_framebuffer;
+        rpb.renderArea.extent.width = swap_chain_extent.width;
+        rpb.renderArea.extent.height = swap_chain_extent.height;
+        rpb.clearValueCount = clear_values.size();
+        rpb.pClearValues = clear_values.data();
+        vkCmdBeginRenderPass(current_command_buffer, &rpb,
+                             VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdEndRenderPass(current_command_buffer);
+
+        result = vkEndCommandBuffer(current_command_buffer);
+        if (result != VK_SUCCESS) {
+          std::cerr << "Failed to record command buffer!" << std::endl;
+          return 1;
+        }
+
+        VkSubmitInfo submit_info{};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        VkSemaphore wait_semaphores[] = {image_available_semaphore.value()};
+        VkPipelineStageFlags wait_stages[] = {
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        submit_info.waitSemaphoreCount = 1;
+        submit_info.pWaitSemaphores = wait_semaphores;
+        submit_info.pWaitDstStageMask = wait_stages;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &current_command_buffer;
+        VkSemaphore signal_semaphores[] = {render_finished_semaphore.value()};
+        submit_info.signalSemaphoreCount = 1;
+        submit_info.pSignalSemaphores = signal_semaphores;
+
+        VkQueue graphics_queue;
+        vkGetDeviceQueue(device, graphics_queue_family_index, 0,
+                         &graphics_queue);
+        result = vkQueueWaitIdle(graphics_queue);
+        if (result != VK_SUCCESS) {
+          std::cerr << "Error waiting for graphics queue to become idle."
+                    << std::endl;
+          return 1;
+        }
+        result = vkQueueSubmit(graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+        if (result != VK_SUCCESS) {
+          std::cerr << "Error submitting Vulkan command queue." << std::endl;
+          return 1;
+        }
+
+        VkQueue present_queue;
+        vkGetDeviceQueue(device, present_queue_family_index, 0, &present_queue);
+        VkPresentInfoKHR present_info{};
+        present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        present_info.waitSemaphoreCount = 1;
+        present_info.pWaitSemaphores = signal_semaphores;
+        VkSwapchainKHR swap_chains[] = {swap_chain};
+        present_info.swapchainCount = 1;
+        present_info.pSwapchains = swap_chains;
+        present_info.pImageIndices = &current_swap_chain_index;
+        present_info.pResults = nullptr;
+        vkQueuePresentKHR(present_queue, &present_info);
+
+        if (!window_visible) {
+          result = vkQueueWaitIdle(present_queue);
+          if (result != VK_SUCCESS) {
+            std::cerr << "Error waiting for graphics queue to become idle."
+                      << std::endl;
+            return 1;
+          }
+
+          window_visible = true;
+          PlatformWindowShow(window);
+        }
+        PlatformWindowEnqueueCustomEvent(window, {});
+      } break;
     }
 
     if (should_quit) {
       break;
     }
   }
+
+  // Before cleaning up resources, wait until the device is idle.
+  vkDeviceWaitIdle(device);
 
   vkDestroyCommandPool(device, command_pool, nullptr);
   for (auto image_view : swap_chain_image_views) {

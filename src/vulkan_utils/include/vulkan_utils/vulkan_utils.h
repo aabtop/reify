@@ -122,6 +122,8 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
         vertex_input_attribute_description,
     VkShaderModule fragment_shader_module);
 
+ErrorOr<WithDeleter<VkSemaphore>> MakeSemaphore(VkDevice device);
+
 }  // namespace vulkan_utils
 
 #endif  // _REIFY_SRC_VULKAN_UTILS_INCLUDE_VULKAN_UTILS_VULKAN_UTILS_H_

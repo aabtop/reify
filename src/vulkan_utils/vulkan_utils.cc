@@ -509,4 +509,20 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
   });
 }
 
+ErrorOr<WithDeleter<VkSemaphore>> MakeSemaphore(VkDevice device) {
+  VkSemaphoreCreateInfo semaphore_create_info{};
+  semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+  VkSemaphore semaphore;
+  VkResult err =
+      vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphore);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Failed to create Vulkan semaphore: {}", err)};
+  }
+
+  return WithDeleter<VkSemaphore>(
+      std::move(semaphore),
+      [device](VkSemaphore&& x) { vkDestroySemaphore(device, x, nullptr); });
+}
+
 }  // namespace vulkan_utils
