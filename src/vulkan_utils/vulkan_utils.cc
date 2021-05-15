@@ -168,16 +168,6 @@ ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
   return Allocate(device, size, memory_type);
 }
 
-ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
-    VkPhysicalDevice physical_device, VkDevice device, VkBuffer buffer,
-    VkMemoryPropertyFlags memory_property_flags) {
-  VkMemoryRequirements mem_reqs;
-  vkGetBufferMemoryRequirements(device, buffer, &mem_reqs);
-
-  return Allocate(physical_device, device, mem_reqs.size,
-                  mem_reqs.memoryTypeBits, memory_property_flags);
-}
-
 ErrorOr<WithDeleter<VkBuffer>> MakeBuffer(VkDevice device,
                                           VkBufferUsageFlagBits usage_flags,
                                           size_t data_size) {
@@ -200,10 +190,14 @@ ErrorOr<WithDeleter<VkBuffer>> MakeBuffer(VkDevice device,
 ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindBufferMemory(
     VkPhysicalDevice physical_device, VkDevice device, VkBuffer buffer,
     const uint8_t* data, size_t data_size) {
+  VkMemoryRequirements mem_reqs;
+  vkGetBufferMemoryRequirements(device, buffer, &mem_reqs);
+
   VULKAN_UTILS_ASSIGN_OR_RETURN(
-      buffer_mem, Allocate(physical_device, device, buffer,
-                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                               VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
+      buffer_mem,
+      Allocate(physical_device, device, mem_reqs.size, mem_reqs.memoryTypeBits,
+               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
 
   VkResult err = vkBindBufferMemory(device, buffer, buffer_mem.value(), 0);
   if (err != VK_SUCCESS) {
@@ -258,6 +252,78 @@ ErrorOr<WithDeleter<VkPipelineLayout>> MakePipelineLayout(
       std::move(pipeline_layout), [device](VkPipelineLayout&& x) {
         vkDestroyPipelineLayout(device, x, nullptr);
       });
+}
+
+ErrorOr<WithDeleter<VkImage>> MakeImage(VkDevice device, uint32_t width,
+                                        uint32_t height, VkFormat format,
+                                        VkImageTiling tiling,
+                                        VkImageUsageFlags usage) {
+  VkImageCreateInfo image_info{};
+  image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+  image_info.imageType = VK_IMAGE_TYPE_2D;
+  image_info.extent.width = width;
+  image_info.extent.height = height;
+  image_info.extent.depth = 1;
+  image_info.mipLevels = 1;
+  image_info.arrayLayers = 1;
+  image_info.format = format;
+  image_info.tiling = tiling;
+  image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  image_info.usage = usage;
+  image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+  image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  VkImage image;
+  VkResult err = vkCreateImage(device, &image_info, nullptr, &image);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Failed to create image: {}", err)};
+  }
+
+  return WithDeleter<VkImage>(std::move(image), [device](VkImage&& x) {
+    vkDestroyImage(device, x, nullptr);
+  });
+}
+
+ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindImageMemory(
+    VkPhysicalDevice physical_device, VkDevice device, VkImage image,
+    VkMemoryPropertyFlags properties) {
+  VkMemoryRequirements mem_requirements;
+  vkGetImageMemoryRequirements(device, image, &mem_requirements);
+
+  VULKAN_UTILS_ASSIGN_OR_RETURN(
+      image_memory, Allocate(physical_device, device, mem_requirements.size,
+                             mem_requirements.memoryTypeBits, properties));
+
+  VkResult err = vkBindImageMemory(device, image, image_memory.value(), 0);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Error binding image memory: {}", err)};
+  }
+
+  return std::move(image_memory);
+}
+
+ErrorOr<WithDeleter<VkImageView>> MakeImageView(VkDevice device, VkImage image,
+                                                VkFormat format) {
+  VkImageViewCreateInfo view_info{};
+  view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  view_info.image = image;
+  view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  view_info.format = format;
+  view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  view_info.subresourceRange.baseMipLevel = 0;
+  view_info.subresourceRange.levelCount = 1;
+  view_info.subresourceRange.baseArrayLayer = 0;
+  view_info.subresourceRange.layerCount = 1;
+
+  VkImageView image_view;
+  VkResult err = vkCreateImageView(device, &view_info, nullptr, &image_view);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Error creating image view: {}", err)};
+  }
+
+  return WithDeleter<VkImageView>(
+      std::move(image_view),
+      [device](VkImageView&& x) { vkDestroyImageView(device, x, nullptr); });
 }
 
 ErrorOr<WithDeleter<VkRenderPass>> MakeRenderPass(

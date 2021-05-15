@@ -9,6 +9,7 @@
 
 #include "platform_window/platform_window.h"
 #include "platform_window/vulkan.h"
+#include "vulkan_utils/vulkan_utils.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
@@ -232,7 +233,8 @@ int StartVisualizerWindow(const std::string& window_title,
       ChooseSwapSurfaceFormat(swap_chain_support.formats);
   VkPresentModeKHR present_mode =
       ChooseSwapPresentMode(swap_chain_support.present_modes);
-  VkExtent2D extent = ChooseSwapExtent(swap_chain_support.capabilities, window);
+  VkExtent2D swap_chain_extent =
+      ChooseSwapExtent(swap_chain_support.capabilities, window);
 
   // https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain
   // recommends requesting 1 more image than the minimum to avoid waiting
@@ -254,7 +256,7 @@ int StartVisualizerWindow(const std::string& window_title,
   swap_chain_create_info.minImageCount = image_count;
   swap_chain_create_info.imageFormat = surface_format.format;
   swap_chain_create_info.imageColorSpace = surface_format.colorSpace;
-  swap_chain_create_info.imageExtent = extent;
+  swap_chain_create_info.imageExtent = swap_chain_extent;
   swap_chain_create_info.imageArrayLayers = 1;
   swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
   if (graphics_queue_family_index != present_queue_family_index) {
@@ -320,6 +322,93 @@ int StartVisualizerWindow(const std::string& window_title,
     }
   }
 
+  vulkan_utils::WithDeleter<VkRenderPass> render_pass = std::get<
+      1>(vulkan_utils::MakeRenderPass(
+      device,
+      {VkAttachmentDescription{
+          0, surface_format.format, VK_SAMPLE_COUNT_1_BIT,
+          VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+          VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          VK_IMAGE_LAYOUT_UNDEFINED,
+          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,  // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL?
+      }},
+      VkAttachmentDescription{
+          0, VK_FORMAT_D32_SFLOAT, VK_SAMPLE_COUNT_1_BIT,
+          VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          VK_IMAGE_LAYOUT_UNDEFINED,
+          VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,  // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL?
+      }));
+
+  // Create the depth buffer.
+  vulkan_utils::WithDeleter<VkImage> depth_image =
+      std::get<1>(vulkan_utils::MakeImage(
+          device, swap_chain_extent.width, swap_chain_extent.height,
+          VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
+  vulkan_utils::WithDeleter<VkDeviceMemory> depth_image_memory =
+      std::get<1>(vulkan_utils::AllocateAndBindImageMemory(
+          physical_device, device, depth_image.value(),
+          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+  vulkan_utils::WithDeleter<VkImageView> depth_image_view =
+      std::get<1>(vulkan_utils::MakeImageView(device, depth_image.value(),
+                                              VK_FORMAT_D32_SFLOAT));
+
+  // Create the framebuffers.
+  std::vector<VkFramebuffer> swap_chain_framebuffers;
+  swap_chain_framebuffers.resize(swap_chain_image_views.size());
+  for (size_t i = 0; i < swap_chain_image_views.size(); i++) {
+    std::array<VkImageView, 2> attachments = {swap_chain_image_views[i],
+                                              depth_image_view.value()};
+
+    VkFramebufferCreateInfo framebuffer_info{};
+    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebuffer_info.renderPass = render_pass.value();
+    framebuffer_info.attachmentCount =
+        static_cast<uint32_t>(attachments.size());
+    framebuffer_info.pAttachments = attachments.data();
+    framebuffer_info.width = swap_chain_extent.width;
+    framebuffer_info.height = swap_chain_extent.height;
+    framebuffer_info.layers = 1;
+
+    result = vkCreateFramebuffer(device, &framebuffer_info, nullptr,
+                                 &swap_chain_framebuffers[i]);
+    if (result != VK_SUCCESS) {
+      std::cerr << "Failed to create framebuffer!" << std::endl;
+      return 1;
+    }
+  }
+
+  VkCommandPoolCreateInfo command_pool_info{};
+  command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  command_pool_info.queueFamilyIndex = graphics_queue_family_index;
+  command_pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+
+  VkCommandPool command_pool;
+  result =
+      vkCreateCommandPool(device, &command_pool_info, nullptr, &command_pool);
+  if (result != VK_SUCCESS) {
+    std::cerr << "Failed to create command pool." << std::endl;
+    return 1;
+  }
+
+  std::vector<VkCommandBuffer> command_buffers;
+  command_buffers.resize(swap_chain_framebuffers.size());
+  VkCommandBufferAllocateInfo command_buffer_alloc_info{};
+  command_buffer_alloc_info.sType =
+      VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  command_buffer_alloc_info.commandPool = command_pool;
+  command_buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  command_buffer_alloc_info.commandBufferCount =
+      static_cast<uint32_t>(command_buffers.size());
+
+  result = vkAllocateCommandBuffers(device, &command_buffer_alloc_info,
+                                    command_buffers.data());
+  if (result != VK_SUCCESS) {
+    std::cerr << "Failed to allocate command buffers!" << std::endl;
+    return 1;
+  }
+
   PlatformWindowShow(window);
 
   while (true) {
@@ -341,6 +430,7 @@ int StartVisualizerWindow(const std::string& window_title,
     }
   }
 
+  vkDestroyCommandPool(device, command_pool, nullptr);
   for (auto image_view : swap_chain_image_views) {
     vkDestroyImageView(device, image_view, nullptr);
   }

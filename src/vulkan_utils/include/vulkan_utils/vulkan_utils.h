@@ -82,10 +82,6 @@ ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
     VkPhysicalDevice physical_device, VkDevice device, VkDeviceSize size,
     uint32_t type_filter, VkMemoryPropertyFlags memory_property_flags);
 
-ErrorOr<WithDeleter<VkDeviceMemory>> Allocate(
-    VkPhysicalDevice physical_device, VkDevice device, VkBuffer buffer,
-    VkMemoryPropertyFlags memory_property_flags);
-
 ErrorOr<WithDeleter<VkBuffer>> MakeBuffer(VkDevice device,
                                           VkBufferUsageFlagBits usage_flags,
                                           size_t data_size);
@@ -93,6 +89,18 @@ ErrorOr<WithDeleter<VkBuffer>> MakeBuffer(VkDevice device,
 ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindBufferMemory(
     VkPhysicalDevice physical_device, VkDevice device, VkBuffer buffer,
     const uint8_t* data, size_t data_size);
+
+ErrorOr<WithDeleter<VkImage>> MakeImage(VkDevice device, uint32_t width,
+                                        uint32_t height, VkFormat format,
+                                        VkImageTiling tiling,
+                                        VkImageUsageFlags usage);
+
+ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindImageMemory(
+    VkPhysicalDevice physical_device, VkDevice device, VkImage image,
+    VkMemoryPropertyFlags properties);
+
+ErrorOr<WithDeleter<VkImageView>> MakeImageView(VkDevice device, VkImage image,
+                                                VkFormat format);
 
 ErrorOr<WithDeleter<VkPipelineCache>> MakePipelineCache(VkDevice device);
 
