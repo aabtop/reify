@@ -13,3 +13,29 @@ cc_library(
   ],
   visibility = ["//visibility:public"],
 )
+
+cc_library(
+  name = "swap_chain_renderer",
+  srcs = ["swap_chain_renderer.cc"],
+  hdrs = ["include/vulkan_utils/swap_chain_renderer.h"],
+  includes = ["include"],
+  deps = [
+    ":vulkan_utils",
+    "@vulkan_sdk//:vulkan",
+  ],
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "window_renderer",
+  srcs = ["window_renderer.cc"],
+  hdrs = ["include/vulkan_utils/window_renderer.h"],
+  includes = ["include"],
+  deps = [
+    ":swap_chain_renderer",
+    "@vulkan_sdk//:vulkan",
+    "@platform_window",
+    "@platform_window//:vulkan",
+  ],
+  visibility = ["//visibility:public"],
+)

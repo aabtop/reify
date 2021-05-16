@@ -124,6 +124,38 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
 
 ErrorOr<WithDeleter<VkSemaphore>> MakeSemaphore(VkDevice device);
 
+ErrorOr<WithDeleter<VkInstance>> MakeInstance(
+    const VkApplicationInfo& application_info,
+    const std::vector<const char*>& instance_extensions);
+
+ErrorOr<std::vector<VkPhysicalDevice>> EnumeratePhysicalDevices(
+    VkInstance instance);
+
+std::optional<uint32_t> FindFirstQueueFamilyIndex(
+    VkPhysicalDevice physical_device, VkQueueFlagBits queue_family_bits);
+
+ErrorOr<WithDeleter<VkDevice>> MakeDevice(
+    VkPhysicalDevice physical_device, uint32_t device_queue,
+    const std::vector<const char*>& device_extensions);
+
+ErrorOr<WithDeleter<VkSwapchainKHR>> MakeSwapChain(
+    VkDevice device, VkSurfaceKHR surface, uint32_t min_image_count,
+    VkSurfaceFormatKHR surface_format, VkPresentModeKHR present_mode,
+    VkExtent2D swap_chain_extent, VkSurfaceTransformFlagBitsKHR pre_transform,
+    uint32_t graphics_queue_family_index, uint32_t present_queue_family_index);
+
+ErrorOr<WithDeleter<VkFramebuffer>> MakeFramebuffer(
+    VkDevice device, VkRenderPass render_pass,
+    const std::vector<VkImageView>& color_attachments,
+    const std::optional<VkImageView>& maybe_depth_stencil_attachment,
+    VkExtent2D extent);
+
+ErrorOr<WithDeleter<VkCommandPool>> MakeCommandPool(
+    VkDevice device, uint32_t queue_family_index);
+
+ErrorOr<std::vector<VkCommandBuffer>> MakeCommandBuffers(
+    VkDevice device, VkCommandPool command_pool, uint32_t num_command_buffers);
+
 }  // namespace vulkan_utils
 
 #endif  // _REIFY_SRC_VULKAN_UTILS_INCLUDE_VULKAN_UTILS_VULKAN_UTILS_H_

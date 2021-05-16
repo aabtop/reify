@@ -525,4 +525,239 @@ ErrorOr<WithDeleter<VkSemaphore>> MakeSemaphore(VkDevice device) {
       [device](VkSemaphore&& x) { vkDestroySemaphore(device, x, nullptr); });
 }
 
+ErrorOr<WithDeleter<VkInstance>> MakeInstance(
+    const VkApplicationInfo& application_info,
+    const std::vector<const char*>& instance_extensions) {
+  VkInstanceCreateInfo instance_create_info{};
+  instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+  instance_create_info.pApplicationInfo =
+      const_cast<VkApplicationInfo*>(&application_info);
+  instance_create_info.enabledExtensionCount = instance_extensions.size();
+  instance_create_info.ppEnabledExtensionNames =
+      const_cast<const char**>(instance_extensions.data());
+  instance_create_info.enabledLayerCount = 0;
+
+  VkInstance instance;
+  VkResult err = vkCreateInstance(&instance_create_info, nullptr, &instance);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Failed to create Vulkan instance: {}", err)};
+  }
+
+  return WithDeleter<VkInstance>(std::move(instance), [](VkInstance&& x) {
+    vkDestroyInstance(x, nullptr);
+  });
+}
+
+ErrorOr<std::vector<VkPhysicalDevice>> EnumeratePhysicalDevices(
+    VkInstance instance) {
+  VkResult err;
+
+  uint32_t device_count = 0;
+  err = vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Failed to enumerate physical devices: {}", err)};
+  }
+  if (device_count == 0) {
+    return Error{"No Vulkan-compatible physical devices found."};
+  }
+
+  std::vector<VkPhysicalDevice> physical_devices(device_count);
+  err = vkEnumeratePhysicalDevices(instance, &device_count,
+                                   physical_devices.data());
+  if (err != VK_SUCCESS) {
+    return Error{
+        fmt::format("Failed to re-enumerate physical devices: {}", err)};
+  }
+
+  return physical_devices;
+}
+
+namespace {
+std::vector<VkQueueFamilyProperties> GetQueueFamilies(
+    VkPhysicalDevice physical_device) {
+  uint32_t queue_family_count = 0;
+  vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
+                                           nullptr);
+
+  std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+  vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
+                                           queue_families.data());
+  return queue_families;
+}
+
+}  // namespace
+
+std::optional<uint32_t> FindFirstQueueFamilyIndex(
+    VkPhysicalDevice physical_device, VkQueueFlagBits queue_family_bits) {
+  std::vector<VkQueueFamilyProperties> queue_families =
+      GetQueueFamilies(physical_device);
+
+  for (size_t i = 0; i < queue_families.size(); ++i) {
+    if (queue_families[i].queueFlags & queue_family_bits) {
+      return static_cast<uint32_t>(i);
+    }
+  }
+
+  return std::nullopt;
+}
+
+ErrorOr<WithDeleter<VkDevice>> MakeDevice(
+    VkPhysicalDevice physical_device, uint32_t device_queue,
+    const std::vector<const char*>& device_extensions) {
+  VkDeviceQueueCreateInfo queue_create_info{};
+  queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+  queue_create_info.queueFamilyIndex = device_queue;
+  queue_create_info.queueCount = 1;
+  float queue_priority = 1.0f;
+  queue_create_info.pQueuePriorities = &queue_priority;
+
+  VkPhysicalDeviceFeatures device_features{};
+  VkDeviceCreateInfo device_create_info{};
+  device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  device_create_info.pQueueCreateInfos = &queue_create_info;
+  device_create_info.queueCreateInfoCount = 1;
+  device_create_info.pEnabledFeatures = &device_features;
+  device_create_info.enabledExtensionCount =
+      static_cast<uint32_t>(device_extensions.size());
+  device_create_info.ppEnabledExtensionNames = device_extensions.data();
+  device_create_info.enabledLayerCount = 0;
+
+  VkDevice device;
+  VkResult err =
+      vkCreateDevice(physical_device, &device_create_info, nullptr, &device);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Failed to create logical device: {}", err)};
+  }
+
+  return WithDeleter<VkDevice>(
+      std::move(device), [](VkDevice&& x) { vkDestroyDevice(x, nullptr); });
+}
+
+ErrorOr<WithDeleter<VkSwapchainKHR>> MakeSwapChain(
+    VkDevice device, VkSurfaceKHR surface, uint32_t min_image_count,
+    VkSurfaceFormatKHR surface_format, VkPresentModeKHR present_mode,
+    VkExtent2D swap_chain_extent, VkSurfaceTransformFlagBitsKHR pre_transform,
+    uint32_t graphics_queue_family_index, uint32_t present_queue_family_index) {
+  VkSwapchainCreateInfoKHR swap_chain_create_info{};
+  swap_chain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+  swap_chain_create_info.surface = surface;
+  swap_chain_create_info.minImageCount = min_image_count;
+  swap_chain_create_info.imageFormat = surface_format.format;
+  swap_chain_create_info.imageColorSpace = surface_format.colorSpace;
+  swap_chain_create_info.imageExtent = swap_chain_extent;
+  swap_chain_create_info.imageArrayLayers = 1;
+  swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  if (graphics_queue_family_index != present_queue_family_index) {
+    // According to
+    // https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Window_surface,
+    // this isn't the most efficient setup in the case that the graphics queue
+    // is separate from the present queue, however it's also apparently an
+    // uncommon situation.
+    swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    std::vector<uint32_t> queue_family_indices = {graphics_queue_family_index,
+                                                  present_queue_family_index};
+    swap_chain_create_info.queueFamilyIndexCount = queue_family_indices.size();
+    swap_chain_create_info.pQueueFamilyIndices = queue_family_indices.data();
+  } else {
+    swap_chain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    swap_chain_create_info.queueFamilyIndexCount = 0;      // Optional
+    swap_chain_create_info.pQueueFamilyIndices = nullptr;  // Optional
+  }
+  swap_chain_create_info.preTransform = pre_transform;
+  swap_chain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  swap_chain_create_info.presentMode = present_mode;
+  swap_chain_create_info.clipped = VK_TRUE;
+  swap_chain_create_info.oldSwapchain =
+      VK_NULL_HANDLE;  // TODO: Handle resetting swap chains.
+
+  VkSwapchainKHR swap_chain;
+  VkResult err = vkCreateSwapchainKHR(device, &swap_chain_create_info, nullptr,
+                                      &swap_chain);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Error creating Vulkan swap chain: {}", err)};
+  }
+
+  return WithDeleter<VkSwapchainKHR>(
+      std::move(swap_chain), [device](VkSwapchainKHR&& x) {
+        vkDestroySwapchainKHR(device, x, nullptr);
+      });
+}
+
+ErrorOr<WithDeleter<VkFramebuffer>> MakeFramebuffer(
+    VkDevice device, VkRenderPass render_pass,
+    const std::vector<VkImageView>& color_attachments,
+    const std::optional<VkImageView>& maybe_depth_stencil_attachment,
+    VkExtent2D extent) {
+  std::vector<VkImageView> attachments;
+  attachments.reserve(color_attachments.size() +
+                      (maybe_depth_stencil_attachment ? 1 : 0));
+  for (const auto& color_attachment : color_attachments) {
+    attachments.push_back(color_attachment);
+  }
+  if (maybe_depth_stencil_attachment) {
+    attachments.push_back(*maybe_depth_stencil_attachment);
+  }
+
+  VkFramebufferCreateInfo framebuffer_info{};
+  framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+  framebuffer_info.renderPass = render_pass;
+  framebuffer_info.attachmentCount = static_cast<uint32_t>(attachments.size());
+  framebuffer_info.pAttachments = attachments.data();
+  framebuffer_info.width = extent.width;
+  framebuffer_info.height = extent.height;
+  framebuffer_info.layers = 1;
+
+  VkFramebuffer framebuffer;
+  VkResult err =
+      vkCreateFramebuffer(device, &framebuffer_info, nullptr, &framebuffer);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Failed to create Vulkan framebuffer: {}", err)};
+  }
+
+  return WithDeleter<VkFramebuffer>(std::move(framebuffer),
+                                    [device](VkFramebuffer&& x) {
+                                      vkDestroyFramebuffer(device, x, nullptr);
+                                    });
+}
+
+ErrorOr<WithDeleter<VkCommandPool>> MakeCommandPool(
+    VkDevice device, uint32_t queue_family_index) {
+  VkCommandPoolCreateInfo command_pool_info{};
+  command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  command_pool_info.queueFamilyIndex = queue_family_index;
+  command_pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+
+  VkCommandPool command_pool;
+  VkResult err =
+      vkCreateCommandPool(device, &command_pool_info, nullptr, &command_pool);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Failed to create command pool: {}", err)};
+  }
+
+  return WithDeleter<VkCommandPool>(std::move(command_pool),
+                                    [device](VkCommandPool&& x) {
+                                      vkDestroyCommandPool(device, x, nullptr);
+                                    });
+}
+
+ErrorOr<std::vector<VkCommandBuffer>> MakeCommandBuffers(
+    VkDevice device, VkCommandPool command_pool, uint32_t num_command_buffers) {
+  std::vector<VkCommandBuffer> command_buffers;
+  command_buffers.resize(num_command_buffers);
+  VkCommandBufferAllocateInfo command_buffer_alloc_info{};
+  command_buffer_alloc_info.sType =
+      VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  command_buffer_alloc_info.commandPool = command_pool;
+  command_buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  command_buffer_alloc_info.commandBufferCount = num_command_buffers;
+
+  VkResult err = vkAllocateCommandBuffers(device, &command_buffer_alloc_info,
+                                          command_buffers.data());
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Failed to allocate command buffers: {}", err)};
+  }
+
+  return command_buffers;
+}
+
 }  // namespace vulkan_utils
