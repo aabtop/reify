@@ -96,3 +96,27 @@ TEST(FutureTest, WatchAfterSetTest) {
   ASSERT_TRUE(std::holds_alternative<int>(*watch_result));
   EXPECT_EQ(5, std::get<1>(*watch_result));
 }
+
+TEST(FutureTest, MovingWatchTest) {
+  reify::utils::Promise<int> promise;
+  reify::utils::Future<int> future = promise.future();
+
+  std::optional<reify::utils::Future<int>::CancelledOrResult> watch_result;
+  // By assigning to an optional, we force a move constructor call.
+  std::optional<reify::utils::Future<int>::Watch> watch = future.watch(
+      [&watch_result](
+          const reify::utils::Future<int>::CancelledOrResult& maybe_result) {
+        watch_result = maybe_result;
+      });
+
+  promise.set(5);
+
+  reify::utils::Future<int>::CancelledOrResult wait_result =
+      future.wait_and_get_results();
+
+  ASSERT_TRUE(std::holds_alternative<int>(wait_result));
+  EXPECT_EQ(5, std::get<1>(wait_result));
+  ASSERT_TRUE(watch_result);
+  ASSERT_TRUE(std::holds_alternative<int>(*watch_result));
+  EXPECT_EQ(5, std::get<1>(*watch_result));
+}

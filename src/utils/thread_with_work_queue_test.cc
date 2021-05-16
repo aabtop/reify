@@ -9,9 +9,9 @@ TEST(ThreadWithWorkQueueTest, SimpleTest) {
 
   {
     reify::utils::ThreadWithWorkQueue thread_with_work_queue;
-    thread_with_work_queue.Push([&] { value = 5; });
-    thread_with_work_queue.Push([&] { intermediate_value = value; });
-    thread_with_work_queue.Push([&] { value = 8; });
+    thread_with_work_queue.Enqueue([&] { value = 5; });
+    thread_with_work_queue.Enqueue([&] { intermediate_value = value; });
+    thread_with_work_queue.Enqueue([&] { value = 8; });
   }
 
   EXPECT_EQ(8, value);
@@ -22,11 +22,11 @@ TEST(ThreadWithWorkQueueTest, FutureReturnValueTest) {
   int value = 0;
 
   reify::utils::ThreadWithWorkQueue thread_with_work_queue;
-  thread_with_work_queue.Push([&] { value = 5; });
+  thread_with_work_queue.Enqueue([&] { value = 5; });
   reify::utils::Future<int> a =
-      thread_with_work_queue.Push<int>([&] { return value; });
+      thread_with_work_queue.Enqueue<int>([&] { return value; });
   reify::utils::Future<int> b =
-      thread_with_work_queue.Push<int>([&] { return ++value; });
+      thread_with_work_queue.Enqueue<int>([&] { return ++value; });
 
   ASSERT_TRUE(std::holds_alternative<int>(a.wait_and_get_results()));
   EXPECT_EQ(5, std::get<int>(a.wait_and_get_results()));

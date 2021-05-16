@@ -25,7 +25,7 @@ class Future {
   struct SharedState {
     std::mutex mutex;
     std::condition_variable ready_condition;
-    std::unordered_set<Watch*> watches;
+    std::unordered_set<std::function<void(const CancelledOrResult&)>*> watches;
 
     std::optional<CancelledOrResult> result;
   };
@@ -33,6 +33,10 @@ class Future {
  public:
   class Watch {
    public:
+    Watch(const Watch&) = delete;
+    Watch& operator=(const Watch&) = delete;
+    Watch(Watch&&) = default;
+    Watch& operator=(Watch&&) = default;
     ~Watch();
 
    private:
@@ -44,7 +48,7 @@ class Future {
           const std::function<void(const CancelledOrResult&)>& on_ready);
 
     std::shared_ptr<SharedState> shared_state_;
-    std::function<void(const CancelledOrResult&)> on_ready_;
+    std::unique_ptr<std::function<void(const CancelledOrResult&)>> on_ready_;
   };
 
   Watch watch(const std::function<void(const CancelledOrResult&)>& on_ready);
@@ -66,8 +70,8 @@ class Promise {
   Promise();
   Promise(const Promise&) = delete;
   Promise& operator=(const Promise&) = delete;
-  Promise(Promise&&) = default;
-  Promise& operator=(Promise&&) = default;
+  Promise(Promise&&) = delete;
+  Promise& operator=(Promise&&) = delete;
   ~Promise();
 
   void set(T&& x);
@@ -114,7 +118,7 @@ void Promise<T>::set(T&& x) {
   shared_state_->result.emplace(std::move(x));
   shared_state_->ready_condition.notify_all();
   for (auto watch : shared_state_->watches) {
-    watch->on_ready_(*shared_state_->result);
+    (*watch)(*shared_state_->result);
   }
   shared_state_->watches.clear();
 }
@@ -126,27 +130,31 @@ Future<T> Promise<T>::future() {
 
 template <typename T>
 Future<T>::Watch::~Watch() {
-  std::lock_guard<std::mutex> lock(shared_state_->mutex);
-  shared_state_->watches.erase(this);
+  if (shared_state_) {
+    std::lock_guard<std::mutex> lock(shared_state_->mutex);
+    shared_state_->watches.erase(on_ready_.get());
+  }
 }
 
 template <typename T>
 Future<T>::Watch::Watch(
     const std::shared_ptr<SharedState>& shared_state,
     const std::function<void(const CancelledOrResult&)>& on_ready)
-    : shared_state_(shared_state), on_ready_(on_ready) {
+    : shared_state_(shared_state),
+      on_ready_(new std::function<void(const CancelledOrResult&)>(on_ready)) {
   std::lock_guard<std::mutex> lock(shared_state_->mutex);
   if (shared_state_->result) {
     on_ready(*shared_state_->result);
   } else {
-    shared_state_->watches.insert(this);
+    shared_state_->watches.insert(on_ready_.get());
   }
 }
 
 template <typename T>
 typename Future<T>::Watch Future<T>::watch(
     const std::function<void(const CancelledOrResult&)>& on_ready) {
-  return Watch(shared_state_, on_ready);
+  auto x = Watch(shared_state_, on_ready);
+  return x;
 }
 
 }  // namespace utils

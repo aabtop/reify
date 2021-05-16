@@ -18,10 +18,10 @@ class ThreadWithWorkQueue {
   ThreadWithWorkQueue();
   ~ThreadWithWorkQueue();
 
-  void Push(const std::function<void()>& task);
+  void Enqueue(const std::function<void()>& task);
 
   template <typename T>
-  reify::utils::Future<T> Push(const std::function<T()>& task);
+  reify::utils::Future<T> Enqueue(const std::function<T()>& task);
 
  private:
   std::queue<std::function<void()>> queue_;
@@ -32,7 +32,7 @@ class ThreadWithWorkQueue {
 };
 
 template <typename T>
-reify::utils::Future<T> ThreadWithWorkQueue::Push(
+reify::utils::Future<T> ThreadWithWorkQueue::Enqueue(
     const std::function<T()>& task) {
   assert(task);
 
@@ -41,7 +41,7 @@ reify::utils::Future<T> ThreadWithWorkQueue::Push(
   auto promise = std::make_shared<reify::utils::Promise<T>>();
   auto future = promise->future();
 
-  Push([task, promise]() mutable { promise->set(task()); });
+  Enqueue([task, promise]() mutable { promise->set(task()); });
 
   return future;
 }

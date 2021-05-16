@@ -32,7 +32,7 @@ ThreadWithWorkQueue::~ThreadWithWorkQueue() {
   thread_.join();
 }
 
-void ThreadWithWorkQueue::Push(const std::function<void()>& task) {
+void ThreadWithWorkQueue::Enqueue(const std::function<void()>& task) {
   assert(task);
 
   std::lock_guard lock(mutex_);

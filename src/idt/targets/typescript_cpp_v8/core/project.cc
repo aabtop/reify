@@ -27,14 +27,14 @@ Project::Impl::Impl(
     const std::filesystem::path& project_directory)
     : absolute_project_directory_(std::filesystem::absolute(project_directory)),
       virtual_filesystem_(absolute_project_directory_) {
-  thread_.Push([this, initial_modules] {
+  thread_.Enqueue([this, initial_modules] {
     compile_env_.emplace(&virtual_filesystem_, initial_modules);
   });
 }
 
 reify::utils::Future<std::vector<std::shared_ptr<CompiledModule>>>
 Project::Impl::Compile() {
-  return thread_.Push<std::vector<std::shared_ptr<CompiledModule>>>([this] {
+  return thread_.Enqueue<std::vector<std::shared_ptr<CompiledModule>>>([this] {
     std::vector<std::filesystem::path> files_to_compile =
         reify::utils::FindMatchingFilenamesRecursively(
             absolute_project_directory_, std::regex("\\.ts$"));
