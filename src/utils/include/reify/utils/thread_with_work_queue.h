@@ -27,6 +27,7 @@ class ThreadWithWorkQueue {
   std::queue<std::function<void()>> queue_;
   std::mutex mutex_;
   std::condition_variable queue_not_empty_;
+  std::condition_variable queue_empty_;
 
   std::thread thread_;
 };

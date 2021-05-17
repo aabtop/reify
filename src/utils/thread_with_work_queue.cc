@@ -13,6 +13,9 @@ ThreadWithWorkQueue::ThreadWithWorkQueue()
             queue_not_empty_.wait(lock, [this] { return !queue_.empty(); });
             auto next_task = queue_.front();
             queue_.pop();
+            if (queue_.empty()) {
+              queue_empty_.notify_all();
+            }
             return next_task;
           }();
 
@@ -28,7 +31,8 @@ ThreadWithWorkQueue::ThreadWithWorkQueue()
 
 ThreadWithWorkQueue::~ThreadWithWorkQueue() {
   {
-    std::lock_guard lock(mutex_);
+    std::unique_lock lock(mutex_);
+    queue_empty_.wait(lock, [this] { return queue_.empty(); });
     queue_.push(std::function<void()>());
     queue_not_empty_.notify_all();
   }
