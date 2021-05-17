@@ -6,10 +6,15 @@ namespace utils {
 ThreadWithWorkQueue::ThreadWithWorkQueue()
     : thread_([this] {
         // Setup the thread run loop.
-        std::unique_lock lock(mutex_);
+
         while (true) {
-          queue_not_empty_.wait(lock, [this] { return !queue_.empty(); });
-          const auto& next_task = queue_.front();
+          auto next_task = [this]() {
+            std::unique_lock lock(mutex_);
+            queue_not_empty_.wait(lock, [this] { return !queue_.empty(); });
+            auto next_task = queue_.front();
+            queue_.pop();
+            return next_task;
+          }();
 
           if (!next_task) {
             // This is the exit signal.
@@ -18,8 +23,6 @@ ThreadWithWorkQueue::ThreadWithWorkQueue()
 
           // Execute the task.
           next_task();
-
-          queue_.pop();
         }
       }) {}
 
