@@ -50,15 +50,29 @@ int StartVisualizerWindow(const std::string& window_title,
   }
   vulkan_utils::WindowRenderer& renderer = std::get<1>(error_or_renderer);
 
+  auto error_or_domain_visualizer_renderer = domain_visualizer->CreateRenderer(
+      renderer.instance.value(), renderer.swap_chain_renderer.physical_device(),
+      renderer.swap_chain_renderer.device(),
+      renderer.swap_chain_renderer.surface_format().format);
+  if (auto error = std::get_if<0>(&error_or_domain_visualizer_renderer)) {
+    std::cerr << "Error creating domain visualizer renderer: " << error->msg
+              << std::endl;
+    return 1;
+  }
+  std::unique_ptr<DomainVisualizer::Renderer>& domain_visualizer_renderer =
+      std::get<1>(error_or_domain_visualizer_renderer);
+
   // Setup a separate dedicated thread to do the rendering.
   reify::utils::ThreadWithWorkQueue render_repeater_thread;
   reify::utils::ThreadWithWorkQueueLooper<vulkan_utils::Error> render_looper(
       &render_repeater_thread,
-      [&renderer]() {
+      [&renderer, &domain_visualizer_renderer]() {
         return renderer.swap_chain_renderer.Render(
-            [](VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-               const std::array<uint32_t, 2>& output_surface_size) {
-              return vulkan_utils::FrameResources();
+            [&domain_visualizer_renderer](
+                VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+                const std::array<uint32_t, 2>& output_surface_size) {
+              return domain_visualizer_renderer->RenderFrame(
+                  command_buffer, framebuffer, output_surface_size);
             });
       },
       [&quit_flag](const vulkan_utils::Error& error) {

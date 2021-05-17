@@ -279,12 +279,13 @@ ErrorOr<SwapChainRenderer> SwapChainRenderer::Create(VkInstance instance,
 
   return SwapChainRenderer(
       instance, surface, physical_device, *maybe_graphics_queue_family_index,
-      *maybe_present_queue_family_index, std::move(device), swap_chain_extent,
-      std::move(swap_chain), std::move(swap_chain_image_views),
-      std::move(render_pass), std::move(depth_image),
-      std::move(depth_image_memory), std::move(depth_image_view),
-      std::move(swap_chain_framebuffers), std::move(command_pool),
-      command_buffers, std::move(image_available_semaphore),
+      *maybe_present_queue_family_index, std::move(device), surface_format,
+      swap_chain_extent, std::move(swap_chain),
+      std::move(swap_chain_image_views), std::move(render_pass),
+      std::move(depth_image), std::move(depth_image_memory),
+      std::move(depth_image_view), std::move(swap_chain_framebuffers),
+      std::move(command_pool), command_buffers,
+      std::move(image_available_semaphore),
       std::move(render_finished_semaphore));
 }
 
@@ -318,27 +319,10 @@ std::optional<Error> SwapChainRenderer::Render(
     return Error{fmt::format("Error starting new command buffer: {}", err)};
   }
 
-  // Draw some cool shit.
-  std::array<VkClearValue, 2> clear_values{};
-  memset(clear_values.data(), 0, sizeof(clear_values[0]) * clear_values.size());
-  clear_values[0].color = {{0.11, 0.11, 0.11, 1}};
-  clear_values[1].depthStencil = {1, 0};
-
-  auto frame_resources =
+  VULKAN_UTILS_ASSIGN_OR_RETURN(
+      frame_resources,
       render_function(current_command_buffer, current_framebuffer,
-                      {swap_chain_extent_.width, swap_chain_extent_.height});
-
-  VkRenderPassBeginInfo rpb{};
-  rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  rpb.renderPass = render_pass_.value();
-  rpb.framebuffer = current_framebuffer;
-  rpb.renderArea.extent.width = swap_chain_extent_.width;
-  rpb.renderArea.extent.height = swap_chain_extent_.height;
-  rpb.clearValueCount = clear_values.size();
-  rpb.pClearValues = clear_values.data();
-  vkCmdBeginRenderPass(current_command_buffer, &rpb,
-                       VK_SUBPASS_CONTENTS_INLINE);
-  vkCmdEndRenderPass(current_command_buffer);
+                      {swap_chain_extent_.width, swap_chain_extent_.height}));
 
   err = vkEndCommandBuffer(current_command_buffer);
   if (err != VK_SUCCESS) {
@@ -368,6 +352,11 @@ std::optional<Error> SwapChainRenderer::Render(
     return Error{fmt::format(
         "Error waiting for graphics queue to become idle: {}", err)};
   }
+
+  // Reset the previous frame resources and replace them with the newly created
+  // ones. This is where GPU resources from previous frames are reclaimed.
+  frame_resources_[current_swap_chain_index] = frame_resources;
+
   err = vkQueueSubmit(graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
   if (err != VK_SUCCESS) {
     return Error{fmt::format("Error submitting Vulkan command queue: {}", err)};

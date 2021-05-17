@@ -14,6 +14,10 @@ class SwapChainRenderer {
 
   ~SwapChainRenderer();
 
+  const VkPhysicalDevice physical_device() const { return physical_device_; }
+  const VkDevice device() const { return device_.value(); }
+  const VkSurfaceFormatKHR& surface_format() const { return surface_format_; }
+
   std::optional<Error> Render(
       const std::function<ErrorOr<FrameResources>(
           VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
@@ -25,6 +29,7 @@ class SwapChainRenderer {
       VkInstance& instance, VkSurfaceKHR& surface,
       VkPhysicalDevice& physical_device, uint32_t graphics_queue_family_index,
       uint32_t present_queue_family_index, WithDeleter<VkDevice>&& device,
+      const VkSurfaceFormatKHR& surface_format,
       const VkExtent2D& swap_chain_extent,
       WithDeleter<VkSwapchainKHR>&& swap_chain,
       std::vector<WithDeleter<VkImageView>>&& swap_chain_image_views,
@@ -43,6 +48,7 @@ class SwapChainRenderer {
         graphics_queue_family_index_(graphics_queue_family_index),
         present_queue_family_index_(present_queue_family_index),
         device_(std::move(device)),
+        surface_format_(surface_format),
         swap_chain_extent_(swap_chain_extent),
         swap_chain_(std::move(swap_chain)),
         swap_chain_image_views_(std::move(swap_chain_image_views)),
@@ -54,7 +60,9 @@ class SwapChainRenderer {
         command_pool_(std::move(command_pool)),
         command_buffers_(command_buffers),
         image_available_semaphore_(std::move(image_available_semaphore)),
-        render_finished_semaphore_(std::move(render_finished_semaphore)) {}
+        render_finished_semaphore_(std::move(render_finished_semaphore)) {
+    frame_resources_.resize(command_buffers_.size());
+  }
 
   VkInstance instance_;
   VkSurfaceKHR surface_;
@@ -62,6 +70,7 @@ class SwapChainRenderer {
   uint32_t graphics_queue_family_index_;
   uint32_t present_queue_family_index_;
   WithDeleter<VkDevice> device_;
+  VkSurfaceFormatKHR surface_format_;
   VkExtent2D swap_chain_extent_;
   WithDeleter<VkSwapchainKHR> swap_chain_;
   std::vector<WithDeleter<VkImageView>> swap_chain_image_views_;
@@ -74,6 +83,8 @@ class SwapChainRenderer {
   std::vector<VkCommandBuffer> command_buffers_;
   WithDeleter<VkSemaphore> image_available_semaphore_;
   WithDeleter<VkSemaphore> render_finished_semaphore_;
+
+  std::vector<std::optional<FrameResources>> frame_resources_;
 
   bool has_rendered_ = false;
 };
