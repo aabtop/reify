@@ -45,8 +45,10 @@ cc_library(
     deps = [
         "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
         "@platform_window",
+        "@platform_window//:cpp",
         "@platform_window//:vulkan",
         "@reify//src/vulkan_utils",
         "@reify//src/vulkan_utils:window_renderer",
+        "@reify//src/utils",
     ],
 )

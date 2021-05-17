@@ -2,10 +2,14 @@
 
 #include <vulkan/vulkan.h>
 
+#include <atomic>
 #include <iostream>
 #include <optional>
 
-#include "platform_window/platform_window.h"
+#include "platform_window/platform_window_cpp.h"
+#include "reify/utils/thread_safe_circular_queue.h"
+#include "reify/utils/thread_with_work_queue.h"
+#include "reify/utils/thread_with_work_queue_looper.h"
 #include "vulkan_utils/swap_chain_renderer.h"
 #include "vulkan_utils/vulkan_utils.h"
 #include "vulkan_utils/window_renderer.h"
@@ -15,56 +19,57 @@ namespace typescript_cpp_v8 {
 
 int StartVisualizerWindow(const std::string& window_title,
                           std::unique_ptr<DomainVisualizer> domain_visualizer) {
-  vulkan_utils::WithDeleter<PlatformWindow> window(
-      PlatformWindowMakeDefaultWindow(window_title.c_str()),
-      [](PlatformWindow&& x) { PlatformWindowDestroyWindow(x); });
+  // Setup a quit_flag so that subsequent processes can signal back to us that
+  // they'd like to quit (e.g. if someone presses the close button on the
+  // window.)
+  reify::utils::ThreadSafeCircularQueue<void, 1> quit_flag;
 
-  vulkan_utils::ErrorOr<vulkan_utils::WindowRenderer> error_or_renderer =
-      vulkan_utils::MakeWindowRenderer(window_title, window.value());
+  // Create the window (its message loop will start running in a separate
+  // dedicated thread.)
+  auto maybe_window = platform_window::Window::Create(
+      window_title, [&quit_flag](PlatformWindowEvent event) {
+        switch (event.type) {
+          case kPlatformWindowEventTypeQuitRequest: {
+            quit_flag.enqueue();
+          } break;
+        }
+      });
+  if (!maybe_window) {
+    std::cerr << "Error creating window: " << std::endl;
+    return 1;
+  }
+  platform_window::Window& window = *maybe_window;
+
+  // Create the Vulkan renderer.
+  auto error_or_renderer = vulkan_utils::MakeWindowRenderer(
+      window_title, window.GetPlatformWindow());
   if (auto error = std::get_if<0>(&error_or_renderer)) {
-    std::cerr << "Error creating Vulkan renderer: " << error->msg << std::endl;
+    std::cerr << "Error creating window Vulkan renderer: " << error->msg
+              << std::endl;
     return 1;
   }
   vulkan_utils::WindowRenderer& renderer = std::get<1>(error_or_renderer);
 
-  // Prepare to spin up the main loop.
-  bool window_visible = false;
-  PlatformWindowEnqueueCustomEvent(window.value(), {});
-  while (true) {
-    PlatformWindowEvent event = PlatformWindowWaitForNextEvent(window.value());
-
-    bool should_quit = false;
-    switch (event.type) {
-      case kPlatformWindowEventTypeQuitRequest: {
-        should_quit = true;
-      } break;
-      case kPlatformWindowEventTypeResized: {
-      } break;
-      case kPlatformWindowEventTypeNoEvent: {
-      } break;
-      case kPlatformWindowEventTypeCustom: {
-        // There's only one custom event currently, which is assumed to mean
-        // that it is time to render a frame.
-        auto maybe_error = renderer.swap_chain_renderer.Render(
+  // Setup a separate dedicated thread to do the rendering.
+  reify::utils::ThreadWithWorkQueue render_repeater_thread;
+  reify::utils::ThreadWithWorkQueueLooper<vulkan_utils::Error> render_looper(
+      &render_repeater_thread,
+      [&renderer]() {
+        return renderer.swap_chain_renderer.Render(
             [](VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
                const std::array<uint32_t, 2>& output_surface_size) {
               return vulkan_utils::FrameResources();
             });
-        if (maybe_error) {
-          std::cerr << "Error while rendering a frame: " << maybe_error->msg
-                    << std::endl;
-          return 1;
-        }
+      },
+      [&quit_flag](const vulkan_utils::Error& error) {
+        std::cerr << "Error rendering frame: " << error.msg << std::endl;
+        quit_flag.enqueue();
+      });
 
-        PlatformWindowShow(window.value());
-        PlatformWindowEnqueueCustomEvent(window.value(), {});
-      } break;
-    }
+  window.Show();
 
-    if (should_quit) {
-      break;
-    }
-  }
+  // Wait for a reason to stop and quit.
+  quit_flag.dequeue();
 
   return 0;
 }

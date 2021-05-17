@@ -7,9 +7,12 @@ cc_library(
         "thread_with_work_queue.cc",
     ],
     hdrs = [
+        "include/reify/utils/circular_queue.h",
         "include/reify/utils/file_system.h",
         "include/reify/utils/future.h",
+        "include/reify/utils/thread_safe_circular_queue.h",
         "include/reify/utils/thread_with_work_queue.h",
+        "include/reify/utils/thread_with_work_queue_looper.h",
     ],
     includes = [
         "include",
