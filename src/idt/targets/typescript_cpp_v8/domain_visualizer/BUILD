@@ -48,5 +48,6 @@ cc_library(
         "//src/window:platform_window_wrapper",
         "//src/utils",
         "//third_party:CLI11",
+        "@fmtlib",
     ],
 )
