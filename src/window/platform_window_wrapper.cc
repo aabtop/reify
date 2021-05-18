@@ -1,5 +1,6 @@
 #include "reify/window/platform_window_wrapper.h"
 
+#include <fmt/format.h>
 #include <vulkan/vulkan.h>
 
 #include <atomic>
@@ -18,12 +19,12 @@
 namespace reify {
 namespace window {
 
-int RunPlatformWindowWrapper(const std::string& window_title,
-                             std::unique_ptr<Window> wrapped_window) {
+utils::MaybeError RunPlatformWindowWrapper(
+    const std::string& window_title, std::unique_ptr<Window> wrapped_window) {
   // Setup a quit_flag so that subsequent processes can signal back to us that
   // they'd like to quit (e.g. if someone presses the close button on the
   // window.)
-  reify::utils::ThreadSafeCircularQueue<void, 1> quit_flag;
+  reify::utils::ThreadSafeCircularQueue<utils::MaybeError, 1> quit_flag;
 
   // We'll be running all domain visualizer commands on this thread.
   reify::utils::ThreadWithWorkQueue wrapped_window_thread;
@@ -46,7 +47,7 @@ int RunPlatformWindowWrapper(const std::string& window_title,
         // Map from PlatformWindow events into Window events.
         switch (event.type) {
           case kPlatformWindowEventTypeQuitRequest: {
-            quit_flag.enqueue();
+            quit_flag.enqueue(std::nullopt);
           } break;
           case kPlatformWindowEventTypeResized: {
             set_wrapped_window_size(event.data.resized.width,
@@ -83,8 +84,7 @@ int RunPlatformWindowWrapper(const std::string& window_title,
         }
       });
   if (!maybe_window) {
-    std::cerr << "Error creating window: " << std::endl;
-    return 1;
+    return utils::Error{"Error creating window."};
   }
   platform_window::Window& window = *maybe_window;
 
@@ -95,9 +95,7 @@ int RunPlatformWindowWrapper(const std::string& window_title,
   auto error_or_renderer =
       MakePlatformWindowRenderer(window_title, window.GetPlatformWindow());
   if (auto error = std::get_if<0>(&error_or_renderer)) {
-    std::cerr << "Error creating window Vulkan renderer: " << error->msg
-              << std::endl;
-    return 1;
+    return utils::Error{error->msg};
   }
   PlatformWindowRenderer& renderer = std::get<1>(error_or_renderer);
 
@@ -106,9 +104,7 @@ int RunPlatformWindowWrapper(const std::string& window_title,
       renderer.swap_chain_renderer.device(),
       renderer.swap_chain_renderer.surface_format().format);
   if (auto error = std::get_if<0>(&error_or_wrapped_window_renderer)) {
-    std::cerr << "Error creating domain visualizer renderer: " << error->msg
-              << std::endl;
-    return 1;
+    return utils::Error{error->msg};
   }
   std::unique_ptr<Window::Renderer>& wrapped_window_renderer =
       std::get<1>(error_or_wrapped_window_renderer);
@@ -126,16 +122,14 @@ int RunPlatformWindowWrapper(const std::string& window_title,
             });
       },
       [&quit_flag](const vulkan_utils::Error& error) {
-        std::cerr << "Error rendering frame: " << error.msg << std::endl;
-        quit_flag.enqueue();
+        quit_flag.enqueue(
+            utils::Error{fmt::format("Error rendering frame: {}", error.msg)});
       });
 
   window.Show();
 
   // Wait for a reason to stop and quit.
-  quit_flag.dequeue();
-
-  return 0;
+  return quit_flag.dequeue();
 }
 
 }  // namespace window

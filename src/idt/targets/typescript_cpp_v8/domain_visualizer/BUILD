@@ -46,5 +46,7 @@ cc_library(
         ":interface",
         ":gui",
         "//src/window:platform_window_wrapper",
+        "//src/utils",
+        "//third_party:CLI11",
     ],
 )

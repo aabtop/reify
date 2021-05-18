@@ -8,6 +8,7 @@ cc_library(
     ],
     hdrs = [
         "include/reify/utils/circular_queue.h",
+        "include/reify/utils/error.h",
         "include/reify/utils/file_system.h",
         "include/reify/utils/future.h",
         "include/reify/utils/thread_safe_circular_queue.h",

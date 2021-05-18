@@ -5,13 +5,14 @@
 #include <memory>
 #include <vector>
 
+#include "reify/utils/error.h"
 #include "reify/window/window.h"
 
 namespace reify {
 namespace window {
 
-int RunPlatformWindowWrapper(const std::string& window_title,
-                             std::unique_ptr<Window> domain_visualizer);
+utils::MaybeError RunPlatformWindowWrapper(
+    const std::string& window_title, std::unique_ptr<Window> domain_visualizer);
 
 }  // namespace window
 }  // namespace reify

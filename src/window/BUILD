@@ -31,6 +31,7 @@ cc_library(
         "@platform_window//:cpp",
         "@reify//src/vulkan_utils",
         "@reify//src/utils",
+        "@fmtlib",
     ],
 )
 
