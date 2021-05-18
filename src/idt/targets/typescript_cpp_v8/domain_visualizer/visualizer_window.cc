@@ -24,13 +24,63 @@ int StartVisualizerWindow(const std::string& window_title,
   // window.)
   reify::utils::ThreadSafeCircularQueue<void, 1> quit_flag;
 
+  // We'll be running all domain visualizer commands on this thread.
+  reify::utils::ThreadWithWorkQueue domain_visualizer_thread;
+
+  auto set_domain_visualizer_size = [&](int32_t width, int32_t height) {
+    domain_visualizer_thread.Enqueue([&domain_visualizer, width, height] {
+      domain_visualizer->OnViewportResize({width, height});
+    });
+  };
+
+  auto send_domain_visualizer_input_event =
+      [&](const DomainVisualizer::InputEvent& event) {
+        domain_visualizer_thread.Enqueue([&domain_visualizer, event] {
+          domain_visualizer->OnInputEvent(event);
+        });
+      };
+
   // Create the window (its message loop will start running in a separate
   // dedicated thread.)
   auto maybe_window = platform_window::Window::Create(
-      window_title, [&quit_flag](PlatformWindowEvent event) {
+      window_title, [&](PlatformWindowEvent event) {
         switch (event.type) {
           case kPlatformWindowEventTypeQuitRequest: {
             quit_flag.enqueue();
+          } break;
+          case kPlatformWindowEventTypeResized: {
+            set_domain_visualizer_size(event.data.resized.width,
+                                       event.data.resized.height);
+          } break;
+          case kPlatformWindowEventTypeMouseMove: {
+            send_domain_visualizer_input_event(DomainVisualizer::MouseMoveEvent{
+                event.data.mouse_move.x,
+                event.data.mouse_move.y,
+            });
+          } break;
+          case kPlatformWindowEventTypeMouseButton: {
+            send_domain_visualizer_input_event(
+                DomainVisualizer::MouseButtonEvent{
+                    [button = event.data.mouse_button.button] {
+                      switch (button) {
+                        case kPlatformWindowMouseLeft:
+                          return DomainVisualizer::MouseButton::Left;
+                        case kPlatformWindowMouseRight:
+                          return DomainVisualizer::MouseButton::Right;
+                        default:
+                          return DomainVisualizer::MouseButton::Unknown;
+                      }
+                    }(),
+                    event.data.mouse_button.pressed,
+                    event.data.mouse_button.x,
+                    event.data.mouse_button.y,
+                });
+          } break;
+          case kPlatformWindowEventTypeMouseWheel: {
+            send_domain_visualizer_input_event(
+                DomainVisualizer::MouseWheelEvent{
+                    event.data.mouse_wheel.angle_in_degrees,
+                });
           } break;
         }
       });
@@ -39,6 +89,9 @@ int StartVisualizerWindow(const std::string& window_title,
     return 1;
   }
   platform_window::Window& window = *maybe_window;
+
+  // Set the domain visualizer initial width/height.
+  set_domain_visualizer_size(window.GetWidth(), window.GetHeight());
 
   // Create the Vulkan renderer.
   auto error_or_renderer = vulkan_utils::MakeWindowRenderer(
@@ -63,9 +116,8 @@ int StartVisualizerWindow(const std::string& window_title,
       std::get<1>(error_or_domain_visualizer_renderer);
 
   // Setup a separate dedicated thread to do the rendering.
-  reify::utils::ThreadWithWorkQueue render_repeater_thread;
   reify::utils::ThreadWithWorkQueueLooper<vulkan_utils::Error> render_looper(
-      &render_repeater_thread,
+      &domain_visualizer_thread,
       [&renderer, &domain_visualizer_renderer]() {
         return renderer.swap_chain_renderer.Render(
             [&domain_visualizer_renderer](
