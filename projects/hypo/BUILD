@@ -100,8 +100,7 @@ cc_binary(
     "src/main_visualizer.cc",
   ],
   deps = [
-    "@reify//src/idt/targets/typescript_cpp_v8:visualizer_window",
-    "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:gui",
+    "@reify//src/idt/targets/typescript_cpp_v8:visualizer_tool",
     "//src/domain_visualizer:domain_visualizer_hypo",
   ],
 )

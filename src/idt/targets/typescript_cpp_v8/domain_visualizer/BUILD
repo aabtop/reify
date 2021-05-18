@@ -8,6 +8,7 @@ cc_library(
     deps = [
         "//src/idt/targets/typescript_cpp_v8:core",
         "@vulkan_sdk//:vulkan",
+        "@reify//src/window",
     ],
 )
 
@@ -31,24 +32,19 @@ cc_library(
 )
 
 cc_library(
-    name = "visualizer_window",
+    name = "visualizer_tool",
     srcs = [
-        "visualizer_window.cc",
+        "visualizer_tool.cc",
     ],
-    hdrs = [
-        "include/reify/typescript_cpp_v8/visualizer_window.h",
-    ],
+    hdrs = ["include/reify/typescript_cpp_v8/visualizer_tool.h"],
     includes = [
         "include",
     ],
+
     visibility = ["//visibility:public"],
     deps = [
-        "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
-        "@platform_window",
-        "@platform_window//:cpp",
-        "@platform_window//:vulkan",
-        "@reify//src/vulkan_utils",
-        "@reify//src/vulkan_utils:window_renderer",
-        "@reify//src/utils",
+        ":interface",
+        ":gui",
+        "//src/window:platform_window_wrapper",
     ],
 )

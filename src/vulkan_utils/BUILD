@@ -26,16 +26,10 @@ cc_library(
   visibility = ["//visibility:public"],
 )
 
-cc_library(
-  name = "window_renderer",
-  srcs = ["window_renderer.cc"],
-  hdrs = ["include/vulkan_utils/window_renderer.h"],
-  includes = ["include"],
-  deps = [
-    ":swap_chain_renderer",
-    "@vulkan_sdk//:vulkan",
-    "@platform_window",
-    "@platform_window//:vulkan",
-  ],
-  visibility = ["//visibility:public"],
+cc_binary(
+    name = "example_basic_create_instance",
+    srcs = ["examples/basic_create_instance.cc"],
+    deps = [
+        "@vulkan_sdk//:vulkan",
+    ],
 )

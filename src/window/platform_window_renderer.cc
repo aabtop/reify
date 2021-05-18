@@ -1,29 +1,31 @@
-#include "vulkan_utils/window_renderer.h"
+#include "reify/window/platform_window_renderer.h"
 
 #include "platform_window/platform_window.h"
 #include "platform_window/vulkan.h"
+#include "vulkan_utils/vulkan_utils.h"
 
-namespace vulkan_utils {
+namespace reify {
+namespace window {
 
 namespace {
 
-ErrorOr<WithDeleter<VkSurfaceKHR>> MakeWindowSurface(VkInstance instance,
-                                                     PlatformWindow window) {
+vulkan_utils::ErrorOr<vulkan_utils::WithDeleter<VkSurfaceKHR>>
+MakeWindowSurface(VkInstance instance, PlatformWindow window) {
   VkSurfaceKHR surface;
   VkResult err = PlatformWindowVulkanCreateSurface(instance, window, &surface);
   if (err != VK_SUCCESS) {
-    return Error{"Error creating Vulkan window surface."};
+    return vulkan_utils::Error{"Error creating Vulkan window surface."};
   }
-  return WithDeleter<VkSurfaceKHR>(std::move(surface),
-                                   [instance](VkSurfaceKHR&& x) {
-                                     vkDestroySurfaceKHR(instance, x, nullptr);
-                                   });
+  return vulkan_utils::WithDeleter<VkSurfaceKHR>(
+      std::move(surface), [instance](VkSurfaceKHR&& x) {
+        vkDestroySurfaceKHR(instance, x, nullptr);
+      });
 }
 
 }  // namespace
 
-ErrorOr<WindowRenderer> MakeWindowRenderer(const std::string& application_title,
-                                           PlatformWindow window) {
+vulkan_utils::ErrorOr<PlatformWindowRenderer> MakePlatformWindowRenderer(
+    const std::string& application_title, PlatformWindow window) {
   VkApplicationInfo app_info{};
   app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
   app_info.pApplicationName = application_title.c_str();
@@ -42,22 +44,24 @@ ErrorOr<WindowRenderer> MakeWindowRenderer(const std::string& application_title,
     instance_extensions.push_back(window_extensions[i]);
   }
 
-  VULKAN_UTILS_ASSIGN_OR_RETURN(instance,
-                                MakeInstance(app_info, instance_extensions));
+  VULKAN_UTILS_ASSIGN_OR_RETURN(
+      instance, vulkan_utils::MakeInstance(app_info, instance_extensions));
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(surface,
                                 MakeWindowSurface(instance.value(), window));
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(
-      renderer, SwapChainRenderer::Create(instance.value(), surface.value(),
-                                          PlatformWindowGetWidth(window),
-                                          PlatformWindowGetHeight(window)));
+      renderer,
+      vulkan_utils::SwapChainRenderer::Create(instance.value(), surface.value(),
+                                              PlatformWindowGetWidth(window),
+                                              PlatformWindowGetHeight(window)));
 
-  return WindowRenderer{
+  return PlatformWindowRenderer{
       std::move(instance),
       std::move(surface),
       std::move(renderer),
   };
 }
 
-}  // namespace vulkan_utils
+}  // namespace window
+}  // namespace reify
