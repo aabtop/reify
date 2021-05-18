@@ -36,7 +36,7 @@ class DomainVisualizerHypo : public reify::typescript_cpp_v8::DomainVisualizer {
  private:
   std::shared_ptr<TriangleSoup> pending_triangle_soup_;
   FreeCameraViewport3d free_camera_viewport_;
-  MeshRenderer* mesh_renderer_;
+  MeshRenderer* mesh_renderer_ = nullptr;
 };
 
 #endif  // _IDE_DOMAIN_VISUALIZER_HYPO_H
