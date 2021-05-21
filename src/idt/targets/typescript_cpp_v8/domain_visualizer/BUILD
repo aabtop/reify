@@ -39,7 +39,10 @@ cc_library(
     includes = [
         "include",
     ],
-    deps = ["@imgui//:frontend"],
+    deps = [
+        ":imgui_runtime_layer",
+        "@imgui//:frontend",
+    ],
     visibility = ["//visibility:public"],
 )
 
@@ -52,7 +55,10 @@ cc_library(
     includes = [
         "include",
     ],
-    deps = ["@imgui//:frontend"],
+    deps = [
+        ":interface",
+        "@imgui//:frontend",
+    ],
     visibility = ["//visibility:public"],
 )
 

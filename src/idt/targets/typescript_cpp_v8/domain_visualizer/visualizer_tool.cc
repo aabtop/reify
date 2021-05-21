@@ -124,8 +124,8 @@ utils::MaybeError RunVisualizerTool(
     }
   }
 
-  imgui::RuntimeLayer runtime_layer;
-  imgui::ProjectLayer project_layer;
+  imgui::RuntimeLayer runtime_layer(domain_visualizer.get());
+  imgui::ProjectLayer project_layer(&runtime_layer);
   imgui::LayerStack imgui_layer_stack({
       [&runtime_layer]() { runtime_layer.ExecuteImGuiCommands(); },
       [&project_layer]() { project_layer.ExecuteImGuiCommands(); },

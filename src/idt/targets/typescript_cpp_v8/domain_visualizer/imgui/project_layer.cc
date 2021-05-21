@@ -6,8 +6,6 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
 
-ProjectLayer::ProjectLayer() {}
-
 void ProjectLayer::ExecuteImGuiCommands() {
   ImGui::Begin("Hello, world!");
 

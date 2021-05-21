@@ -6,8 +6,6 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
 
-RuntimeLayer::RuntimeLayer() {}
-
 void RuntimeLayer::ExecuteImGuiCommands() {
   ImGui::Begin("I AM A RUNTIME LAYER!!!");
 
