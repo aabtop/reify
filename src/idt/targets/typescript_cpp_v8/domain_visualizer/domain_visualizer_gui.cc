@@ -136,6 +136,7 @@ void DomainVisualizerGui::OnViewportResize(const std::array<int, 2>& size) {
 }
 
 void DomainVisualizerGui::AdvanceTime(std::chrono::duration<float> seconds) {
+  accumulated_time_since_last_render_ += seconds;
   wrapped_->AdvanceTime(seconds);
 }
 
@@ -158,10 +159,12 @@ class RendererImGui : public DomainVisualizer::Renderer {
                               VkFormat output_image_format);
   RendererImGui(
       std::unique_ptr<Renderer>&& wrapped, VulkanConstructorData&& data,
-      const std::vector<DomainVisualizerGui::ImGuiLayer>& im_gui_layers)
+      const std::vector<DomainVisualizerGui::ImGuiLayer>& im_gui_layers,
+      std::chrono::duration<float>* time_since_last_render)
       : wrapped_(std::move(wrapped)),
         vulkan_constructor_data_(std::move(data)),
-        im_gui_layers_(im_gui_layers) {}
+        im_gui_layers_(im_gui_layers),
+        time_since_last_render_(time_since_last_render) {}
   ~RendererImGui() { ImGui_ImplVulkan_Shutdown(); }
 
   ErrorOr<FrameResources> RenderFrame(
@@ -176,6 +179,8 @@ class RendererImGui : public DomainVisualizer::Renderer {
   std::vector<DomainVisualizerGui::ImGuiLayer> im_gui_layers_;
 
   bool created_imgui_fonts_texture_ = false;
+
+  std::chrono::duration<float>* time_since_last_render_;
 };
 
 }  // namespace
@@ -200,7 +205,8 @@ DomainVisualizerGui::CreateRenderer(VkInstance instance,
 
   return std::make_unique<RendererImGui>(
       std::move(std::get<1>(error_or_wrapped_renderer)),
-      std::move(std::get<1>(error_or_vulkan_constructor_data)), im_gui_layers_);
+      std::move(std::get<1>(error_or_vulkan_constructor_data)), im_gui_layers_,
+      &accumulated_time_since_last_render_);
 }
 
 vulkan_utils::ErrorOr<RendererImGui::VulkanConstructorData>
@@ -312,6 +318,8 @@ RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
   ImGuiIO& io = ImGui::GetIO();
   io.DisplaySize = ImVec2(output_surface_size[0], output_surface_size[1]);
   io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+  io.DeltaTime = std::max(time_since_last_render_->count(), 0.000000001f);
+  *time_since_last_render_ = std::chrono::duration<float>::zero();
 
   if (!created_imgui_fonts_texture_) {
     created_imgui_fonts_texture_ = true;

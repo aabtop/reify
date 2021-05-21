@@ -110,13 +110,20 @@ utils::MaybeError RunPlatformWindowWrapper(
       std::get<1>(error_or_wrapped_window_renderer);
 
   // Setup a separate dedicated thread to do the rendering.
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
+      previous_time = std::chrono::high_resolution_clock::now();
   reify::utils::ThreadWithWorkQueueLooper<vulkan_utils::Error> render_looper(
       &wrapped_window_thread,
-      [&renderer, &wrapped_window_renderer]() {
+      [&renderer, &wrapped_window_renderer, &previous_time, &wrapped_window]() {
         return renderer.swap_chain_renderer.Render(
-            [&wrapped_window_renderer](
+            [&wrapped_window_renderer, &previous_time, &wrapped_window](
                 VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
                 const std::array<uint32_t, 2>& output_surface_size) {
+              auto current_time = std::chrono::high_resolution_clock::now();
+              if (previous_time) {
+                wrapped_window->AdvanceTime(current_time - *previous_time);
+              }
+              previous_time = current_time;
               return wrapped_window_renderer->RenderFrame(
                   command_buffer, framebuffer, output_surface_size);
             });

@@ -40,6 +40,8 @@ class DomainVisualizerGui : public DomainVisualizer {
  private:
   std::unique_ptr<DomainVisualizer> wrapped_;
   std::vector<ImGuiLayer> im_gui_layers_;
+
+  std::chrono::duration<float> accumulated_time_since_last_render_;
 };
 
 }  // namespace typescript_cpp_v8
