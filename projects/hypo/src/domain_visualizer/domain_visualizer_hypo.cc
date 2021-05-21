@@ -126,7 +126,7 @@ void DomainVisualizerHypo::Preview(const PreparedSymbol& prepared_symbol) {
   }
 }
 
-void DomainVisualizerHypo::OnInputEvent(const InputEvent& input_event) {
+bool DomainVisualizerHypo::OnInputEvent(const InputEvent& input_event) {
   if (auto event = std::get_if<MouseMoveEvent>(&input_event)) {
     free_camera_viewport_.AccumulateMouseMove(event->x, event->y);
   } else if (auto event = std::get_if<MouseButtonEvent>(&input_event)) {
@@ -137,6 +137,8 @@ void DomainVisualizerHypo::OnInputEvent(const InputEvent& input_event) {
   } else if (auto event = std::get_if<KeyboardEvent>(&input_event)) {
     free_camera_viewport_.AccumulateKeyboardEvent(event->key, event->pressed);
   }
+
+  return false;
 }
 
 void DomainVisualizerHypo::OnViewportResize(const std::array<int, 2>& size) {

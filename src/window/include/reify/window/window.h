@@ -67,7 +67,7 @@ class Window {
 
   virtual ~Window(){};
 
-  virtual void OnInputEvent(const InputEvent& input_event) = 0;
+  virtual bool OnInputEvent(const InputEvent& input_event) = 0;
 
   virtual void OnViewportResize(const std::array<int, 2>& size) = 0;
 

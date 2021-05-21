@@ -7,8 +7,11 @@
 #include "CLI/CLI.hpp"
 #include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
-#include "reify/typescript_cpp_v8/domain_visualizer_gui.h"
+#include "reify/typescript_cpp_v8/imgui/layer_stack.h"
+#include "reify/typescript_cpp_v8/imgui/project_layer.h"
+#include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
 #include "reify/window/platform_window_wrapper.h"
+#include "reify/window/window_stack.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
@@ -121,10 +124,23 @@ utils::MaybeError RunVisualizerTool(
     }
   }
 
-  return window::RunPlatformWindowWrapper(
-      window_title,
-      std::make_unique<reify::typescript_cpp_v8::DomainVisualizerGui>(
-          std::move(domain_visualizer)));
+  std::unique_ptr<imgui::LayerStack> imgui_layer_stack(new imgui::LayerStack({
+      [imgui_runtime_layer = std::make_shared<imgui::RuntimeLayer>()]() {
+        imgui_runtime_layer->ExecuteImGuiCommands();
+      },
+      [imgui_project_layer = std::make_shared<imgui::ProjectLayer>()]() {
+        imgui_project_layer->ExecuteImGuiCommands();
+      },
+  }));
+
+  std::vector<std::unique_ptr<window::Window>> windows;
+  windows.push_back(std::move(domain_visualizer));
+  windows.push_back(std::move(imgui_layer_stack));
+  std::unique_ptr<window::Window> window_stack(
+      new window::WindowStack(std::move(windows)));
+
+  return window::RunPlatformWindowWrapper(window_title,
+                                          std::move(window_stack));
 }
 
 }  // namespace typescript_cpp_v8

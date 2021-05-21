@@ -13,22 +13,47 @@ cc_library(
 )
 
 cc_library(
-    name = "gui",
+    name = "imgui_layer_stack",
     srcs = [
-        "domain_visualizer_gui.cc",
+        "imgui/layer_stack.cc",
     ],
-    hdrs = ["include/reify/typescript_cpp_v8/domain_visualizer_gui.h"],
+    hdrs = ["include/reify/typescript_cpp_v8/imgui/layer_stack.h"],
     includes = [
         "include",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        ":interface",
+        "//src/window",
         "//src/vulkan_utils",
-        "@imgui//:demo",
         "@imgui//:frontend",
         "@imgui//:vulkan_backend",
     ],
+)
+
+cc_library(
+    name = "imgui_project_layer",
+    srcs = [
+        "imgui/project_layer.cc",
+    ],
+    hdrs = ["include/reify/typescript_cpp_v8/imgui/project_layer.h"],
+    includes = [
+        "include",
+    ],
+    deps = ["@imgui//:frontend"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "imgui_runtime_layer",
+    srcs = [
+        "imgui/runtime_layer.cc",
+    ],
+    hdrs = ["include/reify/typescript_cpp_v8/imgui/runtime_layer.h"],
+    includes = [
+        "include",
+    ],
+    deps = ["@imgui//:frontend"],
+    visibility = ["//visibility:public"],
 )
 
 cc_library(
@@ -40,11 +65,13 @@ cc_library(
     includes = [
         "include",
     ],
-
     visibility = ["//visibility:public"],
     deps = [
         ":interface",
-        ":gui",
+        ":imgui_layer_stack",
+        ":imgui_project_layer",
+        ":imgui_runtime_layer",
+        "//src/window:window_stack",
         "//src/window:platform_window_wrapper",
         "//src/utils",
         "//third_party:CLI11",

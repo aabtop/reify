@@ -1,4 +1,4 @@
-#include "reify/typescript_cpp_v8/domain_visualizer_gui.h"
+#include "reify/typescript_cpp_v8/imgui/layer_stack.h"
 
 #include <fmt/format.h>
 #include <vulkan/vulkan.h>
@@ -11,6 +11,7 @@
 
 namespace reify {
 namespace typescript_cpp_v8 {
+namespace imgui {
 
 namespace {
 // ImGui kind of forces us to use global variables :(.
@@ -20,33 +21,7 @@ VkResult* GetImGuiVulkanResult() {
 }
 }  // namespace
 
-DomainVisualizerGui::DomainVisualizerGui(
-    std::unique_ptr<DomainVisualizer> wrapped)
-    : wrapped_(std::move(wrapped)) {
-  im_gui_layers_.push_back([]() {
-    static bool checkbox = false;
-    static float f = 0.25f;
-    static int counter = 5;
-
-    ImGui::Begin("Hello, world!");
-
-    ImGui::Text("This is some useful text.");
-    ImGui::Checkbox("Demo Window", &checkbox);
-
-    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-
-    if (ImGui::Button("Button")) {
-      counter++;
-    }
-    ImGui::SameLine();
-    ImGui::Text("counter = %d", counter);
-
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-                1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::End();
-  });
-  im_gui_layers_.push_back([]() { ImGui::ShowDemoWindow(); });
-
+LayerStack::LayerStack(const std::vector<Layer>& layers) : layers_(layers) {
   // Setup Dear ImGui context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -60,33 +35,10 @@ DomainVisualizerGui::DomainVisualizerGui(
   io.IniFilename = nullptr;
 }
 
-DomainVisualizerGui::~DomainVisualizerGui() { ImGui::DestroyContext(); }
+LayerStack::~LayerStack() { ImGui::DestroyContext(); }
 
-std::vector<reify::CompilerEnvironment::InputModule>
-DomainVisualizerGui::GetTypeScriptModules() {
-  return wrapped_->GetTypeScriptModules();
-}
-
-bool DomainVisualizerGui::CanPreviewSymbol(
-    const reify::CompiledModule::ExportedSymbol& symbol) {
-  return wrapped_->CanPreviewSymbol(symbol);
-}
-
-void DomainVisualizerGui::PrepareSymbolForPreview(
-    std::shared_ptr<reify::CompiledModule> module,
-    const reify::CompiledModule::ExportedSymbol& symbol,
-    const std::function<void(ErrorOr<PreparedSymbol>)>& on_preview_prepared) {
-  wrapped_->PrepareSymbolForPreview(module, symbol, on_preview_prepared);
-}
-
-void DomainVisualizerGui::Preview(const PreparedSymbol& prepared_symbol) {
-  wrapped_->Preview(prepared_symbol);
-}
-
-void DomainVisualizerGui::OnInputEvent(const InputEvent& input_event) {
+bool LayerStack::OnInputEvent(const InputEvent& input_event) {
   ImGuiIO& io = ImGui::GetIO();
-
-  bool pass_input_onto_wrapped = true;
 
   if (auto event = std::get_if<MouseMoveEvent>(&input_event)) {
     io.MousePos = ImVec2(event->x, event->y);
@@ -109,39 +61,34 @@ void DomainVisualizerGui::OnInputEvent(const InputEvent& input_event) {
         // Only prevent the event from being passed on to the wrapped
         // visualizer if it was a press event and ImGui really wanted to
         // capture it.
-        pass_input_onto_wrapped = false;
+        return false;
       }
     }
   } else if (auto event = std::get_if<MouseWheelEvent>(&input_event)) {
     if (io.WantCaptureMouse) {
       io.MouseWheel += event->angle_in_degrees / 15.0f;
-      pass_input_onto_wrapped = false;
+      return false;
     }
   } else if (auto event = std::get_if<KeyboardEvent>(&input_event)) {
     if (io.WantCaptureKeyboard && event->pressed) {
       // Only prevent the event from being passed on to the wrapped visualizer
       // if it was a press event and ImGui really wanted to capture it.
-      pass_input_onto_wrapped = false;
+      return false;
     }
     // Not implemented!
   }
 
-  if (pass_input_onto_wrapped) {
-    wrapped_->OnInputEvent(input_event);
-  }
+  return true;
 }
 
-void DomainVisualizerGui::OnViewportResize(const std::array<int, 2>& size) {
-  wrapped_->OnViewportResize(size);
-}
+void LayerStack::OnViewportResize(const std::array<int, 2>& size) {}
 
-void DomainVisualizerGui::AdvanceTime(std::chrono::duration<float> seconds) {
+void LayerStack::AdvanceTime(std::chrono::duration<float> seconds) {
   accumulated_time_since_last_render_ += seconds;
-  wrapped_->AdvanceTime(seconds);
 }
 
 namespace {
-class RendererImGui : public DomainVisualizer::Renderer {
+class RendererImGui : public window::Window::Renderer {
  public:
   struct VulkanConstructorData {
     VkInstance instance;
@@ -157,13 +104,11 @@ class RendererImGui : public DomainVisualizer::Renderer {
   CreateVulkanConstructorData(VkInstance instance,
                               VkPhysicalDevice physical_device, VkDevice device,
                               VkFormat output_image_format);
-  RendererImGui(
-      std::unique_ptr<Renderer>&& wrapped, VulkanConstructorData&& data,
-      const std::vector<DomainVisualizerGui::ImGuiLayer>& im_gui_layers,
-      std::chrono::duration<float>* time_since_last_render)
-      : wrapped_(std::move(wrapped)),
-        vulkan_constructor_data_(std::move(data)),
-        im_gui_layers_(im_gui_layers),
+  RendererImGui(VulkanConstructorData&& data,
+                const std::vector<LayerStack::Layer>& layers,
+                std::chrono::duration<float>* time_since_last_render)
+      : vulkan_constructor_data_(std::move(data)),
+        layers_(layers),
         time_since_last_render_(time_since_last_render) {}
   ~RendererImGui() { ImGui_ImplVulkan_Shutdown(); }
 
@@ -172,11 +117,9 @@ class RendererImGui : public DomainVisualizer::Renderer {
       const std::array<uint32_t, 2>& output_surface_size) override;
 
  private:
-  std::unique_ptr<Renderer> wrapped_;
-
   VulkanConstructorData vulkan_constructor_data_;
 
-  std::vector<DomainVisualizerGui::ImGuiLayer> im_gui_layers_;
+  std::vector<LayerStack::Layer> layers_;
 
   bool created_imgui_fonts_texture_ = false;
 
@@ -185,17 +128,10 @@ class RendererImGui : public DomainVisualizer::Renderer {
 
 }  // namespace
 
-DomainVisualizer::ErrorOr<std::unique_ptr<DomainVisualizer::Renderer>>
-DomainVisualizerGui::CreateRenderer(VkInstance instance,
-                                    VkPhysicalDevice physical_device,
-                                    VkDevice device,
-                                    VkFormat output_image_format) {
-  auto error_or_wrapped_renderer = wrapped_->CreateRenderer(
-      instance, physical_device, device, output_image_format);
-  if (auto error = std::get_if<0>(&error_or_wrapped_renderer)) {
-    return *error;
-  }
-
+window::Window::ErrorOr<std::unique_ptr<window::Window::Renderer>>
+LayerStack::CreateRenderer(VkInstance instance,
+                           VkPhysicalDevice physical_device, VkDevice device,
+                           VkFormat output_image_format) {
   auto error_or_vulkan_constructor_data =
       RendererImGui::CreateVulkanConstructorData(instance, physical_device,
                                                  device, output_image_format);
@@ -204,8 +140,7 @@ DomainVisualizerGui::CreateRenderer(VkInstance instance,
   }
 
   return std::make_unique<RendererImGui>(
-      std::move(std::get<1>(error_or_wrapped_renderer)),
-      std::move(std::get<1>(error_or_vulkan_constructor_data)), im_gui_layers_,
+      std::move(std::get<1>(error_or_vulkan_constructor_data)), layers_,
       &accumulated_time_since_last_render_);
 }
 
@@ -307,14 +242,10 @@ RendererImGui::CreateVulkanConstructorData(VkInstance instance,
   };
 }
 
-DomainVisualizer::ErrorOr<DomainVisualizer::Renderer::FrameResources>
+window::Window::ErrorOr<window::Window::Renderer::FrameResources>
 RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
                            VkFramebuffer framebuffer,
                            const std::array<uint32_t, 2>& output_surface_size) {
-  VULKAN_UTILS_ASSIGN_OR_RETURN(
-      wrapped_resources,
-      wrapped_->RenderFrame(command_buffer, framebuffer, output_surface_size));
-
   ImGuiIO& io = ImGui::GetIO();
   io.DisplaySize = ImVec2(output_surface_size[0], output_surface_size[1]);
   io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
@@ -334,7 +265,7 @@ RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
   }
 
   ImGui::NewFrame();
-  for (const auto& im_gui_layer : im_gui_layers_) {
+  for (const auto& im_gui_layer : layers_) {
     im_gui_layer();
   }
 
@@ -360,8 +291,9 @@ RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
 
   vkCmdEndRenderPass(command_buffer);
 
-  return wrapped_resources;
+  return window::Window::Renderer::FrameResources();
 }
 
+}  // namespace imgui
 }  // namespace typescript_cpp_v8
 }  // namespace reify

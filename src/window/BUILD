@@ -13,6 +13,24 @@ cc_library(
 )
 
 cc_library(
+    name = "window_stack",
+    hdrs = [
+        "include/reify/window/window_stack.h",
+    ],
+    srcs = [
+        "window_stack.cc"
+    ],
+    includes = [
+        "include",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@vulkan_sdk//:vulkan",
+        "@reify//src/utils",
+    ],
+)
+
+cc_library(
     name = "platform_window_wrapper",
     hdrs = [
         "include/reify/window/platform_window_wrapper.h",
