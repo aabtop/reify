@@ -1,4 +1,4 @@
-#include "src/idt/targets/typescript_cpp_v8/ide/domain_visualizer_qt_widget.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/reify_window_qt_widget.h"
 
 #include <vulkan/vulkan.h>
 
@@ -78,7 +78,7 @@ std::optional<std::filesystem::path> FindVulkanSo1() { return std::nullopt; }
 
 }  // namespace
 
-void DomainVisualizerVulkanWindowRenderer::initResources() {
+void ReifyWindowVulkanWindowRenderer::initResources() {
   auto renderer_or_error = reify_window_->CreateRenderer(
       window_->vulkanInstance()->vkInstance(), window_->physicalDevice(),
       window_->device(), window_->colorFormat());
@@ -88,12 +88,12 @@ void DomainVisualizerVulkanWindowRenderer::initResources() {
   reify_window_renderer_ = std::move(std::get<1>(renderer_or_error));
 }
 
-void DomainVisualizerVulkanWindowRenderer::releaseResources() {
+void ReifyWindowVulkanWindowRenderer::releaseResources() {
   frame_resources_.clear();
   reify_window_renderer_.reset();
 };
 
-void DomainVisualizerVulkanWindowRenderer::startNextFrame() {
+void ReifyWindowVulkanWindowRenderer::startNextFrame() {
   int current_frame_index = window_->currentFrame();
 
   if (current_frame_index >= frame_resources_.size()) {
@@ -129,8 +129,7 @@ void DomainVisualizerVulkanWindowRenderer::startNextFrame() {
   window_->requestUpdate();
 };
 
-DomainVisualizerVulkanWindow::DomainVisualizerVulkanWindow(
-    window::Window* reify_window)
+ReifyWindowVulkanWindow::ReifyWindowVulkanWindow(window::Window* reify_window)
     : reify_window_(reify_window) {
   auto maybe_vulkan_so_1_path = FindVulkanSo1();
   if (maybe_vulkan_so_1_path) {
@@ -156,18 +155,18 @@ DomainVisualizerVulkanWindow::DomainVisualizerVulkanWindow(
       {viewport_size.width(), viewport_size.height()});
 }
 
-QVulkanWindowRenderer* DomainVisualizerVulkanWindow::createRenderer() {
-  renderer_ = new DomainVisualizerVulkanWindowRenderer(this, reify_window_);
+QVulkanWindowRenderer* ReifyWindowVulkanWindow::createRenderer() {
+  renderer_ = new ReifyWindowVulkanWindowRenderer(this, reify_window_);
 
   return renderer_;
 }
 
-void DomainVisualizerVulkanWindow::resizeEvent(QResizeEvent* event) {
+void ReifyWindowVulkanWindow::resizeEvent(QResizeEvent* event) {
   reify_window_->OnViewportResize(
       {event->size().width(), event->size().height()});
 }
 
-void DomainVisualizerVulkanWindow::mouseMoveEvent(QMouseEvent* event) {
+void ReifyWindowVulkanWindow::mouseMoveEvent(QMouseEvent* event) {
   reify_window_->OnInputEvent(
       window::Window::MouseMoveEvent{event->x(), event->y()});
 }
@@ -186,17 +185,17 @@ window::Window::MouseButton ConvertMouseButtonFromQt(
 }
 }  // namespace
 
-void DomainVisualizerVulkanWindow::mousePressEvent(QMouseEvent* event) {
+void ReifyWindowVulkanWindow::mousePressEvent(QMouseEvent* event) {
   reify_window_->OnInputEvent(window::Window::MouseButtonEvent{
       ConvertMouseButtonFromQt(event->button()), true, event->x(), event->y()});
 }
-void DomainVisualizerVulkanWindow::mouseReleaseEvent(QMouseEvent* event) {
+void ReifyWindowVulkanWindow::mouseReleaseEvent(QMouseEvent* event) {
   reify_window_->OnInputEvent(window::Window::MouseButtonEvent{
       ConvertMouseButtonFromQt(event->button()), false, event->x(),
       event->y()});
 }
 
-void DomainVisualizerVulkanWindow::wheelEvent(QWheelEvent* event) {
+void ReifyWindowVulkanWindow::wheelEvent(QWheelEvent* event) {
   reify_window_->OnInputEvent(
       window::Window::MouseWheelEvent{event->angleDelta().y() / 8.0f});
 }
@@ -208,18 +207,18 @@ int ConvertKeyFromQt(int key) {
   return key;
 }
 }  // namespace
-void DomainVisualizerVulkanWindow::keyPressEvent(QKeyEvent* event) {
+void ReifyWindowVulkanWindow::keyPressEvent(QKeyEvent* event) {
   reify_window_->OnInputEvent(
       window::Window::KeyboardEvent{ConvertKeyFromQt(event->key()), true});
 }
-void DomainVisualizerVulkanWindow::keyReleaseEvent(QKeyEvent* event) {
+void ReifyWindowVulkanWindow::keyReleaseEvent(QKeyEvent* event) {
   reify_window_->OnInputEvent(
       window::Window::KeyboardEvent{ConvertKeyFromQt(event->key()), false});
 }
 
-std::unique_ptr<QWidget> MakeDomainVisualizerWidget(
-    window::Window* reify_window, QWidget* parent) {
-  auto vulkan_window = new DomainVisualizerVulkanWindow(reify_window);
+std::unique_ptr<QWidget> MakeReifyWindowWidget(window::Window* reify_window,
+                                               QWidget* parent) {
+  auto vulkan_window = new ReifyWindowVulkanWindow(reify_window);
 
   std::unique_ptr<QWidget> reify_window_widget(
       QWidget::createWindowContainer(vulkan_window, parent));

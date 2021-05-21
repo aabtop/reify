@@ -11,8 +11,8 @@
 #include "reify/typescript_cpp_v8/imgui/layer_stack.h"
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/about_dialog.h"
-#include "src/idt/targets/typescript_cpp_v8/ide/domain_visualizer_qt_widget.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/reify_window_qt_widget.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/ui_main_window.h"
 
 namespace reify {
@@ -37,7 +37,7 @@ MainWindow::MainWindow(const std::string& window_title,
   ui_->visualizer->setStyleSheet("background-color:transparent;");
 
   domain_visualizer_widget_ =
-      MakeDomainVisualizerWidget(&visualizer_window_, ui_->visualizer);
+      MakeReifyWindowWidget(&visualizer_window_, ui_->visualizer);
 
   monaco_interface_.reset(new MonacoInterface(
       ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(),
