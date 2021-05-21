@@ -8,6 +8,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "reify/typescript_cpp_v8/imgui/layer_stack.h"
+#include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/about_dialog.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/domain_visualizer_qt_widget.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
@@ -23,14 +25,19 @@ MainWindow::MainWindow(const std::string& window_title,
     : QMainWindow(parent),
       ui_(new Ui::MainWindow),
       default_title_(QString(window_title.c_str())),
-      domain_visualizer_(std::move(domain_visualizer)) {
+      domain_visualizer_(std::move(domain_visualizer)),
+      visualizer_imgui_stack_(
+          {[runtime_layer = &visualizer_imgui_runtime_layer_]() {
+            runtime_layer->ExecuteImGuiCommands();
+          }}),
+      visualizer_window_({domain_visualizer_.get(), &visualizer_imgui_stack_}) {
   ui_->setupUi(this);
 
   ui_->visualizer->setAutoFillBackground(false);
   ui_->visualizer->setStyleSheet("background-color:transparent;");
 
   domain_visualizer_widget_ =
-      MakeDomainVisualizerWidget(domain_visualizer_.get(), ui_->visualizer);
+      MakeDomainVisualizerWidget(&visualizer_window_, ui_->visualizer);
 
   monaco_interface_.reset(new MonacoInterface(
       ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(),

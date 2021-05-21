@@ -8,6 +8,9 @@
 #include <thread>
 
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/typescript_cpp_v8/imgui/layer_stack.h"
+#include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
+#include "reify/window/window_stack.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/compilation.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
 
@@ -106,6 +109,10 @@ class MainWindow : public QMainWindow {
   std::shared_ptr<reify::CompiledModule> most_recent_compilation_results_;
 
   std::optional<std::thread> project_operation_;
+
+  imgui::RuntimeLayer visualizer_imgui_runtime_layer_;
+  imgui::LayerStack visualizer_imgui_stack_;
+  window::WindowStack visualizer_window_;
 
   // Are the contents of the current file equivalent to what's saved on disk?
   bool current_file_is_dirty_ = false;

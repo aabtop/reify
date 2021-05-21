@@ -5,8 +5,8 @@
 namespace reify {
 namespace window {
 
-WindowStack::WindowStack(std::vector<std::unique_ptr<Window>>&& sub_windows)
-    : sub_windows_(std::move(sub_windows)) {}
+WindowStack::WindowStack(const std::vector<Window*>& sub_windows)
+    : sub_windows_(sub_windows) {}
 
 bool WindowStack::OnInputEvent(const InputEvent& input_event) {
   for (auto iter = sub_windows_.rbegin(); iter != sub_windows_.rend(); ++iter) {

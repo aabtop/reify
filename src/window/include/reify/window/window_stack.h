@@ -11,7 +11,7 @@ namespace window {
 
 class WindowStack : public Window {
  public:
-  WindowStack(std::vector<std::unique_ptr<Window>>&& sub_windows);
+  WindowStack(const std::vector<Window*>& sub_windows);
 
   bool OnInputEvent(const InputEvent& input_event) override;
 
@@ -24,7 +24,7 @@ class WindowStack : public Window {
       VkFormat output_image_format) override;
 
  private:
-  std::vector<std::unique_ptr<Window>> sub_windows_;
+  std::vector<Window*> sub_windows_;
 };
 
 }  // namespace window

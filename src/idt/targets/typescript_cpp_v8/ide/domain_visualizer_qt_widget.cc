@@ -11,7 +11,7 @@
 #include <filesystem>
 #include <iostream>
 
-#include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/window/window.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
@@ -79,18 +79,18 @@ std::optional<std::filesystem::path> FindVulkanSo1() { return std::nullopt; }
 }  // namespace
 
 void DomainVisualizerVulkanWindowRenderer::initResources() {
-  auto renderer_or_error = domain_visualizer_->CreateRenderer(
+  auto renderer_or_error = reify_window_->CreateRenderer(
       window_->vulkanInstance()->vkInstance(), window_->physicalDevice(),
       window_->device(), window_->colorFormat());
   if (auto error = std::get_if<0>(&renderer_or_error)) {
     qFatal("Error creating Vulkan renderer: %s", error->msg.c_str());
   }
-  domain_visualizer_renderer_ = std::move(std::get<1>(renderer_or_error));
+  reify_window_renderer_ = std::move(std::get<1>(renderer_or_error));
 }
 
 void DomainVisualizerVulkanWindowRenderer::releaseResources() {
   frame_resources_.clear();
-  domain_visualizer_renderer_.reset();
+  reify_window_renderer_.reset();
 };
 
 void DomainVisualizerVulkanWindowRenderer::startNextFrame() {
@@ -106,22 +106,22 @@ void DomainVisualizerVulkanWindowRenderer::startNextFrame() {
   // Update the clock on the domain visualizer.
   auto current_time = std::chrono::high_resolution_clock::now();
   if (last_render_time_) {
-    domain_visualizer_->AdvanceTime(current_time - *last_render_time_);
+    reify_window_->AdvanceTime(current_time - *last_render_time_);
   }
   last_render_time_ = current_time;
 
   QSize image_size = window_->swapChainImageSize();
-  auto error_or_frame_resources = domain_visualizer_renderer_->RenderFrame(
+  auto error_or_frame_resources = reify_window_renderer_->RenderFrame(
       window_->currentCommandBuffer(), window_->currentFramebuffer(),
       {static_cast<uint32_t>(image_size.width()),
        static_cast<uint32_t>(image_size.height())});
   if (auto error =
-          std::get_if<DomainVisualizer::Error>(&error_or_frame_resources)) {
+          std::get_if<window::Window::Error>(&error_or_frame_resources)) {
     qFatal("Vulkan error while rendering frame: %s", error->msg.c_str());
   }
 
   frame_resources_[current_frame_index] =
-      std::move(std::get<DomainVisualizer::Renderer::FrameResources>(
+      std::move(std::get<window::Window::Renderer::FrameResources>(
           error_or_frame_resources));
 
   window_->frameReady();
@@ -130,8 +130,8 @@ void DomainVisualizerVulkanWindowRenderer::startNextFrame() {
 };
 
 DomainVisualizerVulkanWindow::DomainVisualizerVulkanWindow(
-    DomainVisualizer* domain_visualizer)
-    : domain_visualizer_(domain_visualizer) {
+    window::Window* reify_window)
+    : reify_window_(reify_window) {
   auto maybe_vulkan_so_1_path = FindVulkanSo1();
   if (maybe_vulkan_so_1_path) {
     // Qt doesn't know where our custom built Vulkan loader is on Linux, so
@@ -152,84 +152,83 @@ DomainVisualizerVulkanWindow::DomainVisualizerVulkanWindow(
   this->setVulkanInstance(&q_vulkan_instance_);
 
   QSize viewport_size = swapChainImageSize();
-  domain_visualizer_->OnViewportResize(
+  reify_window_->OnViewportResize(
       {viewport_size.width(), viewport_size.height()});
 }
 
 QVulkanWindowRenderer* DomainVisualizerVulkanWindow::createRenderer() {
-  renderer_ =
-      new DomainVisualizerVulkanWindowRenderer(this, domain_visualizer_);
+  renderer_ = new DomainVisualizerVulkanWindowRenderer(this, reify_window_);
 
   return renderer_;
 }
 
 void DomainVisualizerVulkanWindow::resizeEvent(QResizeEvent* event) {
-  domain_visualizer_->OnViewportResize(
+  reify_window_->OnViewportResize(
       {event->size().width(), event->size().height()});
 }
 
 void DomainVisualizerVulkanWindow::mouseMoveEvent(QMouseEvent* event) {
-  domain_visualizer_->OnInputEvent(
-      DomainVisualizer::MouseMoveEvent{event->x(), event->y()});
+  reify_window_->OnInputEvent(
+      window::Window::MouseMoveEvent{event->x(), event->y()});
 }
 
 namespace {
-DomainVisualizer::MouseButton ConvertMouseButtonFromQt(
+window::Window::MouseButton ConvertMouseButtonFromQt(
     Qt::MouseButton qt_mouse_button) {
   switch (qt_mouse_button) {
     case Qt::LeftButton:
-      return DomainVisualizer::MouseButton::Left;
+      return window::Window::MouseButton::Left;
     case Qt::RightButton:
-      return DomainVisualizer::MouseButton::Right;
+      return window::Window::MouseButton::Right;
     default:
-      return DomainVisualizer::MouseButton::Unknown;
+      return window::Window::MouseButton::Unknown;
   }
 }
 }  // namespace
 
 void DomainVisualizerVulkanWindow::mousePressEvent(QMouseEvent* event) {
-  domain_visualizer_->OnInputEvent(DomainVisualizer::MouseButtonEvent{
+  reify_window_->OnInputEvent(window::Window::MouseButtonEvent{
       ConvertMouseButtonFromQt(event->button()), true, event->x(), event->y()});
 }
 void DomainVisualizerVulkanWindow::mouseReleaseEvent(QMouseEvent* event) {
-  domain_visualizer_->OnInputEvent(DomainVisualizer::MouseButtonEvent{
+  reify_window_->OnInputEvent(window::Window::MouseButtonEvent{
       ConvertMouseButtonFromQt(event->button()), false, event->x(),
       event->y()});
 }
 
 void DomainVisualizerVulkanWindow::wheelEvent(QWheelEvent* event) {
-  domain_visualizer_->OnInputEvent(
-      DomainVisualizer::MouseWheelEvent{event->angleDelta().y() / 8.0f});
+  reify_window_->OnInputEvent(
+      window::Window::MouseWheelEvent{event->angleDelta().y() / 8.0f});
 }
 
 namespace {
 int ConvertKeyFromQt(int key) {
-  // Since the keycode accepted by DomainVisualizer is defined by the Qt
+  // Since the keycode accepted by window::Window is defined by the Qt
   // key mapping, the conversion is the identity.
   return key;
 }
 }  // namespace
 void DomainVisualizerVulkanWindow::keyPressEvent(QKeyEvent* event) {
-  domain_visualizer_->OnInputEvent(
-      DomainVisualizer::KeyboardEvent{ConvertKeyFromQt(event->key()), true});
+  reify_window_->OnInputEvent(
+      window::Window::KeyboardEvent{ConvertKeyFromQt(event->key()), true});
 }
 void DomainVisualizerVulkanWindow::keyReleaseEvent(QKeyEvent* event) {
-  domain_visualizer_->OnInputEvent(
-      DomainVisualizer::KeyboardEvent{ConvertKeyFromQt(event->key()), false});
+  reify_window_->OnInputEvent(
+      window::Window::KeyboardEvent{ConvertKeyFromQt(event->key()), false});
 }
 
 std::unique_ptr<QWidget> MakeDomainVisualizerWidget(
-    DomainVisualizer* domain_visualizer, QWidget* parent) {
-  auto vulkan_window = new DomainVisualizerVulkanWindow(domain_visualizer);
+    window::Window* reify_window, QWidget* parent) {
+  auto vulkan_window = new DomainVisualizerVulkanWindow(reify_window);
 
-  std::unique_ptr<QWidget> domain_visualizer_widget(
+  std::unique_ptr<QWidget> reify_window_widget(
       QWidget::createWindowContainer(vulkan_window, parent));
 
   QVBoxLayout* layout = new QVBoxLayout();
-  layout->addWidget(domain_visualizer_widget.get());
+  layout->addWidget(reify_window_widget.get());
   parent->setLayout(layout);
 
-  return domain_visualizer_widget;
+  return reify_window_widget;
 }
 
 }  // namespace ide

@@ -124,20 +124,15 @@ utils::MaybeError RunVisualizerTool(
     }
   }
 
-  std::unique_ptr<imgui::LayerStack> imgui_layer_stack(new imgui::LayerStack({
-      [imgui_runtime_layer = std::make_shared<imgui::RuntimeLayer>()]() {
-        imgui_runtime_layer->ExecuteImGuiCommands();
-      },
-      [imgui_project_layer = std::make_shared<imgui::ProjectLayer>()]() {
-        imgui_project_layer->ExecuteImGuiCommands();
-      },
-  }));
+  imgui::RuntimeLayer runtime_layer;
+  imgui::ProjectLayer project_layer;
+  imgui::LayerStack imgui_layer_stack({
+      [&runtime_layer]() { runtime_layer.ExecuteImGuiCommands(); },
+      [&project_layer]() { project_layer.ExecuteImGuiCommands(); },
+  });
 
-  std::vector<std::unique_ptr<window::Window>> windows;
-  windows.push_back(std::move(domain_visualizer));
-  windows.push_back(std::move(imgui_layer_stack));
   std::unique_ptr<window::Window> window_stack(
-      new window::WindowStack(std::move(windows)));
+      new window::WindowStack({domain_visualizer.get(), &imgui_layer_stack}));
 
   return window::RunPlatformWindowWrapper(window_title,
                                           std::move(window_stack));

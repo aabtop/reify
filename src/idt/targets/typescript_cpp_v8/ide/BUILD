@@ -76,7 +76,7 @@ qt_cc_library(
         "//conditions:default": ["BAZEL_TARGET_OS_LINUX"],
     }),
     deps = [
-        "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
+        "//src/window",
     ],
 )
 
