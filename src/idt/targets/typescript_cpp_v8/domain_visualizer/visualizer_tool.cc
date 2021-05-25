@@ -1,7 +1,5 @@
 #include "reify/typescript_cpp_v8/visualizer_tool.h"
 
-#include <fmt/format.h>
-
 #include <filesystem>
 
 #include "CLI/CLI.hpp"
@@ -10,6 +8,7 @@
 #include "reify/typescript_cpp_v8/imgui/layer_stack.h"
 #include "reify/typescript_cpp_v8/imgui/project_layer.h"
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
+#include "reify/utils/thread_with_work_queue.h"
 #include "reify/window/platform_window_wrapper.h"
 #include "reify/window/window_stack.h"
 
@@ -38,104 +37,28 @@ std::variant<int, VisualizerToolOptions> ParseVisualizerToolOptions(
   return options;
 }
 
-namespace {
-utils::ErrorOr<std::shared_ptr<reify::CompiledModule>> CompileVirtualFile(
-    const std::vector<reify::CompilerEnvironment::InputModule>&
-        typescript_input_modules,
-    const std::string& virtual_filepath, reify::VirtualFilesystem* vfs) {
-  // V8 doesn't like being initialized on one thread and then used on another,
-  // so we just recreate the compiler environment each time.  This means we
-  // need to reload the TypeScript compiler every time we want to compile
-  // something, which kind of sucks.  The output of the Compile() call is
-  // completely independent of the compiler environment, so at least we're
-  // safe there.
-  auto result = [&]() {
-    reify::CompilerEnvironment compile_env(vfs, &typescript_input_modules);
-    return compile_env.Compile(virtual_filepath);
-  }();
-
-  if (auto error = std::get_if<0>(&result)) {
-    return utils::Error{fmt::format("{}:{}:{}: error: {}", error->path,
-                                    error->line + 1, error->column + 1,
-                                    error->message)};
-  }
-
-  return std::get<1>(result);
-}
-
-utils::ErrorOr<std::shared_ptr<reify::CompiledModule>> CompileFile(
-    const std::vector<reify::CompilerEnvironment::InputModule>&
-        typescript_input_modules,
-    const std::filesystem::path& filepath) {
-  if (!std::filesystem::exists(filepath) ||
-      std::filesystem::is_directory(filepath)) {
-    return utils::Error{fmt::format(
-        "Provided path {} either does not exist or is a directory, not a file.",
-        filepath.string())};
-  }
-
-  // Make or reference a virtual file system based on the current workspace.
-  auto absolute_input_source_file = std::filesystem::absolute(filepath);
-  auto project_directory = absolute_input_source_file.parent_path();
-
-  reify::MountedHostFolderFilesystem vfs(project_directory);
-
-  auto virtual_path = vfs.HostPathToVirtualPath(absolute_input_source_file);
-
-  if (!virtual_path) {
-    return utils::Error{fmt::format(
-        "Input file {} is not contained within the project root: {}",
-        filepath.string(), vfs.host_root().string())};
-  }
-
-  return CompileVirtualFile(typescript_input_modules, *virtual_path, &vfs);
-}
-}  // namespace
-
 utils::MaybeError RunVisualizerTool(
     const std::string& window_title,
-    std::unique_ptr<DomainVisualizer> domain_visualizer,
+    const std::function<std::unique_ptr<DomainVisualizer>()>&
+        create_domain_visualizer,
     const VisualizerToolOptions& options) {
-  if (options.project_path) {
-    REIFY_UTILS_ASSIGN_OR_RETURN(
-        compiled_module, CompileFile(domain_visualizer->GetTypeScriptModules(),
-                                     *options.project_path));
-    for (auto symbol : compiled_module->exported_symbols()) {
-      if (domain_visualizer->CanPreviewSymbol(symbol)) {
-        std::mutex mutex;
-        std::optional<
-            DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol>>
-            result;
-        std::condition_variable done_cond;
-        domain_visualizer->PrepareSymbolForPreview(
-            compiled_module, symbol, [&](auto x) {
-              std::lock_guard lock(mutex);
-              result = x;
-              done_cond.notify_all();
-            });
-        std::unique_lock lock(mutex);
-        done_cond.wait(lock, [&] { return result; });
+  utils::ThreadWithWorkQueue visualizer_thread;
 
-        if (auto error = std::get_if<0>(&(*result))) {
-          return utils::Error{error->msg};
-        }
-        domain_visualizer->Preview(std::get<1>(*result));
-      }
-    }
-  }
+  std::unique_ptr<DomainVisualizer> domain_visualizer =
+      create_domain_visualizer();
 
   imgui::RuntimeLayer runtime_layer(domain_visualizer.get());
-  imgui::ProjectLayer project_layer(&runtime_layer);
+  imgui::ProjectLayer project_layer(&visualizer_thread, &runtime_layer,
+                                    options.project_path);
   imgui::LayerStack imgui_layer_stack({
       [&runtime_layer]() { runtime_layer.ExecuteImGuiCommands(); },
       [&project_layer]() { project_layer.ExecuteImGuiCommands(); },
   });
 
-  std::unique_ptr<window::Window> window_stack(
-      new window::WindowStack({domain_visualizer.get(), &imgui_layer_stack}));
-
-  return window::RunPlatformWindowWrapper(window_title,
-                                          std::move(window_stack));
+  window::WindowStack window_stack(
+      {domain_visualizer.get(), &imgui_layer_stack});
+  return window::RunPlatformWindowWrapper(window_title, &window_stack,
+                                          &visualizer_thread);
 }
 
 }  // namespace typescript_cpp_v8

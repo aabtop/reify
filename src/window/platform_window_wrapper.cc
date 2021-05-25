@@ -20,24 +20,24 @@ namespace reify {
 namespace window {
 
 utils::MaybeError RunPlatformWindowWrapper(
-    const std::string& window_title, std::unique_ptr<Window> wrapped_window) {
+    const std::string& window_title, Window* wrapped_window,
+    utils::ThreadWithWorkQueue* wrapped_window_thread) {
   // Setup a quit_flag so that subsequent processes can signal back to us that
   // they'd like to quit (e.g. if someone presses the close button on the
   // window.)
   reify::utils::ThreadSafeCircularQueue<utils::MaybeError, 1> quit_flag;
 
-  // We'll be running all domain visualizer commands on this thread.
-  reify::utils::ThreadWithWorkQueue wrapped_window_thread;
+  // We'll be running all domain visualizer commands on `wrapped_window_thread`.
 
   auto set_wrapped_window_size = [&](int32_t width, int32_t height) {
-    wrapped_window_thread.Enqueue([&wrapped_window, width, height] {
+    wrapped_window_thread->Enqueue([wrapped_window, width, height] {
       wrapped_window->OnViewportResize({width, height});
     });
   };
 
   auto send_wrapped_window_input_event = [&](const Window::InputEvent& event) {
-    wrapped_window_thread.Enqueue(
-        [&wrapped_window, event] { wrapped_window->OnInputEvent(event); });
+    wrapped_window_thread->Enqueue(
+        [wrapped_window, event] { wrapped_window->OnInputEvent(event); });
   };
 
   // Create the window (its message loop will start running in a separate
@@ -113,7 +113,7 @@ utils::MaybeError RunPlatformWindowWrapper(
   std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
       previous_time = std::chrono::high_resolution_clock::now();
   reify::utils::ThreadWithWorkQueueLooper<vulkan_utils::Error> render_looper(
-      &wrapped_window_thread,
+      wrapped_window_thread,
       [&renderer, &wrapped_window_renderer, &previous_time, &wrapped_window]() {
         return renderer.swap_chain_renderer.Render(
             [&wrapped_window_renderer, &previous_time, &wrapped_window](

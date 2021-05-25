@@ -42,6 +42,7 @@ cc_library(
     deps = [
         ":imgui_runtime_layer",
         "@imgui//:frontend",
+        "@fmtlib",
     ],
     visibility = ["//visibility:public"],
 )

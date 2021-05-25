@@ -12,7 +12,8 @@ int main(int argc, char* argv[]) {
                    argc, argv));
 
   auto maybe_error = reify::typescript_cpp_v8::RunVisualizerTool(
-      APP_NAME, std::make_unique<DomainVisualizerHypo>(), options);
+      APP_NAME, [] { return std::make_unique<DomainVisualizerHypo>(); },
+      options);
 
   if (maybe_error) {
     std::cerr << "Error: " << maybe_error->msg << std::endl;

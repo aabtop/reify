@@ -6,13 +6,15 @@
 #include <vector>
 
 #include "reify/utils/error.h"
+#include "reify/utils/thread_with_work_queue.h"
 #include "reify/window/window.h"
 
 namespace reify {
 namespace window {
 
 utils::MaybeError RunPlatformWindowWrapper(
-    const std::string& window_title, std::unique_ptr<Window> domain_visualizer);
+    const std::string& window_title, Window* domain_visualizer,
+    utils::ThreadWithWorkQueue* wrapped_window_thread);
 
 }  // namespace window
 }  // namespace reify

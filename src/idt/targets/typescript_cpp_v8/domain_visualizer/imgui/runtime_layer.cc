@@ -6,6 +6,41 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
 
+RuntimeLayer::RuntimeLayer(DomainVisualizer* domain_visualizer)
+    : domain_visualizer_(domain_visualizer) {}
+
+void RuntimeLayer::SetCompiledModule(
+    const std::shared_ptr<reify::CompiledModule>& compiled_module) {
+  compiled_module_ = compiled_module;
+  if (!compiled_module_) {
+    preview_error_ = std::nullopt;
+    // TODO: Reset the current existing domain_visualizer_ preview.
+    return;
+  }
+
+  for (auto symbol : compiled_module->exported_symbols()) {
+    if (domain_visualizer_->CanPreviewSymbol(symbol)) {
+      std::mutex mutex;
+      std::optional<DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol>>
+          result;
+      std::condition_variable done_cond;
+      domain_visualizer_->PrepareSymbolForPreview(compiled_module, symbol,
+                                                  [&](auto x) {
+                                                    std::lock_guard lock(mutex);
+                                                    result = x;
+                                                    done_cond.notify_all();
+                                                  });
+      std::unique_lock lock(mutex);
+      done_cond.wait(lock, [&] { return result; });
+
+      if (auto error = std::get_if<0>(&(*result))) {
+        preview_error_ = utils::Error{error->msg};
+      }
+      domain_visualizer_->Preview(std::get<1>(*result));
+    }
+  }
+}
+
 void RuntimeLayer::ExecuteImGuiCommands() {
   ImGui::Begin("I AM A RUNTIME LAYER!!!");
 
