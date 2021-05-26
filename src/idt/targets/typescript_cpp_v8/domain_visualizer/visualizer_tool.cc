@@ -47,7 +47,9 @@ utils::MaybeError RunVisualizerTool(
   std::unique_ptr<DomainVisualizer> domain_visualizer =
       create_domain_visualizer();
 
-  imgui::RuntimeLayer runtime_layer(domain_visualizer.get());
+  imgui::RuntimeLayer runtime_layer(
+      [&visualizer_thread](auto x) { visualizer_thread.Enqueue(x); },
+      domain_visualizer.get());
   imgui::ProjectLayer project_layer(&visualizer_thread, &runtime_layer,
                                     options.project_path);
   imgui::LayerStack imgui_layer_stack({

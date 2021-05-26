@@ -6,8 +6,11 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
 
-RuntimeLayer::RuntimeLayer(DomainVisualizer* domain_visualizer)
-    : domain_visualizer_(domain_visualizer) {}
+RuntimeLayer::RuntimeLayer(
+    const std::function<void(std::function<void()>)>& enqueue_task_function,
+    DomainVisualizer* domain_visualizer)
+    : domain_visualizer_(domain_visualizer),
+      enqueue_task_function_(enqueue_task_function) {}
 
 void RuntimeLayer::SetCompiledModule(
     const std::shared_ptr<reify::CompiledModule>& compiled_module) {
@@ -20,23 +23,17 @@ void RuntimeLayer::SetCompiledModule(
 
   for (auto symbol : compiled_module->exported_symbols()) {
     if (domain_visualizer_->CanPreviewSymbol(symbol)) {
-      std::mutex mutex;
-      std::optional<DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol>>
-          result;
-      std::condition_variable done_cond;
-      domain_visualizer_->PrepareSymbolForPreview(compiled_module, symbol,
-                                                  [&](auto x) {
-                                                    std::lock_guard lock(mutex);
-                                                    result = x;
-                                                    done_cond.notify_all();
-                                                  });
-      std::unique_lock lock(mutex);
-      done_cond.wait(lock, [&] { return result; });
-
-      if (auto error = std::get_if<0>(&(*result))) {
-        preview_error_ = utils::Error{error->msg};
-      }
-      domain_visualizer_->Preview(std::get<1>(*result));
+      domain_visualizer_->PrepareSymbolForPreview(
+          compiled_module, symbol,
+          [this, enqueue_task_function = enqueue_task_function_](
+              DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol> x) {
+            enqueue_task_function([this, x] {
+              if (auto error = std::get_if<0>(&x)) {
+                preview_error_ = utils::Error{error->msg};
+              }
+              domain_visualizer_->Preview(std::get<1>(x));
+            });
+          });
     }
   }
 }

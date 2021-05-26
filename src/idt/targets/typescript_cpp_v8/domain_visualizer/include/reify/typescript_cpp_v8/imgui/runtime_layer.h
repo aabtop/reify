@@ -13,7 +13,9 @@ namespace imgui {
 
 class RuntimeLayer {
  public:
-  RuntimeLayer(DomainVisualizer* domain_visualizer);
+  RuntimeLayer(
+      const std::function<void(std::function<void()>)>& enqueue_task_function,
+      DomainVisualizer* domain_visualizer);
 
   void ExecuteImGuiCommands();
 
@@ -23,6 +25,7 @@ class RuntimeLayer {
       const std::shared_ptr<reify::CompiledModule>& compiled_module);
 
  private:
+  std::function<void(std::function<void()>)> enqueue_task_function_;
   DomainVisualizer* domain_visualizer_;
   std::shared_ptr<reify::CompiledModule> compiled_module_;
 
