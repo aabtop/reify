@@ -30,6 +30,10 @@ class RuntimeLayer {
   std::shared_ptr<reify::CompiledModule> compiled_module_;
 
   std::optional<utils::Error> preview_error_;
+
+  std::vector<reify::CompiledModule::ExportedSymbol> previewable_symbols_;
+
+  int selected_symbol_index_ = -1;
 };
 
 }  // namespace imgui
