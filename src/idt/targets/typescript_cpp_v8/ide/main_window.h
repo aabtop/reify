@@ -83,7 +83,6 @@ class MainWindow : public QMainWindow {
     QueryingContent,
     Saving,
     Compiling,
-    Building,
   };
   PendingOperation GetCurrentPendingOperation() const;
   bool HasPendingOperation() const {
@@ -98,8 +97,6 @@ class MainWindow : public QMainWindow {
   std::unique_ptr<MonacoInterface> monaco_interface_;
 
   std::unique_ptr<QProgressBar> progress_bar_;
-
-  bool domain_build_active_ = false;
 
   std::optional<SaveCompleteFunction> save_complete_callback_;
   std::optional<MonacoInterface::QueryContentReplyFunction>

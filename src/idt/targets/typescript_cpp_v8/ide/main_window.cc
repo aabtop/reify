@@ -343,48 +343,22 @@ bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
   auto compile_complete_callback =
       [this, build_complete_callback](
           std::shared_ptr<reify::CompiledModule> compiled_module) {
-        if (ui_->comboBox->currentIndex() == -1) {
-          if (ui_->comboBox->count() == 0) {
-            QMessageBox::warning(
-                this, "No symbols available",
-                QString("You must export symbols of the correct type."));
-            return;
-          } else if (ui_->comboBox->count() > 0) {
-            ui_->comboBox->setCurrentIndex(0);
-          }
-        }
-
-        std::string symbol_name = ui_->comboBox->currentText().toStdString();
-
-        domain_build_active_ = true;
+        visualizer_imgui_runtime_layer_.SetCompiledModule(compiled_module);
         UpdateUiState();
 
-        domain_visualizer_->PrepareSymbolForPreview(
-            compiled_module, *compiled_module->GetExportedSymbol(symbol_name),
-            [this, build_complete_callback](
-                DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol>
-                    prepared_symbol_or_error) {
-              // Since this callback could be called from any thread, we use
-              // `invokeMethod` to ensure we resolve this on the correct thread.
-              QMetaObject::invokeMethod(
-                  this, [this,
-                         prepared_symbol_or_error =
-                             std::move(prepared_symbol_or_error),
-                         build_complete_callback]() {
-                    domain_build_active_ = false;
-                    UpdateUiState();
+        bool previewable_symbols = false;
+        for (const auto& symbol : compiled_module->exported_symbols()) {
+          if (domain_visualizer_->CanPreviewSymbol(symbol)) {
+            previewable_symbols = true;
+          }
+        }
+        if (!previewable_symbols) {
+          QMessageBox::warning(
+              this, "No symbols available",
+              QString("You must export symbols of the correct type."));
+        }
 
-                    if (auto error =
-                            std::get_if<0>(&prepared_symbol_or_error)) {
-                      QMessageBox::warning(this, "Error building symbol",
-                                           QString(error->msg.c_str()));
-                      return;
-                    }
-                    domain_visualizer_->Preview(
-                        std::get<1>(prepared_symbol_or_error));
-                    build_complete_callback();
-                  });
-            });
+        build_complete_callback();
       };
   return Compile(compile_complete_callback);
 }
@@ -403,8 +377,6 @@ MainWindow::PendingOperation MainWindow::GetCurrentPendingOperation() const {
     return PendingOperation::QueryingContent;
   } else if (project_operation_) {
     return PendingOperation::Compiling;
-  } else if (domain_build_active_) {
-    return PendingOperation::Building;
   } else {
     return PendingOperation::Idle;
   }
@@ -421,31 +393,6 @@ void MainWindow::UpdateUiState() {
     title += " *";
   }
   setWindowTitle(title);
-
-  if (most_recent_compilation_results_) {
-    std::optional<QString> previous_combo_box_text;
-    if (ui_->comboBox->currentIndex() != -1) {
-      previous_combo_box_text = ui_->comboBox->currentText();
-    }
-
-    ui_->comboBox->clear();
-    if (most_recent_compilation_results_) {
-      for (const auto& symbol :
-           most_recent_compilation_results_->exported_symbols()) {
-        if (domain_visualizer_->CanPreviewSymbol(symbol)) {
-          ui_->comboBox->addItem(QString(symbol.name.c_str()));
-        }
-      }
-    }
-
-    if (!previous_combo_box_text) {
-      // If nothing was selected before the compile, maintain this.
-      ui_->comboBox->setCurrentIndex(-1);
-    } else {
-      ui_->comboBox->setCurrentIndex(
-          ui_->comboBox->findText(*previous_combo_box_text));
-    }
-  }
 
   switch (GetCurrentPendingOperation()) {
     case PendingOperation::Initializing: {
@@ -467,10 +414,6 @@ void MainWindow::UpdateUiState() {
     case PendingOperation::Compiling: {
       progress_bar_->setVisible(true);
       statusBar()->showMessage(tr("Compiling..."));
-    } break;
-    case PendingOperation::Building: {
-      progress_bar_->setVisible(true);
-      statusBar()->showMessage(tr("Building..."));
     } break;
   }
 }

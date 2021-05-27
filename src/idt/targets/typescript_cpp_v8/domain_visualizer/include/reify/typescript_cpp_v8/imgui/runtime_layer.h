@@ -24,7 +24,11 @@ class RuntimeLayer {
   void SetCompiledModule(
       const std::shared_ptr<reify::CompiledModule>& compiled_module);
 
+  bool build_active() const { return waiting_for_build_; };
+
  private:
+  void RebuildSelectedSymbol();
+
   const std::function<void(std::function<void()>)> enqueue_task_function_;
   DomainVisualizer* domain_visualizer_;
   std::shared_ptr<reify::CompiledModule> compiled_module_;
@@ -36,6 +40,7 @@ class RuntimeLayer {
   bool waiting_for_build_ = false;
 
   int selected_symbol_index_ = -1;
+  std::optional<std::string> selected_symbol_name_;
 };
 
 }  // namespace imgui
