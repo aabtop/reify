@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "reify/typescript_cpp_v8/imgui/widgets.h"
 
 namespace reify {
@@ -30,7 +31,6 @@ void RuntimeLayer::SetCompiledModule(
   }
   if (previewable_symbols_.empty()) {
     selected_symbol_index_ = -1;
-    selected_symbol_name_ = std::nullopt;
   } else {
     selected_symbol_index_ = 0;
     for (size_t i = 0; i < previewable_symbols_.size(); ++i) {
@@ -39,7 +39,6 @@ void RuntimeLayer::SetCompiledModule(
         break;
       }
     }
-    selected_symbol_name_ = previewable_symbols_[selected_symbol_index_].name;
   }
   RebuildSelectedSymbol();
 }
@@ -56,10 +55,24 @@ void RuntimeLayer::ExecuteImGuiCommands() {
       symbols.push_back(symbol.name.c_str());
     }
 
+    std::function<void()> pop_disable;
+    if (pending_preview_results_) {
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+      pop_disable = [] {
+        ImGui::PopItemFlag();
+        ImGui::PopStyleVar();
+      };
+    }
+
     if (ImGui::ListBox("Preview symbol", &selected_symbol_index_,
                        symbols.data(), symbols.size(), 6)) {
       selected_symbol_name_ = previewable_symbols_[selected_symbol_index_].name;
       RebuildSelectedSymbol();
+    }
+
+    if (pop_disable) {
+      pop_disable();
     }
 
     if (build_active()) {
@@ -83,7 +96,9 @@ void RuntimeLayer::RebuildSelectedSymbol() {
     return;
   }
 
+  selected_symbol_name_ = std::nullopt;
   if (selected_symbol_index_ >= 0) {
+    selected_symbol_name_ = previewable_symbols_[selected_symbol_index_].name;
     pending_preview_results_ =
         domain_visualizer_
             ->PrepareSymbolForPreview(
