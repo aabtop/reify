@@ -78,20 +78,33 @@ void RuntimeLayer::ExecuteImGuiCommands() {
 }
 
 void RuntimeLayer::RebuildSelectedSymbol() {
+  if (pending_preview_results_) {
+    // Don't rebuild if we're already rebuilding.
+    return;
+  }
+
   if (selected_symbol_index_ >= 0) {
-    waiting_for_build_ = true;
-    domain_visualizer_->PrepareSymbolForPreview(
-        compiled_module_, previewable_symbols_[selected_symbol_index_],
-        [this, enqueue_task_function = enqueue_task_function_](
-            DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol> x) {
-          enqueue_task_function([this, x] {
-            waiting_for_build_ = false;
-            if (auto error = std::get_if<0>(&x)) {
-              preview_error_ = utils::Error{error->msg};
-            }
-            domain_visualizer_->Preview(std::get<1>(x));
-          });
-        });
+    pending_preview_results_ =
+        domain_visualizer_
+            ->PrepareSymbolForPreview(
+                compiled_module_, previewable_symbols_[selected_symbol_index_])
+            .watch(
+                [this, enqueue_task_function = enqueue_task_function_](auto x) {
+                  enqueue_task_function([this, x] {
+                    pending_preview_results_ = std::nullopt;
+
+                    if (std::holds_alternative<utils::CancelledFuture>(x)) {
+                      preview_error_ = utils::Error{"Compilation cancelled."};
+                      return;
+                    }
+
+                    const auto& error_or = *std::get<1>(x);
+                    if (auto error = std::get_if<0>(&error_or)) {
+                      preview_error_ = utils::Error{error->msg};
+                    }
+                    domain_visualizer_->SetPreview(std::get<1>(error_or));
+                  });
+                });
   }
 }
 

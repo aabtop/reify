@@ -69,53 +69,50 @@ bool DomainVisualizerHypo::CanPreviewSymbol(
           symbol.HasType<reify::Function<hypo::Region3()>>());
 }
 
-void DomainVisualizerHypo::PrepareSymbolForPreview(
+reify::utils::Future<
+    DomainVisualizerHypo::ErrorOr<DomainVisualizerHypo::PreparedSymbol>>
+DomainVisualizerHypo::PrepareSymbolForPreview(
     std::shared_ptr<reify::CompiledModule> module,
-    const reify::CompiledModule::ExportedSymbol& symbol,
-    const std::function<void(ErrorOr<PreparedSymbol>)>& on_preview_prepared) {
-  std::thread thread([module, symbol = std::move(symbol),
-                      on_preview_prepared = std::move(on_preview_prepared)]() {
-    // Setup a V8 runtime environment around the CompiledModule.  This will
-    // enable us to call exported functions and query exported values from the
-    // module.
-    auto runtime_env_or_error = reify::CreateRuntimeEnvironment(module);
-    if (auto error = std::get_if<0>(&runtime_env_or_error)) {
-      on_preview_prepared(*error);
-      return;
-    }
+    const reify::CompiledModule::ExportedSymbol& symbol) {
+  return builder_thread_.Enqueue<ErrorOr<PreparedSymbol>>(
+      [module, symbol = std::move(symbol)]() -> ErrorOr<PreparedSymbol> {
+        // Setup a V8 runtime environment around the CompiledModule.  This will
+        // enable us to call exported functions and query exported values from
+        // the module.
+        auto runtime_env_or_error = reify::CreateRuntimeEnvironment(module);
+        if (auto error = std::get_if<0>(&runtime_env_or_error)) {
+          return Error{*error};
+        }
 
-    reify::RuntimeEnvironment runtime_env(
-        std::move(std::get<1>(runtime_env_or_error)));
+        reify::RuntimeEnvironment runtime_env(
+            std::move(std::get<1>(runtime_env_or_error)));
 
-    if (symbol.HasType<reify::Function<hypo::Region3()>>()) {
-      auto entry_point_or_error =
-          runtime_env.GetExport<reify::Function<hypo::Region3()>>(symbol.name);
-      if (auto error = std::get_if<0>(&entry_point_or_error)) {
-        on_preview_prepared("Problem finding entrypoint function: " + *error);
-        return;
-      }
-      auto entry_point = &std::get<1>(entry_point_or_error);
+        if (symbol.HasType<reify::Function<hypo::Region3()>>()) {
+          auto entry_point_or_error =
+              runtime_env.GetExport<reify::Function<hypo::Region3()>>(
+                  symbol.name);
+          if (auto error = std::get_if<0>(&entry_point_or_error)) {
+            return Error{"Problem finding entrypoint function: " + *error};
+          }
+          auto entry_point = &std::get<1>(entry_point_or_error);
 
-      auto result_or_error = entry_point->Call();
-      if (auto error = std::get_if<0>(&result_or_error)) {
-        on_preview_prepared("Error running function: " + *error);
-        return;
-      }
+          auto result_or_error = entry_point->Call();
+          if (auto error = std::get_if<0>(&result_or_error)) {
+            return Error{"Error running function: " + *error};
+          }
 
-      hypo::Region3 result = std::get<1>(result_or_error);
+          hypo::Region3 result = std::get<1>(result_or_error);
 
-      hypo::cgal::Nef_polyhedron_3 polyhedron3 =
-          hypo::cgal::ConstructRegion3(result);
+          hypo::cgal::Nef_polyhedron_3 polyhedron3 =
+              hypo::cgal::ConstructRegion3(result);
 
-      on_preview_prepared(std::shared_ptr<TriangleSoup>(
-          new TriangleSoup(ConvertToTriangleSoup(polyhedron3))));
-    }
-  });
-
-  thread.detach();  // TODO: Manage the threading framework better.
+          return std::shared_ptr<TriangleSoup>(
+              new TriangleSoup(ConvertToTriangleSoup(polyhedron3)));
+        }
+      });
 }
 
-void DomainVisualizerHypo::Preview(const PreparedSymbol& prepared_symbol) {
+void DomainVisualizerHypo::SetPreview(const PreparedSymbol& prepared_symbol) {
   auto triangle_soup =
       std::any_cast<std::shared_ptr<TriangleSoup>>(prepared_symbol);
 

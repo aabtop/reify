@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "reify/typescript_cpp_v8.h"
+#include "reify/utils/future.h"
 #include "reify/window/window.h"
 
 namespace reify {
@@ -31,12 +32,10 @@ class DomainVisualizer : public window::Window {
       const reify::CompiledModule::ExportedSymbol& symbol) = 0;
 
   // The callback, `on_preview_prepared`, may be called from a separate thread.
-  virtual void PrepareSymbolForPreview(
+  virtual utils::Future<ErrorOr<PreparedSymbol>> PrepareSymbolForPreview(
       std::shared_ptr<reify::CompiledModule> module,
-      const reify::CompiledModule::ExportedSymbol& symbol,
-      const std::function<void(ErrorOr<PreparedSymbol>)>&
-          on_preview_prepared) = 0;
-  virtual void Preview(const PreparedSymbol& prepared_symbol) = 0;
+      const reify::CompiledModule::ExportedSymbol& symbol) = 0;
+  virtual void SetPreview(const PreparedSymbol& prepared_symbol) = 0;
 };
 
 }  // namespace typescript_cpp_v8

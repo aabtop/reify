@@ -24,7 +24,7 @@ class RuntimeLayer {
   void SetCompiledModule(
       const std::shared_ptr<reify::CompiledModule>& compiled_module);
 
-  bool build_active() const { return waiting_for_build_; };
+  bool build_active() const { return !!pending_preview_results_; };
 
  private:
   void RebuildSelectedSymbol();
@@ -37,7 +37,9 @@ class RuntimeLayer {
 
   std::vector<reify::CompiledModule::ExportedSymbol> previewable_symbols_;
 
-  bool waiting_for_build_ = false;
+  std::optional<utils::Future<
+      DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol>>::Watch>
+      pending_preview_results_;
 
   int selected_symbol_index_ = -1;
   std::optional<std::string> selected_symbol_name_;
