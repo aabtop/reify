@@ -37,10 +37,6 @@ class ProjectLayer {
   std::optional<utils::Future<
       utils::ErrorOr<std::shared_ptr<reify::CompiledModule>>>::Watch>
       pending_compilation_results_;
-
-  bool checkbox_ = false;
-  float f_ = 0.25f;
-  int counter_ = 5;
 };
 
 }  // namespace imgui

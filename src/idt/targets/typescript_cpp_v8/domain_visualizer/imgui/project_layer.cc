@@ -108,22 +108,8 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
 }
 
 void ProjectLayer::ExecuteImGuiCommands() {
-  ImGui::Begin("Hello, world!");
+  ImGui::Begin("Project");
 
-  ImGui::Text("This is some useful text.");
-  ImGui::Checkbox("Demo Window", &checkbox_);
-
-  ImGui::SliderFloat("float", &f_, 0.0f, 1.0f);
-
-  if (ImGui::Button("Button")) {
-    counter_++;
-    LoadProject(*current_project_path_);
-  }
-  ImGui::SameLine();
-  ImGui::Text("counter = %d", counter_);
-
-  ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-              1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
   ImGui::End();
 }
 

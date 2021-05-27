@@ -13,6 +13,21 @@ cc_library(
 )
 
 cc_library(
+    name = "imgui_widgets",
+    srcs = [
+        "imgui/widgets.cc",
+    ],
+    hdrs = ["include/reify/typescript_cpp_v8/imgui/widgets.h"],
+    includes = [
+        "include",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@imgui//:frontend",
+    ],
+)
+
+cc_library(
     name = "imgui_layer_stack",
     srcs = [
         "imgui/layer_stack.cc",
@@ -58,7 +73,9 @@ cc_library(
     ],
     deps = [
         ":interface",
+        ":imgui_widgets",
         "@imgui//:frontend",
+        "@fmtlib",
     ],
     visibility = ["//visibility:public"],
 )

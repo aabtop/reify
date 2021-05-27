@@ -1,6 +1,9 @@
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
 
+#include <fmt/format.h>
+
 #include "imgui.h"
+#include "reify/typescript_cpp_v8/imgui/widgets.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
@@ -28,7 +31,7 @@ void RuntimeLayer::SetCompiledModule(
 }
 
 void RuntimeLayer::ExecuteImGuiCommands() {
-  ImGui::Begin("Symbols");
+  ImGui::Begin("Runtime");
 
   if (compiled_module_) {
     std::vector<const char*> symbols;
@@ -40,11 +43,13 @@ void RuntimeLayer::ExecuteImGuiCommands() {
     if (ImGui::ListBox("Preview symbol", &selected_symbol_index_,
                        symbols.data(), symbols.size(), 6)) {
       if (selected_symbol_index_ >= 0) {
+        waiting_for_build_ = true;
         domain_visualizer_->PrepareSymbolForPreview(
             compiled_module_, previewable_symbols_[selected_symbol_index_],
             [this, enqueue_task_function = enqueue_task_function_](
                 DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol> x) {
               enqueue_task_function([this, x] {
+                waiting_for_build_ = false;
                 if (auto error = std::get_if<0>(&x)) {
                   preview_error_ = utils::Error{error->msg};
                 }
@@ -52,6 +57,15 @@ void RuntimeLayer::ExecuteImGuiCommands() {
               });
             });
       }
+    }
+
+    if (waiting_for_build_) {
+      Spinner("building spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
+              ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
+      ImGui::SameLine();
+      ImGui::Text(fmt::format("Building {}...",
+                              previewable_symbols_[selected_symbol_index_].name)
+                      .c_str());
     }
   }
 

@@ -25,13 +25,15 @@ class RuntimeLayer {
       const std::shared_ptr<reify::CompiledModule>& compiled_module);
 
  private:
-  std::function<void(std::function<void()>)> enqueue_task_function_;
+  const std::function<void(std::function<void()>)> enqueue_task_function_;
   DomainVisualizer* domain_visualizer_;
   std::shared_ptr<reify::CompiledModule> compiled_module_;
 
   std::optional<utils::Error> preview_error_;
 
   std::vector<reify::CompiledModule::ExportedSymbol> previewable_symbols_;
+
+  bool waiting_for_build_ = false;
 
   int selected_symbol_index_ = -1;
 };

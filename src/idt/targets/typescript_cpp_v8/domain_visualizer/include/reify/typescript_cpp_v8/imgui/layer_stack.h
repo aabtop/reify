@@ -28,7 +28,8 @@ class LayerStack : public window::Window {
  private:
   std::vector<Layer> layers_;
 
-  std::chrono::duration<float> accumulated_time_since_last_render_;
+  std::chrono::duration<float> accumulated_time_since_last_render_ =
+      std::chrono::duration<float>::zero();
 };
 
 }  // namespace imgui
