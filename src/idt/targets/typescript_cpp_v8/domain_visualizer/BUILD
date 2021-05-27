@@ -56,6 +56,7 @@ cc_library(
     ],
     deps = [
         ":imgui_runtime_layer",
+        ":imgui_widgets",
         "@imgui//:frontend",
         "@fmtlib",
     ],

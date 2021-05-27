@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include "imgui.h"
+#include "reify/typescript_cpp_v8/imgui/widgets.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
@@ -74,6 +75,11 @@ ProjectLayer::ProjectLayer(
 }
 
 void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
+  if (pending_compilation_results_) {
+    // Don't interrupt an existing load.
+    return;
+  }
+
   if (current_project_path_ && project_path != *current_project_path_) {
     // If the project path changes, clear out previous results immediately.
     compilation_results_ = std::nullopt;
@@ -109,6 +115,14 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
 
 void ProjectLayer::ExecuteImGuiCommands() {
   ImGui::Begin("Project");
+
+  if (pending_compilation_results_) {
+    Spinner("compiling spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
+            ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
+    ImGui::SameLine();
+    ImGui::Text(fmt::format("Compiling {}...", current_project_path_->string())
+                    .c_str());
+  }
 
   ImGui::End();
 }
