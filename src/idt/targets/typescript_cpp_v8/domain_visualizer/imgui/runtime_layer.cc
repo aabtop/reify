@@ -45,6 +45,8 @@ void RuntimeLayer::SetCompiledModule(
 }
 
 void RuntimeLayer::ExecuteImGuiCommands() {
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(300, 250));
+
   ImGui::Begin("Runtime");
 
   if (compiled_module_) {
@@ -71,6 +73,8 @@ void RuntimeLayer::ExecuteImGuiCommands() {
   }
 
   ImGui::End();
+
+  ImGui::PopStyleVar();
 }
 
 void RuntimeLayer::RebuildSelectedSymbol() {
