@@ -3,6 +3,8 @@
 #include <fmt/format.h>
 
 #include "imgui.h"
+#include "imgui_internal.h"
+#include "reify/typescript_cpp_v8/imgui/utils.h"
 #include "reify/typescript_cpp_v8/imgui/widgets.h"
 
 namespace reify {
@@ -115,6 +117,27 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
 
 void ProjectLayer::ExecuteImGuiCommands() {
   ImGui::Begin("Project");
+
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 10));
+  if (ImGui::BeginMainMenuBar()) {
+    {
+      DisableIf disable_if_no_project_loaded(!current_project_path_);
+      if (ImGui::BeginMenu("Project")) {
+        if (ImGui::MenuItem("Recompile", "CTRL+B")) {
+          LoadProject(*current_project_path_);
+        }
+        ImGui::EndMenu();
+      }
+    }
+
+    if (ImGui::BeginMenu("Help")) {
+      ImGui::MenuItem("About");
+      ImGui::EndMenu();
+    }
+
+    ImGui::EndMainMenuBar();
+  }
+  ImGui::PopStyleVar();
 
   if (pending_compilation_results_) {
     Spinner("compiling spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},

@@ -170,7 +170,7 @@
     <string>Preview</string>
    </property>
    <property name="shortcut">
-    <string>F5</string>
+    <string>Ctrl+B</string>
    </property>
   </action>
  </widget>

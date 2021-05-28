@@ -44,7 +44,7 @@ void RuntimeLayer::SetCompiledModule(
 }
 
 void RuntimeLayer::ExecuteImGuiCommands() {
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(300, 250));
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 250));
 
   ImGui::Begin("Runtime");
 
