@@ -12,7 +12,8 @@ namespace imgui {
 
 class DockingLayer {
  public:
-  DockingLayer();
+  DockingLayer(ImGuiDir default_docked_direction)
+      : default_docked_direction_(default_docked_direction) {}
 
   void ExecuteImGuiCommands();
 
@@ -22,6 +23,7 @@ class DockingLayer {
   ImGuiID dock_right_id() const { return *dock_right_id_; }
 
  private:
+  const ImGuiDir default_docked_direction_;
   std::optional<ImGuiID> viewport_dock_id_;
   std::optional<ImGuiID> dock_main_id_;
   std::optional<ImGuiID> dock_right_id_;

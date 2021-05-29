@@ -9,8 +9,6 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
 
-DockingLayer::DockingLayer() {}
-
 namespace {
 ImGuiDockNode* FindFirstEmptySpaceNode(ImGuiDockNode* root) {
   if (!root) {
@@ -42,7 +40,8 @@ void DockingLayer::ExecuteImGuiCommands() {
       nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
   if (!dock_right_id_) {
     dock_right_id_ = ImGui::DockBuilderSplitNode(
-        viewport_dock_id(), ImGuiDir_Right, 0.2f, nullptr, &(*dock_main_id_));
+        viewport_dock_id(), default_docked_direction_, 0.2f, nullptr,
+        &(*dock_main_id_));
   }
 }
 
