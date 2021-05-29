@@ -54,7 +54,7 @@ utils::MaybeError RunVisualizerTool(
       create_domain_visualizer();
   window::WindowViewport domain_visualizer_viewport(domain_visualizer.get());
 
-  imgui::DockingLayer docking_layer(ImGuiDir_Right);
+  imgui::DockingLayer docking_layer(ImGuiDir_Right, 0.2f);
   imgui::DockingFreespaceToWindowViewportLayer
       docking_freespace_to_window_viewport_layer(&domain_visualizer_viewport,
                                                  &docking_layer);

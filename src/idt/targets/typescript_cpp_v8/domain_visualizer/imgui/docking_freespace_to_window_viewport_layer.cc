@@ -8,7 +8,7 @@ namespace typescript_cpp_v8 {
 namespace imgui {
 
 void DockingFreespaceToWindowViewportLayer::ExecuteImGuiCommands() {
-  ImGuiDockNode* node = docking_layer_->GetEmptySpaceNodeId();
+  ImGuiDockNode* node = docking_layer_->GetEmptySpaceNode();
   ImGuiViewport* viewport = ImGui::GetMainViewport();
   window::Rect new_viewport = [&] {
     if (!node) {
@@ -28,14 +28,6 @@ void DockingFreespaceToWindowViewportLayer::ExecuteImGuiCommands() {
       };
     }
   }();
-  /*
-  window_viewport_->SetViewport({
-      static_cast<int>(rect.Min.x + viewport->WorkPos.x),
-      static_cast<int>(rect.Min.y + viewport->WorkPos.y),
-      static_cast<int>(rect.Max.x + viewport->WorkPos.x),
-      static_cast<int>(rect.Max.y + viewport->WorkPos.y),
-  });
-  */
 
   if (!window_viewport_->viewport() ||
       !(*window_viewport_->viewport() == new_viewport)) {

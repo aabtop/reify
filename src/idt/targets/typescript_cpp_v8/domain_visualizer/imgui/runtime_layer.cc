@@ -51,11 +51,14 @@ void RuntimeLayer::ExecuteImGuiCommands() {
   ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 250));
 
   // Place this window within the right dock ID by default.
-  if (!set_dock_id_) {
-    ImGui::SetNextWindowDockID(docking_layer_->dock_right_id());
-    set_dock_id_ = true;
+  const char* WINDOW_NAME = "Runtime";
+  if (!ImGui::FindWindowByName(WINDOW_NAME)) {
+    // If this is the first time we're seeing this window, default it into
+    // the docked content menu.
+    ImGui::SetNextWindowDockID(docking_layer_->GetDockedContentNodeId());
   }
-  ImGui::Begin("Runtime");
+
+  ImGui::Begin(WINDOW_NAME);
 
   if (compiled_module_) {
     std::vector<const char*> symbols;

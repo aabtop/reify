@@ -50,8 +50,6 @@ class RuntimeLayer {
   std::optional<std::string> selected_symbol_name_;
 
   std::optional<StatusLayer::Window> status_window_;
-
-  bool set_dock_id_ = false;
 };
 
 }  // namespace imgui
