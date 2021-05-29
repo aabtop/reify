@@ -95,7 +95,8 @@ ImGuiID DockingLayer::GetDockedContentNodeId() const {
 
 void DockingLayer::ExecuteImGuiCommands() {
   viewport_dock_id_ = ImGui::DockSpaceOverViewport(
-      nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
+      nullptr, ImGuiDockNodeFlags_PassthruCentralNode |
+                   ImGuiDockNodeFlags_NoDockingInCentralNode);
 }
 
 ImGuiID DockingLayer::SplitNodeAndReturnContent(ImGuiID parent_node) const {
