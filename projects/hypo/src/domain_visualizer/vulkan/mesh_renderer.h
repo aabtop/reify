@@ -35,10 +35,10 @@ class MeshRenderer {
   std::optional<Error> SetTriangleSoup(
       std::shared_ptr<const TriangleSoup> triangle_soup);
 
-  ErrorOr<FrameResources> RenderFrame(
-      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      const std::array<uint32_t, 2>& output_surface_size,
-      const glm::mat4& view_matrix);
+  ErrorOr<FrameResources> RenderFrame(VkCommandBuffer command_buffer,
+                                      VkFramebuffer framebuffer,
+                                      const std::array<int, 4>& viewport_region,
+                                      const glm::mat4& view_matrix);
 
  private:
   struct MeshRendererConstructorData {

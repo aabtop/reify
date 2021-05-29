@@ -132,6 +132,23 @@ cc_library(
 )
 
 cc_library(
+    name = "imgui_docking_freespace_to_window_viewport_layer",
+    srcs = [
+        "imgui/docking_freespace_to_window_viewport_layer.cc",
+    ],
+    hdrs = ["include/reify/typescript_cpp_v8/imgui/docking_freespace_to_window_viewport_layer.h"],
+    includes = [
+        "include",
+    ],
+    deps = [
+        ":imgui_docking_layer",
+        "//src/window:window_utils",
+        "@imgui//:frontend",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "visualizer_tool",
     srcs = [
         "visualizer_tool.cc",
@@ -148,7 +165,8 @@ cc_library(
         ":imgui_runtime_layer",
         ":imgui_status_layer",
         ":imgui_docking_layer",
-        "//src/window:window_stack",
+        ":imgui_docking_freespace_to_window_viewport_layer",
+        "//src/window:window_utils",
         "//src/window:platform_window_wrapper",
         "//src/utils",
         "//third_party:CLI11",

@@ -110,30 +110,33 @@ MeshRenderer::ErrorOr<MeshRenderer> MeshRenderer::Create(
 
 MeshRenderer::~MeshRenderer() {}
 
-auto MeshRenderer::RenderFrame(
-    VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-    const std::array<uint32_t, 2>& output_surface_size,
-    const glm::mat4& view_matrix) -> ErrorOr<FrameResources> {
+auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
+                               VkFramebuffer framebuffer,
+                               const std::array<int, 4>& viewport_region,
+                               const glm::mat4& view_matrix)
+    -> ErrorOr<FrameResources> {
   VkViewport viewport;
-  viewport.x = 0;
-  viewport.y = 0;
-  viewport.width = output_surface_size[0];
-  viewport.height = output_surface_size[1];
+  viewport.x = viewport_region[0];
+  viewport.y = viewport_region[1];
+  viewport.width = viewport_region[2] - viewport_region[0];
+  viewport.height = viewport_region[3] - viewport_region[1];
   viewport.minDepth = 0;
   viewport.maxDepth = 1;
   vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
   VkRect2D scissor;
-  scissor.offset.x = 0;
-  scissor.offset.y = 0;
-  scissor.extent.width = output_surface_size[0];
-  scissor.extent.height = output_surface_size[1];
+  scissor.offset.x = viewport_region[0];
+  scissor.offset.y = viewport_region[1];
+  scissor.extent.width = viewport_region[2] - viewport_region[0];
+  scissor.extent.height = viewport_region[3] - viewport_region[1];
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
   glm::mat4 projection_matrix =
-      glm::perspective(45.0f,
-                       output_surface_size[0] / (float)output_surface_size[1],
-                       0.0001f, 10000.0f)
+      glm::perspective(
+          45.0f,
+          (viewport_region[2] - viewport_region[0]) /
+              static_cast<float>(viewport_region[3] - viewport_region[1]),
+          0.0001f, 10000.0f)
       // Flip the y and z axes so that positive y is up and positive z is away.
       * glm::scale(glm::mat4(1), glm::vec3(1.0f, -1.0f, -1.0f));
   glm::mat4 model_matrix = glm::mat4(1.0f);
@@ -173,8 +176,8 @@ auto MeshRenderer::RenderFrame(
   rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   rpb.renderPass = data_.render_pass.value();
   rpb.framebuffer = framebuffer;
-  rpb.renderArea.extent.width = output_surface_size[0];
-  rpb.renderArea.extent.height = output_surface_size[1];
+  rpb.renderArea.extent.width = viewport_region[2];
+  rpb.renderArea.extent.height = viewport_region[3];
   rpb.clearValueCount = clear_values.size();
   rpb.pClearValues = clear_values.data();
 

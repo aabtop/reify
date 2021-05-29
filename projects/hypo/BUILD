@@ -93,7 +93,7 @@ qt_cc_binary(
     "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_layer_stack",
     "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_runtime_layer",
     "@reify//src/window:window",
-    "@reify//src/window:window_stack",
+    "@reify//src/window:window_utils",
   ],
 )
 

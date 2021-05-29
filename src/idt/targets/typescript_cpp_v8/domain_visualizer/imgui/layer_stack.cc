@@ -117,7 +117,7 @@ class RendererImGui : public window::Window::Renderer {
 
   ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      const std::array<uint32_t, 2>& output_surface_size) override;
+      const window::Rect& viewport_region) override;
 
  private:
   VulkanConstructorData vulkan_constructor_data_;
@@ -248,9 +248,9 @@ RendererImGui::CreateVulkanConstructorData(VkInstance instance,
 window::Window::ErrorOr<window::Window::Renderer::FrameResources>
 RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
                            VkFramebuffer framebuffer,
-                           const std::array<uint32_t, 2>& output_surface_size) {
+                           const window::Rect& viewport_region) {
   ImGuiIO& io = ImGui::GetIO();
-  io.DisplaySize = ImVec2(output_surface_size[0], output_surface_size[1]);
+  io.DisplaySize = ImVec2(viewport_region.width(), viewport_region.height());
   io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
   io.DeltaTime = std::max(time_since_last_render_->count(), 0.000000001f);
   *time_since_last_render_ = std::chrono::duration<float>::zero();
@@ -284,8 +284,8 @@ RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
   rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   rpb.renderPass = vulkan_constructor_data_.render_pass.value();
   rpb.framebuffer = framebuffer;
-  rpb.renderArea.extent.width = output_surface_size[0];
-  rpb.renderArea.extent.height = output_surface_size[1];
+  rpb.renderArea.extent.width = viewport_region.width();
+  rpb.renderArea.extent.height = viewport_region.height();
   rpb.clearValueCount = 0;
   rpb.pClearValues = nullptr;
 

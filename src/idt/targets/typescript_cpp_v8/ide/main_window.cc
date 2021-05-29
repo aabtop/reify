@@ -8,8 +8,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "reify/typescript_cpp_v8/imgui/layer_stack.h"
-#include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
+#include "reify/window/window_viewport.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/about_dialog.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/reify_window_qt_widget.h"
@@ -26,6 +25,9 @@ MainWindow::MainWindow(const std::string& window_title,
       ui_(new Ui::MainWindow),
       default_title_(QString(window_title.c_str())),
       domain_visualizer_(std::move(domain_visualizer)),
+      visualizer_window_viewport_(domain_visualizer_.get()),
+      visualizer_imgui_docking_freespace_to_window_viewport_layer_(
+          &visualizer_window_viewport_, &visualizer_imgui_docking_layer_),
       visualizer_imgui_runtime_layer_(
           [this](std::function<void()> x) {
             QMetaObject::invokeMethod(this, x);
@@ -42,8 +44,13 @@ MainWindow::MainWindow(const std::string& window_title,
           [runtime_layer = &visualizer_imgui_runtime_layer_]() {
             runtime_layer->ExecuteImGuiCommands();
           },
+          [docking_freespace_to_window_viewport_layer =
+               &visualizer_imgui_docking_freespace_to_window_viewport_layer_]() {
+            docking_freespace_to_window_viewport_layer->ExecuteImGuiCommands();
+          },
       }),
-      visualizer_window_({domain_visualizer_.get(), &visualizer_imgui_stack_}) {
+      visualizer_window_(
+          {&visualizer_window_viewport_, &visualizer_imgui_stack_}) {
   ui_->setupUi(this);
 
   ui_->visualizer->setAutoFillBackground(false);

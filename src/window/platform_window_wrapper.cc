@@ -125,7 +125,9 @@ utils::MaybeError RunPlatformWindowWrapper(
               }
               previous_time = current_time;
               return wrapped_window_renderer->RenderFrame(
-                  command_buffer, framebuffer, output_surface_size);
+                  command_buffer, framebuffer,
+                  {0, 0, static_cast<int>(output_surface_size[0]),
+                   static_cast<int>(output_surface_size[1])});
             });
       },
       [&quit_flag](const vulkan_utils::Error& error) {

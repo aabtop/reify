@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/typescript_cpp_v8/imgui/docking_freespace_to_window_viewport_layer.h"
 #include "reify/typescript_cpp_v8/imgui/layer_stack.h"
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
 #include "reify/typescript_cpp_v8/imgui/status_layer.h"
@@ -94,8 +95,11 @@ class MainWindow : public QMainWindow {
   QString default_title_;
 
   std::unique_ptr<DomainVisualizer> domain_visualizer_;
+  window::WindowViewport visualizer_window_viewport_;
 
   imgui::DockingLayer visualizer_imgui_docking_layer_;
+  imgui::DockingFreespaceToWindowViewportLayer
+      visualizer_imgui_docking_freespace_to_window_viewport_layer_;
   imgui::StatusLayer visualizer_imgui_status_layer_;
   imgui::RuntimeLayer visualizer_imgui_runtime_layer_;
   imgui::LayerStack visualizer_imgui_stack_;

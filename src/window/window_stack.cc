@@ -36,15 +36,15 @@ class RendererWindowStack : public Window::Renderer {
   RendererWindowStack(std::vector<std::unique_ptr<Renderer>>&& sub_renderers)
       : sub_renderers_(std::move(sub_renderers)) {}
 
-  ErrorOr<FrameResources> RenderFrame(
-      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      const std::array<uint32_t, 2>& output_surface_size) override {
+  ErrorOr<FrameResources> RenderFrame(VkCommandBuffer command_buffer,
+                                      VkFramebuffer framebuffer,
+                                      const Rect& viewport_region) override {
     std::vector<FrameResources> frame_resources;
     for (const auto& sub_renderer : sub_renderers_) {
       REIFY_UTILS_ASSIGN_OR_RETURN(
           sub_frame_resources,
           sub_renderer->RenderFrame(command_buffer, framebuffer,
-                                    output_surface_size));
+                                    viewport_region));
       frame_resources.push_back(std::move(sub_frame_resources));
     }
     return std::move(frame_resources);

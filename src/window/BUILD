@@ -13,12 +13,14 @@ cc_library(
 )
 
 cc_library(
-    name = "window_stack",
+    name = "window_utils",
     hdrs = [
         "include/reify/window/window_stack.h",
+        "include/reify/window/window_viewport.h",
     ],
     srcs = [
-        "window_stack.cc"
+        "window_stack.cc",
+        "window_viewport.cc",
     ],
     includes = [
         "include",

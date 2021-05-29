@@ -7,6 +7,7 @@
 #include "imgui_internal.h"
 #include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/typescript_cpp_v8/imgui/docking_freespace_to_window_viewport_layer.h"
 #include "reify/typescript_cpp_v8/imgui/docking_layer.h"
 #include "reify/typescript_cpp_v8/imgui/layer_stack.h"
 #include "reify/typescript_cpp_v8/imgui/project_layer.h"
@@ -15,6 +16,7 @@
 #include "reify/utils/thread_with_work_queue.h"
 #include "reify/window/platform_window_wrapper.h"
 #include "reify/window/window_stack.h"
+#include "reify/window/window_viewport.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
@@ -50,23 +52,29 @@ utils::MaybeError RunVisualizerTool(
 
   std::unique_ptr<DomainVisualizer> domain_visualizer =
       create_domain_visualizer();
+  window::WindowViewport domain_visualizer_viewport(domain_visualizer.get());
 
   imgui::DockingLayer docking_layer;
+  imgui::DockingFreespaceToWindowViewportLayer
+      docking_freespace_to_window_viewport_layer(&domain_visualizer_viewport,
+                                                 &docking_layer);
   imgui::StatusLayer status_layer;
   imgui::RuntimeLayer runtime_layer(
       [&visualizer_thread](auto x) { visualizer_thread.Enqueue(x); },
       &docking_layer, &status_layer, domain_visualizer.get());
   imgui::ProjectLayer project_layer(&visualizer_thread, &status_layer,
                                     &runtime_layer, options.project_path);
-  imgui::LayerStack imgui_layer_stack({
-      [&docking_layer] { docking_layer.ExecuteImGuiCommands(); },
-      [&runtime_layer] { runtime_layer.ExecuteImGuiCommands(); },
-      [&project_layer] { project_layer.ExecuteImGuiCommands(); },
-      [&status_layer] { status_layer.ExecuteImGuiCommands(); },
-  });
+  imgui::LayerStack imgui_layer_stack(
+      {[&docking_layer] { docking_layer.ExecuteImGuiCommands(); },
+       [&runtime_layer] { runtime_layer.ExecuteImGuiCommands(); },
+       [&project_layer] { project_layer.ExecuteImGuiCommands(); },
+       [&status_layer] { status_layer.ExecuteImGuiCommands(); },
+       [&docking_freespace_to_window_viewport_layer] {
+         docking_freespace_to_window_viewport_layer.ExecuteImGuiCommands();
+       }});
 
   window::WindowStack window_stack(
-      {domain_visualizer.get(), &imgui_layer_stack});
+      {&domain_visualizer_viewport, &imgui_layer_stack});
   return window::RunPlatformWindowWrapper(window_title, &window_stack,
                                           &visualizer_thread);
 }

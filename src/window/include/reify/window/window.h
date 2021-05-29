@@ -15,6 +15,19 @@
 namespace reify {
 namespace window {
 
+struct Rect {
+  int left;
+  int top;
+  int right;
+  int bottom;
+
+  int width() const { return right - left; }
+  int height() const { return bottom - top; }
+  bool inside(int x, int y) const {
+    return left <= x && x < right && top <= y && y < bottom;
+  }
+};
+
 // An abstract Window, which accepts input and renders with Vulkan.
 // The intention is that this can be wrapped by concrete window types, such
 // as concrete platform windows (like Win32 and X11), or as a widget inside
@@ -54,6 +67,7 @@ class Window {
   };
   using InputEvent = std::variant<MouseMoveEvent, MouseButtonEvent,
                                   MouseWheelEvent, KeyboardEvent>;
+
   class Renderer {
    public:
     template <typename T>
@@ -62,7 +76,7 @@ class Window {
     virtual ~Renderer() {}
     virtual ErrorOr<FrameResources> RenderFrame(
         VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-        const std::array<uint32_t, 2>& output_surface_size) = 0;
+        const Rect& viewport_region) = 0;
   };
 
   virtual ~Window(){};

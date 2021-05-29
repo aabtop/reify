@@ -161,9 +161,12 @@ class RendererHypo
 
   ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      const std::array<uint32_t, 2>& output_surface_size) override {
-    return mesh_renderer_->RenderFrame(command_buffer, framebuffer,
-                                       output_surface_size, get_view_matrix_());
+      const reify::window::Rect& viewport_region) override {
+    return mesh_renderer_->RenderFrame(
+        command_buffer, framebuffer,
+        {viewport_region.left, viewport_region.top, viewport_region.right,
+         viewport_region.bottom},
+        get_view_matrix_());
   }
 
  private:

@@ -113,8 +113,7 @@ void ReifyWindowVulkanWindowRenderer::startNextFrame() {
   QSize image_size = window_->swapChainImageSize();
   auto error_or_frame_resources = reify_window_renderer_->RenderFrame(
       window_->currentCommandBuffer(), window_->currentFramebuffer(),
-      {static_cast<uint32_t>(image_size.width()),
-       static_cast<uint32_t>(image_size.height())});
+      {0, 0, image_size.width(), image_size.height()});
   if (auto error =
           std::get_if<window::Window::Error>(&error_or_frame_resources)) {
     qFatal("Vulkan error while rendering frame: %s", error->msg.c_str());
