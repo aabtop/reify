@@ -10,6 +10,7 @@
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
 #include "reify/typescript_cpp_v8/imgui/layer_stack.h"
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
+#include "reify/typescript_cpp_v8/imgui/status_layer.h"
 #include "reify/window/window_stack.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/compilation.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
@@ -107,6 +108,7 @@ class MainWindow : public QMainWindow {
 
   std::optional<std::thread> project_operation_;
 
+  imgui::StatusLayer visualizer_imgui_status_layer_;
   imgui::RuntimeLayer visualizer_imgui_runtime_layer_;
   imgui::LayerStack visualizer_imgui_stack_;
   window::WindowStack visualizer_window_;

@@ -4,6 +4,7 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "reify/typescript_cpp_v8/imgui/utils.h"
 #include "reify/typescript_cpp_v8/imgui/widgets.h"
 
 namespace reify {
@@ -12,8 +13,9 @@ namespace imgui {
 
 RuntimeLayer::RuntimeLayer(
     const std::function<void(std::function<void()>)>& enqueue_task_function,
-    DomainVisualizer* domain_visualizer)
+    StatusLayer* status_layer, DomainVisualizer* domain_visualizer)
     : domain_visualizer_(domain_visualizer),
+      status_layer_(status_layer),
       enqueue_task_function_(enqueue_task_function) {}
 
 void RuntimeLayer::SetCompiledModule(
@@ -55,39 +57,36 @@ void RuntimeLayer::ExecuteImGuiCommands() {
       symbols.push_back(symbol.name.c_str());
     }
 
-    std::function<void()> pop_disable;
-    if (pending_preview_results_) {
-      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      pop_disable = [] {
-        ImGui::PopItemFlag();
-        ImGui::PopStyleVar();
-      };
-    }
-
-    if (ImGui::ListBox("Preview symbol", &selected_symbol_index_,
-                       symbols.data(), symbols.size(), 6)) {
-      selected_symbol_name_ = previewable_symbols_[selected_symbol_index_].name;
-      RebuildSelectedSymbol();
-    }
-
-    if (pop_disable) {
-      pop_disable();
-    }
-
-    if (build_active()) {
-      Spinner("building spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
-              ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
-      ImGui::SameLine();
-      ImGui::Text(fmt::format("Building {}...",
-                              previewable_symbols_[selected_symbol_index_].name)
-                      .c_str());
+    {
+      DisableIf disable_if_pending_preview_results(!!pending_preview_results_);
+      if (ImGui::ListBox("Preview symbol", &selected_symbol_index_,
+                         symbols.data(), symbols.size(), 6)) {
+        selected_symbol_name_ =
+            previewable_symbols_[selected_symbol_index_].name;
+        RebuildSelectedSymbol();
+      }
     }
   }
-
   ImGui::End();
 
   ImGui::PopStyleVar();
+
+  if (build_active()) {
+    if (!status_window_) {
+      status_window_.emplace(status_layer_, [this] {
+        Spinner("status building spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
+                ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
+        ImGui::SameLine();
+        ImGui::Text(
+            fmt::format("Building {}...",
+                        previewable_symbols_[selected_symbol_index_].name)
+                .c_str());
+      });
+    }
+
+  } else {
+    status_window_ = std::nullopt;
+  }
 }
 
 void RuntimeLayer::RebuildSelectedSymbol() {

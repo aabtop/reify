@@ -66,9 +66,11 @@ utils::ErrorOr<std::shared_ptr<reify::CompiledModule>> CompileFile(
 }  // namespace
 
 ProjectLayer::ProjectLayer(
-    utils::ThreadWithWorkQueue* thread, RuntimeLayer* runtime_layer,
+    utils::ThreadWithWorkQueue* thread, StatusLayer* status_layer,
+    RuntimeLayer* runtime_layer,
     const std::optional<std::filesystem::path>& initial_project_path)
     : thread_(thread),
+      status_layer_(status_layer),
       runtime_layer_(runtime_layer),
       domain_visualizer_(runtime_layer_->domain_visualizer()) {
   if (initial_project_path) {
@@ -116,12 +118,12 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
 }
 
 void ProjectLayer::ExecuteImGuiCommands() {
-  ImGui::Begin("Project");
-
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 10));
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 8));
   if (ImGui::BeginMainMenuBar()) {
     {
-      DisableIf disable_if_no_project_loaded(!current_project_path_);
+      DisableIf disable_if_no_project_loaded(!current_project_path_ ||
+                                             pending_compilation_results_);
+
       if (ImGui::BeginMenu("Project")) {
         if (ImGui::MenuItem("Recompile", "CTRL+B")) {
           LoadProject(*current_project_path_);
@@ -140,14 +142,19 @@ void ProjectLayer::ExecuteImGuiCommands() {
   ImGui::PopStyleVar();
 
   if (pending_compilation_results_) {
-    Spinner("compiling spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
-            ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
-    ImGui::SameLine();
-    ImGui::Text(fmt::format("Compiling {}...", current_project_path_->string())
-                    .c_str());
+    if (!status_window_) {
+      status_window_.emplace(status_layer_, [this] {
+        Spinner("status compiling spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
+                ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
+        ImGui::SameLine();
+        ImGui::Text(
+            fmt::format("Compiling {}...", current_project_path_->string())
+                .c_str());
+      });
+    }
+  } else {
+    status_window_ = std::nullopt;
   }
-
-  ImGui::End();
 }
 
 }  // namespace imgui

@@ -5,6 +5,7 @@
 
 #include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/typescript_cpp_v8/imgui/status_layer.h"
 #include "reify/utils/error.h"
 
 namespace reify {
@@ -15,7 +16,7 @@ class RuntimeLayer {
  public:
   RuntimeLayer(
       const std::function<void(std::function<void()>)>& enqueue_task_function,
-      DomainVisualizer* domain_visualizer);
+      StatusLayer* status_layer, DomainVisualizer* domain_visualizer);
 
   void ExecuteImGuiCommands();
 
@@ -30,6 +31,7 @@ class RuntimeLayer {
   void RebuildSelectedSymbol();
 
   const std::function<void(std::function<void()>)> enqueue_task_function_;
+  StatusLayer* status_layer_;
   DomainVisualizer* domain_visualizer_;
   std::shared_ptr<reify::CompiledModule> compiled_module_;
 
@@ -43,6 +45,8 @@ class RuntimeLayer {
 
   int selected_symbol_index_ = -1;
   std::optional<std::string> selected_symbol_name_;
+
+  std::optional<StatusLayer::Window> status_window_;
 };
 
 }  // namespace imgui

@@ -25,6 +25,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "@imgui//:frontend",
+        "@fmtlib",
     ],
 )
 
@@ -72,6 +73,7 @@ cc_library(
         ":imgui_runtime_layer",
         ":imgui_widgets",
         ":imgui_utils",
+        ":imgui_status_layer",
         "@imgui//:frontend",
         "@fmtlib",
     ],
@@ -90,8 +92,25 @@ cc_library(
     deps = [
         ":interface",
         ":imgui_widgets",
+        ":imgui_status_layer",
         "@imgui//:frontend",
         "@fmtlib",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "imgui_status_layer",
+    srcs = [
+        "imgui/status_layer.cc",
+    ],
+    hdrs = ["include/reify/typescript_cpp_v8/imgui/status_layer.h"],
+    includes = [
+        "include",
+    ],
+    deps = [
+        ":imgui_utils",
+        "@imgui//:frontend",
     ],
     visibility = ["//visibility:public"],
 )
@@ -111,6 +130,7 @@ cc_library(
         ":imgui_layer_stack",
         ":imgui_project_layer",
         ":imgui_runtime_layer",
+        ":imgui_status_layer",
         "//src/window:window_stack",
         "//src/window:platform_window_wrapper",
         "//src/utils",

@@ -30,11 +30,15 @@ MainWindow::MainWindow(const std::string& window_title,
           [this](std::function<void()> x) {
             QMetaObject::invokeMethod(this, x);
           },
-          domain_visualizer_.get()),
-      visualizer_imgui_stack_(
-          {[runtime_layer = &visualizer_imgui_runtime_layer_]() {
+          &visualizer_imgui_status_layer_, domain_visualizer_.get()),
+      visualizer_imgui_stack_({
+          [status_layer = &visualizer_imgui_status_layer_]() {
+            status_layer->ExecuteImGuiCommands();
+          },
+          [runtime_layer = &visualizer_imgui_runtime_layer_]() {
             runtime_layer->ExecuteImGuiCommands();
-          }}),
+          },
+      }),
       visualizer_window_({domain_visualizer_.get(), &visualizer_imgui_stack_}) {
   ui_->setupUi(this);
 

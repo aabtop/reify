@@ -16,7 +16,8 @@ namespace imgui {
 class ProjectLayer {
  public:
   ProjectLayer(
-      utils::ThreadWithWorkQueue* thread, RuntimeLayer* runtime_layer,
+      utils::ThreadWithWorkQueue* thread, StatusLayer* status_layer,
+      RuntimeLayer* runtime_layer,
       const std::optional<std::filesystem::path>& initial_project_path);
 
   void ExecuteImGuiCommands();
@@ -28,6 +29,7 @@ class ProjectLayer {
   utils::ThreadWithWorkQueue* thread_;
   utils::ThreadWithWorkQueue compilation_thread_;
 
+  StatusLayer* status_layer_;
   RuntimeLayer* runtime_layer_;
   DomainVisualizer* domain_visualizer_;
 
@@ -37,6 +39,8 @@ class ProjectLayer {
   std::optional<utils::Future<
       utils::ErrorOr<std::shared_ptr<reify::CompiledModule>>>::Watch>
       pending_compilation_results_;
+
+  std::optional<StatusLayer::Window> status_window_;
 };
 
 }  // namespace imgui

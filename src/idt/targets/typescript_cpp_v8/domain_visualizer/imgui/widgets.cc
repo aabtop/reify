@@ -1,5 +1,7 @@
 #include "reify/typescript_cpp_v8/imgui/widgets.h"
 
+#include <fmt/format.h>
+
 #include <algorithm>
 #include <cmath>
 
@@ -14,7 +16,6 @@ namespace imgui {
 // Code copied over from
 // https://github.com/ocornut/imgui/issues/1901#issuecomment-444929973
 // Thanks alexsr!
-
 void Spinner(const char* label, const float indicator_radius,
              const ImVec4& main_color, const ImVec4& backdrop_color,
              const int circle_count, const float speed) {

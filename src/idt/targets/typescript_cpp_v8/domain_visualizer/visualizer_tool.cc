@@ -8,6 +8,7 @@
 #include "reify/typescript_cpp_v8/imgui/layer_stack.h"
 #include "reify/typescript_cpp_v8/imgui/project_layer.h"
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
+#include "reify/typescript_cpp_v8/imgui/status_layer.h"
 #include "reify/utils/thread_with_work_queue.h"
 #include "reify/window/platform_window_wrapper.h"
 #include "reify/window/window_stack.h"
@@ -47,14 +48,16 @@ utils::MaybeError RunVisualizerTool(
   std::unique_ptr<DomainVisualizer> domain_visualizer =
       create_domain_visualizer();
 
+  imgui::StatusLayer status_layer;
   imgui::RuntimeLayer runtime_layer(
       [&visualizer_thread](auto x) { visualizer_thread.Enqueue(x); },
-      domain_visualizer.get());
-  imgui::ProjectLayer project_layer(&visualizer_thread, &runtime_layer,
-                                    options.project_path);
+      &status_layer, domain_visualizer.get());
+  imgui::ProjectLayer project_layer(&visualizer_thread, &status_layer,
+                                    &runtime_layer, options.project_path);
   imgui::LayerStack imgui_layer_stack({
       [&runtime_layer]() { runtime_layer.ExecuteImGuiCommands(); },
       [&project_layer]() { project_layer.ExecuteImGuiCommands(); },
+      [&status_layer]() { status_layer.ExecuteImGuiCommands(); },
   });
 
   window::WindowStack window_stack(
