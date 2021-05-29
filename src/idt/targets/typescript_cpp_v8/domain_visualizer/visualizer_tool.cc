@@ -3,8 +3,11 @@
 #include <filesystem>
 
 #include "CLI/CLI.hpp"
+#include "imgui.h"
+#include "imgui_internal.h"
 #include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/typescript_cpp_v8/imgui/docking_layer.h"
 #include "reify/typescript_cpp_v8/imgui/layer_stack.h"
 #include "reify/typescript_cpp_v8/imgui/project_layer.h"
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
@@ -48,16 +51,18 @@ utils::MaybeError RunVisualizerTool(
   std::unique_ptr<DomainVisualizer> domain_visualizer =
       create_domain_visualizer();
 
+  imgui::DockingLayer docking_layer;
   imgui::StatusLayer status_layer;
   imgui::RuntimeLayer runtime_layer(
       [&visualizer_thread](auto x) { visualizer_thread.Enqueue(x); },
-      &status_layer, domain_visualizer.get());
+      &docking_layer, &status_layer, domain_visualizer.get());
   imgui::ProjectLayer project_layer(&visualizer_thread, &status_layer,
                                     &runtime_layer, options.project_path);
   imgui::LayerStack imgui_layer_stack({
-      [&runtime_layer]() { runtime_layer.ExecuteImGuiCommands(); },
-      [&project_layer]() { project_layer.ExecuteImGuiCommands(); },
-      [&status_layer]() { status_layer.ExecuteImGuiCommands(); },
+      [&docking_layer] { docking_layer.ExecuteImGuiCommands(); },
+      [&runtime_layer] { runtime_layer.ExecuteImGuiCommands(); },
+      [&project_layer] { project_layer.ExecuteImGuiCommands(); },
+      [&status_layer] { status_layer.ExecuteImGuiCommands(); },
   });
 
   window::WindowStack window_stack(

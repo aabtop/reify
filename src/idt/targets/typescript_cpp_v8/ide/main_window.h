@@ -94,6 +94,13 @@ class MainWindow : public QMainWindow {
   QString default_title_;
 
   std::unique_ptr<DomainVisualizer> domain_visualizer_;
+
+  imgui::DockingLayer visualizer_imgui_docking_layer_;
+  imgui::StatusLayer visualizer_imgui_status_layer_;
+  imgui::RuntimeLayer visualizer_imgui_runtime_layer_;
+  imgui::LayerStack visualizer_imgui_stack_;
+  window::WindowStack visualizer_window_;
+
   std::unique_ptr<QWidget> domain_visualizer_widget_;
   std::unique_ptr<MonacoInterface> monaco_interface_;
 
@@ -107,11 +114,6 @@ class MainWindow : public QMainWindow {
   std::shared_ptr<reify::CompiledModule> most_recent_compilation_results_;
 
   std::optional<std::thread> project_operation_;
-
-  imgui::StatusLayer visualizer_imgui_status_layer_;
-  imgui::RuntimeLayer visualizer_imgui_runtime_layer_;
-  imgui::LayerStack visualizer_imgui_stack_;
-  window::WindowStack visualizer_window_;
 
   // Are the contents of the current file equivalent to what's saved on disk?
   bool current_file_is_dirty_ = false;

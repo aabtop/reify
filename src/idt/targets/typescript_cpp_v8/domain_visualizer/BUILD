@@ -93,6 +93,7 @@ cc_library(
         ":interface",
         ":imgui_widgets",
         ":imgui_status_layer",
+        ":imgui_docking_layer",
         "@imgui//:frontend",
         "@fmtlib",
     ],
@@ -116,6 +117,21 @@ cc_library(
 )
 
 cc_library(
+    name = "imgui_docking_layer",
+    srcs = [
+        "imgui/docking_layer.cc",
+    ],
+    hdrs = ["include/reify/typescript_cpp_v8/imgui/docking_layer.h"],
+    includes = [
+        "include",
+    ],
+    deps = [
+        "@imgui//:frontend",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "visualizer_tool",
     srcs = [
         "visualizer_tool.cc",
@@ -131,6 +147,7 @@ cc_library(
         ":imgui_project_layer",
         ":imgui_runtime_layer",
         ":imgui_status_layer",
+        ":imgui_docking_layer",
         "//src/window:window_stack",
         "//src/window:platform_window_wrapper",
         "//src/utils",

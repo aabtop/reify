@@ -4,7 +4,7 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "reify/typescript_cpp_v8/imgui/widgets.h"
+
 namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
@@ -40,10 +40,10 @@ void StatusLayer::ExecuteImGuiCommands() {
   float height = ImGui::GetWindowHeight();
   ImGuiViewportP* viewport = (ImGuiViewportP*)(void*)ImGui::GetMainViewport();
   const ImGuiStyle& style = ImGui::GetStyle();
-  ImGui::SetWindowPos(ImVec2(viewport->Pos.x + viewport->CurrWorkOffsetMin.x +
+  ImGui::SetWindowPos(ImVec2(viewport->Pos.x + viewport->BuildWorkOffsetMin.x +
                                  style.DisplaySafeAreaPadding.x,
                              viewport->Pos.y + viewport->Size.y +
-                                 viewport->CurrWorkOffsetMax.y - height -
+                                 viewport->BuildWorkOffsetMax.y - height -
                                  style.DisplaySafeAreaPadding.y));
 
   ImGui::End();

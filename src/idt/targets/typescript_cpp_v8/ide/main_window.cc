@@ -30,8 +30,12 @@ MainWindow::MainWindow(const std::string& window_title,
           [this](std::function<void()> x) {
             QMetaObject::invokeMethod(this, x);
           },
-          &visualizer_imgui_status_layer_, domain_visualizer_.get()),
+          &visualizer_imgui_docking_layer_, &visualizer_imgui_status_layer_,
+          domain_visualizer_.get()),
       visualizer_imgui_stack_({
+          [docking_layer = &visualizer_imgui_docking_layer_]() {
+            docking_layer->ExecuteImGuiCommands();
+          },
           [status_layer = &visualizer_imgui_status_layer_]() {
             status_layer->ExecuteImGuiCommands();
           },

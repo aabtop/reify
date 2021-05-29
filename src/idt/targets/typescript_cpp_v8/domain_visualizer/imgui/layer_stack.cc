@@ -7,6 +7,7 @@
 
 #include "backends/imgui_impl_vulkan.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "vulkan_utils/vulkan_utils.h"
 
 namespace reify {
@@ -33,6 +34,8 @@ LayerStack::LayerStack(const std::vector<Layer>& layers) : layers_(layers) {
   // Not sure if this is the best thing to do, but I'm preferring to err on
   // the side of no IO.
   io.IniFilename = nullptr;
+
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 }
 
 LayerStack::~LayerStack() { ImGui::DestroyContext(); }
@@ -265,6 +268,7 @@ RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
   }
 
   ImGui::NewFrame();
+
   for (const auto& im_gui_layer : layers_) {
     im_gui_layer();
   }

@@ -18,9 +18,12 @@ FreeCameraViewport3d::FreeCameraViewport3d(int viewport_width_in_pixels,
 
 void FreeCameraViewport3d::AccumulateViewportResize(
     int viewport_width_in_pixels, int viewport_height_in_pixels) {
-  viewport_width_in_pixels_ = viewport_width_in_pixels;
-  viewport_height_in_pixels_ = viewport_height_in_pixels;
-  previous_viewport_point_ = std::nullopt;
+  if (viewport_width_in_pixels_ != viewport_width_in_pixels ||
+      viewport_height_in_pixels_ != viewport_height_in_pixels) {
+    viewport_width_in_pixels_ = viewport_width_in_pixels;
+    viewport_height_in_pixels_ = viewport_height_in_pixels;
+    previous_viewport_point_ = std::nullopt;
+  }
 }
 
 namespace {

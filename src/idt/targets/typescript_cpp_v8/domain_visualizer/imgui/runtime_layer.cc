@@ -13,8 +13,10 @@ namespace imgui {
 
 RuntimeLayer::RuntimeLayer(
     const std::function<void(std::function<void()>)>& enqueue_task_function,
-    StatusLayer* status_layer, DomainVisualizer* domain_visualizer)
+    DockingLayer* docking_layer, StatusLayer* status_layer,
+    DomainVisualizer* domain_visualizer)
     : domain_visualizer_(domain_visualizer),
+      docking_layer_(docking_layer),
       status_layer_(status_layer),
       enqueue_task_function_(enqueue_task_function) {}
 
@@ -48,6 +50,11 @@ void RuntimeLayer::SetCompiledModule(
 void RuntimeLayer::ExecuteImGuiCommands() {
   ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 250));
 
+  // Place this window within the right dock ID by default.
+  if (!set_dock_id_) {
+    ImGui::SetNextWindowDockID(docking_layer_->dock_right_id());
+    set_dock_id_ = true;
+  }
   ImGui::Begin("Runtime");
 
   if (compiled_module_) {
@@ -57,14 +64,17 @@ void RuntimeLayer::ExecuteImGuiCommands() {
       symbols.push_back(symbol.name.c_str());
     }
 
+    ImGui::Text("Select symbol:");
     {
       DisableIf disable_if_pending_preview_results(!!pending_preview_results_);
-      if (ImGui::ListBox("Preview symbol", &selected_symbol_index_,
+      ImGui::PushItemWidth(-1);
+      if (ImGui::ListBox("##preview_symbol_selector", &selected_symbol_index_,
                          symbols.data(), symbols.size(), 6)) {
         selected_symbol_name_ =
             previewable_symbols_[selected_symbol_index_].name;
         RebuildSelectedSymbol();
       }
+      ImGui::PopItemWidth();
     }
   }
   ImGui::End();

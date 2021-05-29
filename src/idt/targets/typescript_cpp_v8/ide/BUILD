@@ -41,6 +41,9 @@ qt_cc_library(
     ":about_dialog",
     ":reify_window_qt_widget",
     "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_layer_stack",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_runtime_layer",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_status_layer",
   ],
 )
 

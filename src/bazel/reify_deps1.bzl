@@ -66,9 +66,9 @@ def reify_deps1():
 
     http_archive(
         name = "imgui",
-        strip_prefix = "imgui-1.82",
-        url = "https://github.com/ocornut/imgui/archive/v1.82.zip",
-        sha256 = "e5d450c8b3ebfb7fa2fbef5528e3e80f9df7a459e5a3ac29a29409a022f4c2d8",
+        strip_prefix = "imgui-1ad1429c6df657f9694b619d53fa0e65e482f32b",
+        url = "https://github.com/ocornut/imgui/archive/1ad1429c6df657f9694b619d53fa0e65e482f32b.zip",
+        sha256 = "08213444a7b93999494921215807960f39255509d320c6923270ba698f5c4e56",
         build_file = "@reify//:third_party/imgui/imgui.BUILD",
     )
 

@@ -114,6 +114,22 @@ auto MeshRenderer::RenderFrame(
     VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
     const std::array<uint32_t, 2>& output_surface_size,
     const glm::mat4& view_matrix) -> ErrorOr<FrameResources> {
+  VkViewport viewport;
+  viewport.x = 0;
+  viewport.y = 0;
+  viewport.width = output_surface_size[0];
+  viewport.height = output_surface_size[1];
+  viewport.minDepth = 0;
+  viewport.maxDepth = 1;
+  vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+  VkRect2D scissor;
+  scissor.offset.x = 0;
+  scissor.offset.y = 0;
+  scissor.extent.width = output_surface_size[0];
+  scissor.extent.height = output_surface_size[1];
+  vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
   glm::mat4 projection_matrix =
       glm::perspective(45.0f,
                        output_surface_size[0] / (float)output_surface_size[1],
@@ -178,22 +194,6 @@ auto MeshRenderer::RenderFrame(
     vkCmdBindIndexBuffer(command_buffer,
                          vulkan_triangle_soup_->index_buffer.value(), 0,
                          VK_INDEX_TYPE_UINT32);
-
-    VkViewport viewport;
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.width = output_surface_size[0];
-    viewport.height = output_surface_size[1];
-    viewport.minDepth = 0;
-    viewport.maxDepth = 1;
-    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-
-    VkRect2D scissor;
-    scissor.offset.x = 0;
-    scissor.offset.y = 0;
-    scissor.extent.width = output_surface_size[0];
-    scissor.extent.height = output_surface_size[1];
-    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     vkCmdDrawIndexed(
         command_buffer,
