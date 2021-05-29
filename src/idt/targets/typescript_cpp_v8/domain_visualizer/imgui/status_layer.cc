@@ -9,7 +9,8 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
 
-StatusLayer::StatusLayer() {}
+StatusLayer::StatusLayer(DockingLayer* docking_layer)
+    : docking_layer_(docking_layer) {}
 
 void StatusLayer::Register(Window* window) { windows_.push_back(window); }
 void StatusLayer::Unregister(Window* window) {
@@ -39,12 +40,15 @@ void StatusLayer::ExecuteImGuiCommands() {
 
   float height = ImGui::GetWindowHeight();
   ImGuiViewportP* viewport = (ImGuiViewportP*)(void*)ImGui::GetMainViewport();
+  ImRect empty_space_rect = docking_layer_->GetEmptySpaceNodeId()->Rect();
   const ImGuiStyle& style = ImGui::GetStyle();
-  ImGui::SetWindowPos(ImVec2(viewport->Pos.x + viewport->BuildWorkOffsetMin.x +
-                                 style.DisplaySafeAreaPadding.x,
-                             viewport->Pos.y + viewport->Size.y +
-                                 viewport->BuildWorkOffsetMax.y - height -
-                                 style.DisplaySafeAreaPadding.y));
+
+  const float offset_from_corner = 5;
+  ImGui::SetWindowPos(
+      ImVec2(empty_space_rect.Min.x + style.DisplaySafeAreaPadding.x +
+                 offset_from_corner,
+             empty_space_rect.Max.y - style.DisplaySafeAreaPadding.y - height -
+                 offset_from_corner));
 
   ImGui::End();
 }

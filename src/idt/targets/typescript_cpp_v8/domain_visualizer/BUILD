@@ -110,6 +110,7 @@ cc_library(
         "include",
     ],
     deps = [
+        ":imgui_docking_layer",
         ":imgui_utils",
         "@imgui//:frontend",
     ],

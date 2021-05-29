@@ -4,13 +4,15 @@
 #include <functional>
 #include <vector>
 
+#include "reify/typescript_cpp_v8/imgui/docking_layer.h"
+
 namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
 
 class StatusLayer {
  public:
-  StatusLayer();
+  StatusLayer(DockingLayer* docking_layer);
 
   void ExecuteImGuiCommands();
 
@@ -34,6 +36,7 @@ class StatusLayer {
   void Register(Window* window);
   void Unregister(Window* window);
 
+  DockingLayer* docking_layer_;
   std::vector<Window*> windows_;
 };
 

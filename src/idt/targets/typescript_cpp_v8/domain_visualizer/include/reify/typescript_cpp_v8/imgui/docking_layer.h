@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "imgui.h"
+#include "imgui_internal.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
@@ -15,10 +16,13 @@ class DockingLayer {
 
   void ExecuteImGuiCommands();
 
+  ImGuiDockNode* GetEmptySpaceNodeId() const;
+  ImGuiID viewport_dock_id() const { return *viewport_dock_id_; };
   ImGuiID dock_main_id() const { return *dock_main_id_; }
   ImGuiID dock_right_id() const { return *dock_right_id_; }
 
  private:
+  std::optional<ImGuiID> viewport_dock_id_;
   std::optional<ImGuiID> dock_main_id_;
   std::optional<ImGuiID> dock_right_id_;
 };

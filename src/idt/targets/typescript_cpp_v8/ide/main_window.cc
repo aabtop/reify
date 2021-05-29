@@ -28,6 +28,7 @@ MainWindow::MainWindow(const std::string& window_title,
       visualizer_window_viewport_(domain_visualizer_.get()),
       visualizer_imgui_docking_freespace_to_window_viewport_layer_(
           &visualizer_window_viewport_, &visualizer_imgui_docking_layer_),
+      visualizer_imgui_status_layer_(&visualizer_imgui_docking_layer_),
       visualizer_imgui_runtime_layer_(
           [this](std::function<void()> x) {
             QMetaObject::invokeMethod(this, x);

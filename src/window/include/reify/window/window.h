@@ -26,6 +26,7 @@ struct Rect {
   bool inside(int x, int y) const {
     return left <= x && x < right && top <= y && y < bottom;
   }
+  bool operator==(const Rect& x) const = default;
 };
 
 // An abstract Window, which accepts input and renders with Vulkan.

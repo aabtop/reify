@@ -108,6 +108,8 @@ DomainVisualizerHypo::PrepareSymbolForPreview(
 
           return std::shared_ptr<TriangleSoup>(
               new TriangleSoup(ConvertToTriangleSoup(polyhedron3)));
+        } else {
+          return Error{"Hypo's visualizer does not support this symbol type."};
         }
       });
 }

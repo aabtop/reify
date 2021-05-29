@@ -58,7 +58,7 @@ utils::MaybeError RunVisualizerTool(
   imgui::DockingFreespaceToWindowViewportLayer
       docking_freespace_to_window_viewport_layer(&domain_visualizer_viewport,
                                                  &docking_layer);
-  imgui::StatusLayer status_layer;
+  imgui::StatusLayer status_layer(&docking_layer);
   imgui::RuntimeLayer runtime_layer(
       [&visualizer_thread](auto x) { visualizer_thread.Enqueue(x); },
       &docking_layer, &status_layer, domain_visualizer.get());

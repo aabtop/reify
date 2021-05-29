@@ -8,24 +8,38 @@ namespace typescript_cpp_v8 {
 namespace imgui {
 
 void DockingFreespaceToWindowViewportLayer::ExecuteImGuiCommands() {
-  ImGuiDockNode* node =
-      ImGui::DockBuilderGetNode(docking_layer_->dock_main_id());
+  ImGuiDockNode* node = docking_layer_->GetEmptySpaceNodeId();
   ImGuiViewport* viewport = ImGui::GetMainViewport();
-  if (!node) {
-    window_viewport_->SetViewport({
-        static_cast<int>(viewport->WorkPos.x),
-        static_cast<int>(viewport->WorkPos.y),
-        static_cast<int>(viewport->WorkPos.x + viewport->WorkSize.x),
-        static_cast<int>(viewport->WorkPos.y + viewport->WorkSize.y),
-    });
-  } else {
-    ImRect rect = node->Rect();
-    window_viewport_->SetViewport({
-        static_cast<int>(rect.Min.x + viewport->WorkPos.x),
-        static_cast<int>(rect.Min.y + viewport->WorkPos.y),
-        static_cast<int>(rect.Max.x + viewport->WorkPos.x),
-        static_cast<int>(rect.Max.y + viewport->WorkPos.y),
-    });
+  window::Rect new_viewport = [&] {
+    if (!node) {
+      return window::Rect{
+          static_cast<int>(viewport->WorkPos.x),
+          static_cast<int>(viewport->WorkPos.y),
+          static_cast<int>(viewport->WorkPos.x + viewport->WorkSize.x),
+          static_cast<int>(viewport->WorkPos.y + viewport->WorkSize.y),
+      };
+    } else {
+      ImRect rect = node->Rect();
+      return window::Rect{
+          static_cast<int>(rect.Min.x),
+          static_cast<int>(rect.Min.y),
+          static_cast<int>(rect.Max.x),
+          static_cast<int>(rect.Max.y),
+      };
+    }
+  }();
+  /*
+  window_viewport_->SetViewport({
+      static_cast<int>(rect.Min.x + viewport->WorkPos.x),
+      static_cast<int>(rect.Min.y + viewport->WorkPos.y),
+      static_cast<int>(rect.Max.x + viewport->WorkPos.x),
+      static_cast<int>(rect.Max.y + viewport->WorkPos.y),
+  });
+  */
+
+  if (!window_viewport_->viewport() ||
+      !(*window_viewport_->viewport() == new_viewport)) {
+    window_viewport_->SetViewport(new_viewport);
   }
 }
 
