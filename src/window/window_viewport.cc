@@ -19,7 +19,9 @@ bool WindowViewport::OnInputEvent(const InputEvent& input_event) {
     return modified_event;
   };
 
-  if (auto event = std::get_if<MouseButtonEvent>(&input_event)) {
+  if (auto event = std::get_if<MouseMoveEvent>(&input_event)) {
+    return sub_window_->OnInputEvent(viewport_modified_event(*event));
+  } else if (auto event = std::get_if<MouseButtonEvent>(&input_event)) {
     if (viewport_->inside(event->x, event->y) || !event->pressed) {
       return sub_window_->OnInputEvent(viewport_modified_event(*event));
     } else {
