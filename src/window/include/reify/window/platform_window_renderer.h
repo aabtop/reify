@@ -3,6 +3,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include <optional>
+
 #include "platform_window/platform_window.h"
 #include "vulkan_utils/swap_chain_renderer.h"
 #include "vulkan_utils/vulkan_utils.h"
@@ -12,6 +14,8 @@ namespace window {
 
 struct PlatformWindowRenderer {
   vulkan_utils::WithDeleter<VkInstance> instance;
+  std::optional<vulkan_utils::WithDeleter<VkDebugUtilsMessengerEXT>>
+      maybe_debug_utils_messenger;
   vulkan_utils::WithDeleter<VkSurfaceKHR> surface;
   vulkan_utils::SwapChainRenderer swap_chain_renderer;
 };

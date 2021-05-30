@@ -47,6 +47,7 @@ class WithDeleter {
 
 struct Error {
   std::string msg;
+  VkResult vk_result = VK_ERROR_UNKNOWN;
 };
 template <typename T>
 using ErrorOr = std::variant<Error, T>;
@@ -123,6 +124,11 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
     VkShaderModule fragment_shader_module);
 
 ErrorOr<WithDeleter<VkSemaphore>> MakeSemaphore(VkDevice device);
+
+ErrorOr<WithDeleter<VkDebugUtilsMessengerEXT>> MakeDebugUtilsMessenger(
+    VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT filter_severity,
+    VkDebugUtilsMessageTypeFlagsEXT filter_message_type,
+    PFN_vkDebugUtilsMessengerCallbackEXT user_callback);
 
 ErrorOr<WithDeleter<VkInstance>> MakeInstance(
     const VkApplicationInfo& application_info,

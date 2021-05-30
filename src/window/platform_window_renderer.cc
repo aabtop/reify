@@ -1,5 +1,7 @@
 #include "reify/window/platform_window_renderer.h"
 
+#include <iostream>
+
 #include "platform_window/platform_window.h"
 #include "platform_window/vulkan.h"
 #include "vulkan_utils/vulkan_utils.h"
@@ -22,6 +24,30 @@ MakeWindowSurface(VkInstance instance, PlatformWindow window) {
       });
 }
 
+VKAPI_ATTR VkBool32 VKAPI_CALL
+LayerMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+                     VkDebugUtilsMessageTypeFlagsEXT message_type,
+                     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+                     void* user_data) {
+  const char* severity_string = [message_severity] {
+    switch (message_severity) {
+      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+        return "verbose";
+      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+        return "info";
+      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+        return "warning";
+      case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+        return "error";
+    };
+    return "?";
+  }();
+
+  std::cerr << "Vulkan validation layer message (" << severity_string
+            << "): " << callback_data->pMessage << std::endl;
+
+  return VK_FALSE;
+}
 }  // namespace
 
 vulkan_utils::ErrorOr<PlatformWindowRenderer> MakePlatformWindowRenderer(
@@ -47,6 +73,25 @@ vulkan_utils::ErrorOr<PlatformWindowRenderer> MakePlatformWindowRenderer(
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       instance, vulkan_utils::MakeInstance(app_info, instance_extensions));
 
+  std::optional<vulkan_utils::WithDeleter<VkDebugUtilsMessengerEXT>>
+      maybe_debug_utils_messenger;
+  auto error_or_debug_utils_messenger = vulkan_utils::MakeDebugUtilsMessenger(
+      instance.value(),
+      static_cast<VkDebugUtilsMessageSeverityFlagBitsEXT>(
+          VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+          VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT),
+      static_cast<VkDebugUtilsMessageTypeFlagsEXT>(
+          VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+          VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+          VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT),
+      &LayerMessageCallback);
+  // Ignore any errors raised here, this is non-essential, and may just mean
+  // we're in a production build where validation layers are disabled.
+  if (auto debug_utils_messenger =
+          std::get_if<1>(&error_or_debug_utils_messenger)) {
+    maybe_debug_utils_messenger = std::move(*debug_utils_messenger);
+  }
+
   VULKAN_UTILS_ASSIGN_OR_RETURN(surface,
                                 MakeWindowSurface(instance.value(), window));
 
@@ -58,6 +103,7 @@ vulkan_utils::ErrorOr<PlatformWindowRenderer> MakePlatformWindowRenderer(
 
   return PlatformWindowRenderer{
       std::move(instance),
+      std::move(maybe_debug_utils_messenger),
       std::move(surface),
       std::move(renderer),
   };

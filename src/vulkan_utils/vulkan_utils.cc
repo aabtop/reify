@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 
 #include <array>
+#include <iostream>
 #include <optional>
 
 namespace vulkan_utils {
@@ -525,6 +526,82 @@ ErrorOr<WithDeleter<VkSemaphore>> MakeSemaphore(VkDevice device) {
       [device](VkSemaphore&& x) { vkDestroySemaphore(device, x, nullptr); });
 }
 
+namespace {
+
+std::vector<std::string> GetSupportedValidationLayers() {
+#ifdef NDEBUG
+  constexpr bool kEnableValidationLayers = false;
+#else
+  constexpr bool kEnableValidationLayers = true;
+#endif
+  if (!kEnableValidationLayers) {
+    return std::vector<std::string>();
+  }
+
+  const std::vector<std::string> PREFERRED_VALIDATION_LAYERS = {
+      "VK_LAYER_KHRONOS_validation"};
+
+  uint32_t layer_count;
+  vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+
+  std::vector<VkLayerProperties> available_layers(layer_count);
+  vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
+
+  std::vector<std::string> results;
+  results.reserve(PREFERRED_VALIDATION_LAYERS.size());
+  for (const auto& layer_name : PREFERRED_VALIDATION_LAYERS) {
+    for (const auto& layer_properties : available_layers) {
+      if (layer_name == layer_properties.layerName) {
+        results.push_back(layer_properties.layerName);
+        break;
+      }
+    }
+  }
+
+  return results;
+}
+
+}  // namespace
+
+ErrorOr<WithDeleter<VkDebugUtilsMessengerEXT>> MakeDebugUtilsMessenger(
+    VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT filter_severity,
+    VkDebugUtilsMessageTypeFlagsEXT filter_message_type,
+    PFN_vkDebugUtilsMessengerCallbackEXT user_callback) {
+  VkDebugUtilsMessengerCreateInfoEXT create_info{};
+  create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+  create_info.messageSeverity = filter_severity;
+  create_info.messageType = filter_message_type;
+  create_info.pfnUserCallback = user_callback;
+  create_info.pUserData = nullptr;  // Optional
+
+  auto CreateDebugUtilsMessengerEXT =
+      reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+          vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+  if (!CreateDebugUtilsMessengerEXT) {
+    return Error{"Could not find function `vkCreateDebugUtilsMessengerEXT`."};
+  }
+  auto DestroyDebugUtilsMessengerEXT =
+      reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+          vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+  if (!DestroyDebugUtilsMessengerEXT) {
+    return Error{"Could not find function `vkDestroyDebugUtilsMessengerEXT`."};
+  }
+
+  VkDebugUtilsMessengerEXT debug_utils_messenger;
+  VkResult err = CreateDebugUtilsMessengerEXT(instance, &create_info, nullptr,
+                                              &debug_utils_messenger);
+  if (err != VK_SUCCESS) {
+    return Error{fmt::format("Error creating debug utils messenger: {}", err),
+                 err};
+  }
+
+  return WithDeleter<VkDebugUtilsMessengerEXT>(
+      std::move(debug_utils_messenger),
+      [instance, DestroyDebugUtilsMessengerEXT](VkDebugUtilsMessengerEXT&& x) {
+        DestroyDebugUtilsMessengerEXT(instance, x, nullptr);
+      });
+}
+
 ErrorOr<WithDeleter<VkInstance>> MakeInstance(
     const VkApplicationInfo& application_info,
     const std::vector<const char*>& instance_extensions) {
@@ -532,10 +609,27 @@ ErrorOr<WithDeleter<VkInstance>> MakeInstance(
   instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   instance_create_info.pApplicationInfo =
       const_cast<VkApplicationInfo*>(&application_info);
-  instance_create_info.enabledExtensionCount = instance_extensions.size();
+
+  std::vector<std::string> validation_layers = GetSupportedValidationLayers();
+  std::vector<const char*> validation_layers_c_str;
+  validation_layers_c_str.reserve(validation_layers.size());
+  for (const auto& str : validation_layers) {
+    std::cerr << "Enabling Vulkan validation layer: " << str << std::endl;
+    validation_layers_c_str.push_back(str.c_str());
+  }
+  instance_create_info.enabledLayerCount =
+      static_cast<uint32_t>(validation_layers_c_str.size());
+  instance_create_info.ppEnabledLayerNames = validation_layers_c_str.data();
+
+  std::vector<const char*> extended_instance_extensions(instance_extensions);
+  if (!validation_layers.empty()) {
+    extended_instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  }
+
+  instance_create_info.enabledExtensionCount =
+      extended_instance_extensions.size();
   instance_create_info.ppEnabledExtensionNames =
-      const_cast<const char**>(instance_extensions.data());
-  instance_create_info.enabledLayerCount = 0;
+      const_cast<const char**>(extended_instance_extensions.data());
 
   VkInstance instance;
   VkResult err = vkCreateInstance(&instance_create_info, nullptr, &instance);
