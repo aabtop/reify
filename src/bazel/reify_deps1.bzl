@@ -74,7 +74,7 @@ def reify_deps1():
 
     http_archive(
         name = "platform_window",
-        strip_prefix = "platform_window-7e529c97bc2e19293444df798e1964f241afab69",
-        urls = ["https://github.com/aabtop/platform_window/archive/7e529c97bc2e19293444df798e1964f241afab69.zip"],
-        sha256 = "79ffa2e5bff2178d231ef7b91dbfb330b67e8b02f8511c0d32bfc4799ae6fb31",
+        strip_prefix = "platform_window-5771fec2ab76f41267fa653a99cedf9b6ad6b44e",
+        urls = ["https://github.com/aabtop/platform_window/archive/5771fec2ab76f41267fa653a99cedf9b6ad6b44e.zip"],
+        sha256 = "b8989984b643517759e7a263561afc0e7de7a54ec1139c30c0f6f263a6396ffa",
     )

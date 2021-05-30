@@ -33,22 +33,8 @@ bool WindowViewport::OnInputEvent(const InputEvent& input_event) {
 }
 
 void WindowViewport::OnViewportResize(const std::array<int, 2>& size) {
-  if (viewport_) {
-    if (viewport_->width() != size[0] || viewport_->height() != size[1]) {
-      if (viewport_->width() != size[0]) {
-        float change_ratio = size[0] / viewport_->width();
-        viewport_->left *= change_ratio;
-        viewport_->right = viewport_->left + size[0];
-      }
-      if (viewport_->height() != size[1]) {
-        float change_ratio = size[1] / viewport_->height();
-        viewport_->top *= change_ratio;
-        viewport_->bottom = viewport_->top + size[1];
-      }
-
-      sub_window_->OnViewportResize(size);
-    }
-  }
+  // Don't try to do anything fancy here, the parent should be responsible and
+  // update the proper viewport.
 }
 
 void WindowViewport::AdvanceTime(std::chrono::duration<float> seconds) {
@@ -58,9 +44,9 @@ void WindowViewport::AdvanceTime(std::chrono::duration<float> seconds) {
 void WindowViewport::SetViewport(const Rect& viewport) {
   if (!viewport_ || viewport_->width() != viewport.width() ||
       viewport_->height() != viewport.height()) {
-    viewport_ = viewport;
     sub_window_->OnViewportResize({viewport.width(), viewport.height()});
   }
+  viewport_ = viewport;
 }
 
 namespace {
@@ -80,9 +66,9 @@ class RendererWindowViewport : public Window::Renderer {
       return FrameResources();
     }
 
-    return sub_renderer_->RenderFrame(command_buffer, framebuffer,
-                                      output_color_image,
-                                      *window_viewport_->viewport());
+    return sub_renderer_->RenderFrame(
+        command_buffer, framebuffer, output_color_image,
+        Rect::Intersect(*window_viewport_->viewport(), viewport_region));
   }
 
  private:

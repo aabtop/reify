@@ -27,6 +27,15 @@ struct Rect {
     return left <= x && x < right && top <= y && y < bottom;
   }
   bool operator==(const Rect& x) const = default;
+
+  static Rect Intersect(const Rect& a, const Rect& b) {
+    return Rect{
+        std::max(a.left, b.left),
+        std::max(a.top, b.top),
+        std::min(a.right, b.right),
+        std::min(a.bottom, b.bottom),
+    };
+  }
 };
 
 // An abstract Window, which accepts input and renders with Vulkan.

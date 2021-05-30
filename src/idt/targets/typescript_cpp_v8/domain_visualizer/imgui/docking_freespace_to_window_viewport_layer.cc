@@ -1,5 +1,7 @@
 #include "reify/typescript_cpp_v8/imgui/docking_freespace_to_window_viewport_layer.h"
 
+#include <iostream>
+
 #include "imgui.h"
 #include "imgui_internal.h"
 

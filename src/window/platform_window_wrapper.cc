@@ -50,8 +50,8 @@ utils::MaybeError RunPlatformWindowWrapper(
             quit_flag.enqueue(std::nullopt);
           } break;
           case kPlatformWindowEventTypeResized: {
-            set_wrapped_window_size(event.data.resized.width,
-                                    event.data.resized.height);
+            set_wrapped_window_size(event.data.resized.size.width,
+                                    event.data.resized.size.height);
           } break;
           case kPlatformWindowEventTypeMouseMove: {
             send_wrapped_window_input_event(Window::MouseMoveEvent{
@@ -89,7 +89,8 @@ utils::MaybeError RunPlatformWindowWrapper(
   platform_window::Window& window = *maybe_window;
 
   // Set the domain visualizer initial width/height.
-  set_wrapped_window_size(window.GetWidth(), window.GetHeight());
+  PlatformWindowSize initial_size = window.GetSize();
+  set_wrapped_window_size(initial_size.width, initial_size.height);
 
   // Create the Vulkan renderer.
   auto error_or_renderer =
@@ -112,29 +113,39 @@ utils::MaybeError RunPlatformWindowWrapper(
   // Setup a separate dedicated thread to do the rendering.
   std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
       previous_time = std::chrono::high_resolution_clock::now();
-  reify::utils::ThreadWithWorkQueueLooper<vulkan_utils::Error> render_looper(
-      wrapped_window_thread,
-      [&renderer, &wrapped_window_renderer, &previous_time, &wrapped_window]() {
-        return renderer.swap_chain_renderer.Render(
-            [&wrapped_window_renderer, &previous_time, &wrapped_window](
-                VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-                VkImage output_color_image,
-                const std::array<uint32_t, 2>& output_surface_size) {
-              auto current_time = std::chrono::high_resolution_clock::now();
-              if (previous_time) {
-                wrapped_window->AdvanceTime(current_time - *previous_time);
-              }
-              previous_time = current_time;
-              return wrapped_window_renderer->RenderFrame(
-                  command_buffer, framebuffer, output_color_image,
-                  {0, 0, static_cast<int>(output_surface_size[0]),
-                   static_cast<int>(output_surface_size[1])});
-            });
-      },
-      [&quit_flag](const vulkan_utils::Error& error) {
-        quit_flag.enqueue(
-            utils::Error{fmt::format("Error rendering frame: {}", error.msg)});
-      });
+
+  std::optional<reify::utils::ThreadWithWorkQueueLooper<vulkan_utils::Error>>
+      render_looper(
+          std::in_place, wrapped_window_thread,
+          [&renderer, &wrapped_window_renderer, &previous_time,
+           &wrapped_window]() -> std::optional<vulkan_utils::Error> {
+            auto result = renderer.swap_chain_renderer.Render(
+                [&wrapped_window_renderer, &previous_time, &wrapped_window](
+                    VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+                    VkImage output_color_image,
+                    const std::array<uint32_t, 2>& output_surface_size) {
+                  auto current_time = std::chrono::high_resolution_clock::now();
+                  if (previous_time) {
+                    wrapped_window->AdvanceTime(current_time - *previous_time);
+                  }
+                  previous_time = current_time;
+                  return wrapped_window_renderer->RenderFrame(
+                      command_buffer, framebuffer, output_color_image,
+                      {0, 0, static_cast<int>(output_surface_size[0]),
+                       static_cast<int>(output_surface_size[1])});
+                });
+            if (result && result->vk_result == VK_ERROR_OUT_OF_DATE_KHR) {
+              // Ignore swap chain out of date errors, the swap chain renderer
+              // will update to use a new swap chain next time we render with
+              // it.
+              return std::nullopt;
+            }
+            return result;
+          },
+          [&quit_flag](const vulkan_utils::Error& error) {
+            quit_flag.enqueue(utils::Error{
+                fmt::format("Error rendering frame: {}", error.msg)});
+          });
 
   window.Show();
 
@@ -143,7 +154,13 @@ utils::MaybeError RunPlatformWindowWrapper(
 
   // Flush out draw commands before we shut things down, ensuring that the
   // resources about to be shutdown are no longer in use.
-  vkDeviceWaitIdle(renderer.swap_chain_renderer.device());
+  render_looper = std::nullopt;
+  wrapped_window_thread
+      ->Enqueue<bool>([device = renderer.swap_chain_renderer.device()] {
+        vkDeviceWaitIdle(device);
+        return true;
+      })
+      .wait_and_get_results();
 
   return quit_result;
 }

@@ -46,7 +46,7 @@ LayerMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
   std::cerr << "Vulkan validation layer message (" << severity_string
             << "): " << callback_data->pMessage << std::endl;
 
-  *((int*)(0)) = 5;
+  //*((int*)(0)) = 5;
 
   return VK_FALSE;
 }
@@ -98,10 +98,12 @@ vulkan_utils::ErrorOr<PlatformWindowRenderer> MakePlatformWindowRenderer(
                                 MakeWindowSurface(instance.value(), window));
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(
-      renderer,
-      vulkan_utils::SwapChainRenderer::Create(instance.value(), surface.value(),
-                                              PlatformWindowGetWidth(window),
-                                              PlatformWindowGetHeight(window)));
+      renderer, vulkan_utils::SwapChainRenderer::Create(
+                    instance.value(), surface.value(),
+                    std::function<std::array<int32_t, 2>()>([window]() {
+                      auto size = PlatformWindowGetSize(window);
+                      return std::array<int32_t, 2>{size.width, size.height};
+                    })));
 
   return PlatformWindowRenderer{
       std::move(instance),
