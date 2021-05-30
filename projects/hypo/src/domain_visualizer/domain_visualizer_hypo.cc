@@ -163,9 +163,10 @@ class RendererHypo
 
   ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+      VkImage output_color_image,
       const reify::window::Rect& viewport_region) override {
     return mesh_renderer_->RenderFrame(
-        command_buffer, framebuffer,
+        command_buffer, framebuffer, output_color_image,
         {viewport_region.left, viewport_region.top, viewport_region.right,
          viewport_region.bottom},
         get_view_matrix_());

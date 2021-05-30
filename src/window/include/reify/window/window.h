@@ -77,7 +77,7 @@ class Window {
     virtual ~Renderer() {}
     virtual ErrorOr<FrameResources> RenderFrame(
         VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-        const Rect& viewport_region) = 0;
+        VkImage output_color_image, const Rect& viewport_region) = 0;
   };
 
   virtual ~Window(){};

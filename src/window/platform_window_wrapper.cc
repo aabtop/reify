@@ -118,6 +118,7 @@ utils::MaybeError RunPlatformWindowWrapper(
         return renderer.swap_chain_renderer.Render(
             [&wrapped_window_renderer, &previous_time, &wrapped_window](
                 VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+                VkImage output_color_image,
                 const std::array<uint32_t, 2>& output_surface_size) {
               auto current_time = std::chrono::high_resolution_clock::now();
               if (previous_time) {
@@ -125,7 +126,7 @@ utils::MaybeError RunPlatformWindowWrapper(
               }
               previous_time = current_time;
               return wrapped_window_renderer->RenderFrame(
-                  command_buffer, framebuffer,
+                  command_buffer, framebuffer, output_color_image,
                   {0, 0, static_cast<int>(output_surface_size[0]),
                    static_cast<int>(output_surface_size[1])});
             });
@@ -138,7 +139,13 @@ utils::MaybeError RunPlatformWindowWrapper(
   window.Show();
 
   // Wait for a reason to stop and quit.
-  return quit_flag.dequeue();
+  auto quit_result = quit_flag.dequeue();
+
+  // Flush out draw commands before we shut things down, ensuring that the
+  // resources about to be shutdown are no longer in use.
+  vkDeviceWaitIdle(renderer.swap_chain_renderer.device());
+
+  return quit_result;
 }
 
 }  // namespace window

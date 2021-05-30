@@ -214,28 +214,36 @@ ErrorOr<SwapChainRenderer> SwapChainRenderer::Create(VkInstance instance,
   for (const auto& swap_chain_image : swap_chain_images) {
     VULKAN_UTILS_ASSIGN_OR_RETURN(
         swap_chain_image_view,
-        MakeImageView(device.value(), swap_chain_image, surface_format.format));
+        MakeImageView(device.value(), swap_chain_image, surface_format.format,
+                      VK_IMAGE_ASPECT_COLOR_BIT));
     swap_chain_image_views.push_back(std::move(swap_chain_image_view));
   }
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       render_pass,
-      MakeRenderPass(
-          device.value(),
-          {VkAttachmentDescription{
-              0, surface_format.format, VK_SAMPLE_COUNT_1_BIT,
-              VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-              VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-              VK_IMAGE_LAYOUT_UNDEFINED,
-              VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,  // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL?
-          }},
-          VkAttachmentDescription{
-              0, VK_FORMAT_D32_SFLOAT, VK_SAMPLE_COUNT_1_BIT,
-              VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-              VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-              VK_IMAGE_LAYOUT_UNDEFINED,
-              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,  // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL?
-          }));
+      MakeRenderPass(device.value(),
+                     {VkAttachmentDescription{
+                         0,
+                         surface_format.format,
+                         VK_SAMPLE_COUNT_1_BIT,
+                         VK_ATTACHMENT_LOAD_OP_CLEAR,
+                         VK_ATTACHMENT_STORE_OP_STORE,
+                         VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                         VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                         VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                     }},
+                     VkAttachmentDescription{
+                         0,
+                         VK_FORMAT_D32_SFLOAT,
+                         VK_SAMPLE_COUNT_1_BIT,
+                         VK_ATTACHMENT_LOAD_OP_CLEAR,
+                         VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                         VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                         VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                         VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                     }));
 
   // Create the depth buffer.
   VULKAN_UTILS_ASSIGN_OR_RETURN(
@@ -250,7 +258,8 @@ ErrorOr<SwapChainRenderer> SwapChainRenderer::Create(VkInstance instance,
                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       depth_image_view,
-      MakeImageView(device.value(), depth_image.value(), VK_FORMAT_D32_SFLOAT));
+      MakeImageView(device.value(), depth_image.value(), VK_FORMAT_D32_SFLOAT,
+                    VK_IMAGE_ASPECT_DEPTH_BIT));
 
   // Create the framebuffers.
   std::vector<WithDeleter<VkFramebuffer>> swap_chain_framebuffers;
@@ -280,7 +289,7 @@ ErrorOr<SwapChainRenderer> SwapChainRenderer::Create(VkInstance instance,
   return SwapChainRenderer(
       instance, surface, physical_device, *maybe_graphics_queue_family_index,
       *maybe_present_queue_family_index, std::move(device), surface_format,
-      swap_chain_extent, std::move(swap_chain),
+      swap_chain_extent, std::move(swap_chain), std::move(swap_chain_images),
       std::move(swap_chain_image_views), std::move(render_pass),
       std::move(depth_image), std::move(depth_image_memory),
       std::move(depth_image_view), std::move(swap_chain_framebuffers),
@@ -292,6 +301,7 @@ ErrorOr<SwapChainRenderer> SwapChainRenderer::Create(VkInstance instance,
 std::optional<Error> SwapChainRenderer::Render(
     const std::function<ErrorOr<FrameResources>(
         VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+        VkImage output_color_image,
         const std::array<uint32_t, 2>& output_surface_size)>& render_function) {
   VkResult err;
   uint32_t current_swap_chain_index;
@@ -322,6 +332,7 @@ std::optional<Error> SwapChainRenderer::Render(
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       frame_resources,
       render_function(current_command_buffer, current_framebuffer,
+                      swap_chain_images_[current_swap_chain_index],
                       {swap_chain_extent_.width, swap_chain_extent_.height}));
 
   err = vkEndCommandBuffer(current_command_buffer);

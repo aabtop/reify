@@ -1,6 +1,7 @@
 #include "reify/window/window_stack.h"
 
 #include "reify/utils/error.h"
+#include "vulkan_utils/vulkan_utils.h"
 
 namespace reify {
 namespace window {
@@ -38,15 +39,26 @@ class RendererWindowStack : public Window::Renderer {
 
   ErrorOr<FrameResources> RenderFrame(VkCommandBuffer command_buffer,
                                       VkFramebuffer framebuffer,
+                                      VkImage output_color_image,
                                       const Rect& viewport_region) override {
+    vulkan_utils::SetImageLayout(
+        command_buffer, output_color_image, VK_IMAGE_ASPECT_COLOR_BIT,
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
     std::vector<FrameResources> frame_resources;
     for (const auto& sub_renderer : sub_renderers_) {
       REIFY_UTILS_ASSIGN_OR_RETURN(
           sub_frame_resources,
           sub_renderer->RenderFrame(command_buffer, framebuffer,
-                                    viewport_region));
+                                    output_color_image, viewport_region));
       frame_resources.push_back(std::move(sub_frame_resources));
     }
+
+    vulkan_utils::SetImageLayout(command_buffer, output_color_image,
+                                 VK_IMAGE_ASPECT_COLOR_BIT,
+                                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
     return std::move(frame_resources);
   }
 

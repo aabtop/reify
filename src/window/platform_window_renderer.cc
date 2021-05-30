@@ -46,6 +46,8 @@ LayerMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
   std::cerr << "Vulkan validation layer message (" << severity_string
             << "): " << callback_data->pMessage << std::endl;
 
+  *((int*)(0)) = 5;
+
   return VK_FALSE;
 }
 }  // namespace

@@ -37,6 +37,7 @@ class MeshRenderer {
 
   ErrorOr<FrameResources> RenderFrame(VkCommandBuffer command_buffer,
                                       VkFramebuffer framebuffer,
+                                      VkImage output_color_image,
                                       const std::array<int, 4>& viewport_region,
                                       const glm::mat4& view_matrix);
 
@@ -51,8 +52,11 @@ class MeshRenderer {
     WithDeleter<VkPipelineCache> pipeline_cache;
     WithDeleter<VkPipelineLayout> pipeline_layout;
 
-    WithDeleter<VkRenderPass> render_pass;
-    WithDeleter<VkPipeline> pipeline;
+    // We'll continually use the same pipeline, but we set it up as a
+    // shared_ptr because it needs to also out-live any rendering draw calls
+    // that reference it.
+    std::shared_ptr<WithDeleter<VkRenderPass>> render_pass;
+    std::shared_ptr<WithDeleter<VkPipeline>> pipeline;
   };
 
   MeshRenderer(MeshRendererConstructorData&& data) : data_(std::move(data)) {}

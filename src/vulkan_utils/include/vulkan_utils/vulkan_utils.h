@@ -100,8 +100,13 @@ ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindImageMemory(
     VkPhysicalDevice physical_device, VkDevice device, VkImage image,
     VkMemoryPropertyFlags properties);
 
+void SetImageLayout(VkCommandBuffer command_buffer, VkImage image,
+                    VkImageAspectFlags image_aspect_flags,
+                    VkImageLayout old_layout, VkImageLayout new_layout);
+
 ErrorOr<WithDeleter<VkImageView>> MakeImageView(VkDevice device, VkImage image,
-                                                VkFormat format);
+                                                VkFormat format,
+                                                VkImageAspectFlags aspect_mask);
 
 ErrorOr<WithDeleter<VkPipelineCache>> MakePipelineCache(VkDevice device);
 

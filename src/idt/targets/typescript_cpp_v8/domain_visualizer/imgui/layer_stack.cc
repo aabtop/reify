@@ -117,7 +117,7 @@ class RendererImGui : public window::Window::Renderer {
 
   ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      const window::Rect& viewport_region) override;
+      VkImage output_color_image, const window::Rect& viewport_region) override;
 
  private:
   VulkanConstructorData vulkan_constructor_data_;
@@ -220,13 +220,22 @@ RendererImGui::CreateVulkanConstructorData(VkInstance instance,
       vulkan_utils::MakeRenderPass(
           device,
           {VkAttachmentDescription{
-              0, output_image_format, VK_SAMPLE_COUNT_1_BIT,
-              VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
-              VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+              0,
+              output_image_format,
+              VK_SAMPLE_COUNT_1_BIT,
+              VK_ATTACHMENT_LOAD_OP_LOAD,
+              VK_ATTACHMENT_STORE_OP_STORE,
+              VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+              VK_ATTACHMENT_STORE_OP_DONT_CARE,
               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-              VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,  // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL?
+              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
           }},
-          std::nullopt));
+          VkAttachmentDescription{
+              0, VK_FORMAT_D32_SFLOAT, VK_SAMPLE_COUNT_1_BIT,
+              VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+              VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+              VK_IMAGE_LAYOUT_UNDEFINED,
+              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}));
 
   ImGui_ImplVulkan_Init(&init_info, render_pass.value());
   if (*GetImGuiVulkanResult() != VK_SUCCESS) {
@@ -248,6 +257,7 @@ RendererImGui::CreateVulkanConstructorData(VkInstance instance,
 window::Window::ErrorOr<window::Window::Renderer::FrameResources>
 RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
                            VkFramebuffer framebuffer,
+                           VkImage output_color_image,
                            const window::Rect& viewport_region) {
   ImGuiIO& io = ImGui::GetIO();
   io.DisplaySize = ImVec2(viewport_region.width(), viewport_region.height());
@@ -284,6 +294,8 @@ RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
   rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   rpb.renderPass = vulkan_constructor_data_.render_pass.value();
   rpb.framebuffer = framebuffer;
+  rpb.renderArea.offset.x = viewport_region.left;
+  rpb.renderArea.offset.y = viewport_region.top;
   rpb.renderArea.extent.width = viewport_region.width();
   rpb.renderArea.extent.height = viewport_region.height();
   rpb.clearValueCount = 0;

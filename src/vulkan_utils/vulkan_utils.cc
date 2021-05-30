@@ -51,25 +51,25 @@ ErrorOr<WithDeleter<VkDescriptorPool>> MakeDescriptorPool(
     VkDevice device,
     const std::vector<VkDescriptorPoolSize> descriptor_pool_sizes,
     uint32_t max_sets) {
-  VkDescriptorPoolCreateInfo descriptor_pool_create_info;
-  memset(&descriptor_pool_create_info, 0, sizeof(descriptor_pool_create_info));
+  VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
   descriptor_pool_create_info.sType =
       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   descriptor_pool_create_info.maxSets = max_sets;
   descriptor_pool_create_info.poolSizeCount = descriptor_pool_sizes.size();
   descriptor_pool_create_info.pPoolSizes = descriptor_pool_sizes.data();
+  descriptor_pool_create_info.flags =
+      VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
   VkDescriptorPool pool;
   auto err = vkCreateDescriptorPool(device, &descriptor_pool_create_info,
                                     nullptr, &pool);
   if (err != VK_SUCCESS) {
     return Error{fmt::format("Failed to create descriptor pool: {}", err)};
-  } else {
-    return WithDeleter<VkDescriptorPool>(
-        std::move(pool), [device](VkDescriptorPool&& x) {
-          vkDestroyDescriptorPool(device, x, nullptr);
-        });
   }
+  return WithDeleter<VkDescriptorPool>(
+      std::move(pool), [device](VkDescriptorPool&& x) {
+        vkDestroyDescriptorPool(device, x, nullptr);
+      });
 }
 
 ErrorOr<WithDeleter<VkDescriptorSetLayout>> MakeDescriptorSetLayout(
@@ -84,12 +84,11 @@ ErrorOr<WithDeleter<VkDescriptorSetLayout>> MakeDescriptorSetLayout(
   if (err != VK_SUCCESS) {
     return Error{
         fmt::format("Failed to create descriptor set layout: {}", err)};
-  } else {
-    return WithDeleter<VkDescriptorSetLayout>(
-        std::move(layout), [device](VkDescriptorSetLayout&& x) {
-          vkDestroyDescriptorSetLayout(device, x, nullptr);
-        });
   }
+  return WithDeleter<VkDescriptorSetLayout>(
+      std::move(layout), [device](VkDescriptorSetLayout&& x) {
+        vkDestroyDescriptorSetLayout(device, x, nullptr);
+      });
 }
 
 ErrorOr<WithDeleter<VkDescriptorSet>> MakeDescriptorSet(
@@ -303,14 +302,88 @@ ErrorOr<WithDeleter<VkDeviceMemory>> AllocateAndBindImageMemory(
   return std::move(image_memory);
 }
 
-ErrorOr<WithDeleter<VkImageView>> MakeImageView(VkDevice device, VkImage image,
-                                                VkFormat format) {
+void SetImageLayout(VkCommandBuffer command_buffer, VkImage image,
+                    VkImageAspectFlags image_aspect_flags,
+                    VkImageLayout old_layout, VkImageLayout new_layout) {
+  // Thanks to
+  // https://harrylovescode.gitbooks.io/vulkan-api/content/chap07/chap07.html
+  // for most of the logic in this function.
+  VkImageMemoryBarrier image_memory_barrier = {};
+  image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  image_memory_barrier.pNext = nullptr;
+  image_memory_barrier.oldLayout = old_layout;
+  image_memory_barrier.newLayout = new_layout;
+  image_memory_barrier.image = image;
+  image_memory_barrier.subresourceRange.aspectMask = image_aspect_flags;
+  image_memory_barrier.subresourceRange.baseMipLevel = 0;
+  image_memory_barrier.subresourceRange.levelCount = 1;
+  image_memory_barrier.subresourceRange.layerCount = 1;
+
+  switch (old_layout) {
+    case VK_IMAGE_LAYOUT_PREINITIALIZED:
+      image_memory_barrier.srcAccessMask =
+          VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+      break;
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      image_memory_barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      break;
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+      image_memory_barrier.srcAccessMask =
+          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      break;
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+      image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+      break;
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+      image_memory_barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      break;
+  }
+
+  switch (new_layout) {
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+      image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      break;
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+      image_memory_barrier.srcAccessMask |= VK_ACCESS_TRANSFER_READ_BIT;
+      image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+      break;
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      image_memory_barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+      break;
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+      image_memory_barrier.dstAccessMask |=
+          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      break;
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+      image_memory_barrier.srcAccessMask =
+          VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+      image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      break;
+  }
+
+  if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+    image_memory_barrier.srcAccessMask = 0;
+  }
+
+  VkPipelineStageFlagBits src_pipeline_stage_flags =
+      VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+  VkPipelineStageFlagBits dst_pipeline_stage_flags =
+      VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+  vkCmdPipelineBarrier(command_buffer, src_pipeline_stage_flags,
+                       dst_pipeline_stage_flags, 0, 0, nullptr, 0, nullptr, 1,
+                       &image_memory_barrier);
+}
+
+ErrorOr<WithDeleter<VkImageView>> MakeImageView(
+    VkDevice device, VkImage image, VkFormat format,
+    VkImageAspectFlags aspect_mask) {
   VkImageViewCreateInfo view_info{};
   view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   view_info.image = image;
   view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
   view_info.format = format;
-  view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  view_info.subresourceRange.aspectMask = aspect_mask;
   view_info.subresourceRange.baseMipLevel = 0;
   view_info.subresourceRange.levelCount = 1;
   view_info.subresourceRange.baseArrayLayer = 0;
@@ -819,7 +892,8 @@ ErrorOr<WithDeleter<VkCommandPool>> MakeCommandPool(
   VkCommandPoolCreateInfo command_pool_info{};
   command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   command_pool_info.queueFamilyIndex = queue_family_index;
-  command_pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+  command_pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
+                            VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
   VkCommandPool command_pool;
   VkResult err =

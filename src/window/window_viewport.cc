@@ -74,12 +74,14 @@ class RendererWindowViewport : public Window::Renderer {
 
   ErrorOr<FrameResources> RenderFrame(VkCommandBuffer command_buffer,
                                       VkFramebuffer framebuffer,
+                                      VkImage output_color_image,
                                       const Rect& viewport_region) override {
     if (!window_viewport_->viewport()) {
       return FrameResources();
     }
 
     return sub_renderer_->RenderFrame(command_buffer, framebuffer,
+                                      output_color_image,
                                       *window_viewport_->viewport());
   }
 

@@ -113,6 +113,7 @@ void ReifyWindowVulkanWindowRenderer::startNextFrame() {
   QSize image_size = window_->swapChainImageSize();
   auto error_or_frame_resources = reify_window_renderer_->RenderFrame(
       window_->currentCommandBuffer(), window_->currentFramebuffer(),
+      window_->swapChainImage(window_->currentSwapChainImageIndex()),
       {0, 0, image_size.width(), image_size.height()});
   if (auto error =
           std::get_if<window::Window::Error>(&error_or_frame_resources)) {

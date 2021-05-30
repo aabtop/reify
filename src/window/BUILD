@@ -29,6 +29,7 @@ cc_library(
     deps = [
         "@vulkan_sdk//:vulkan",
         "@reify//src/utils",
+        "@reify//src/vulkan_utils",
     ],
 )
 

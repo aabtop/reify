@@ -48,23 +48,30 @@ MeshRenderer::ErrorOr<MeshRenderer> MeshRenderer::Create(
 
   // Render pass
   VULKAN_UTILS_ASSIGN_OR_RETURN(
-      render_pass,
-      vulkan_utils::MakeRenderPass(
-          device,
-          {VkAttachmentDescription{
-              0, output_image_format, VK_SAMPLE_COUNT_1_BIT,
-              VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-              VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-              VK_IMAGE_LAYOUT_UNDEFINED,
-              VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,  // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL?
-          }},
-          VkAttachmentDescription{
-              0, VK_FORMAT_D32_SFLOAT, VK_SAMPLE_COUNT_1_BIT,
-              VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-              VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-              VK_IMAGE_LAYOUT_UNDEFINED,
-              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,  // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL?
-          }));
+      render_pass, vulkan_utils::MakeRenderPass(
+                       device,
+                       {VkAttachmentDescription{
+                           0,
+                           output_image_format,
+                           VK_SAMPLE_COUNT_1_BIT,
+                           VK_ATTACHMENT_LOAD_OP_CLEAR,
+                           VK_ATTACHMENT_STORE_OP_STORE,
+                           VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                           VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                           VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                           VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                       }},
+                       VkAttachmentDescription{
+                           0,
+                           VK_FORMAT_D32_SFLOAT,
+                           VK_SAMPLE_COUNT_1_BIT,
+                           VK_ATTACHMENT_LOAD_OP_CLEAR,
+                           VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                           VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                           VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                           VK_IMAGE_LAYOUT_UNDEFINED,
+                           VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                       }));
 
   // Graphics pipeline
   VULKAN_UTILS_ASSIGN_OR_RETURN(
@@ -103,8 +110,8 @@ MeshRenderer::ErrorOr<MeshRenderer> MeshRenderer::Create(
       std::move(descriptor_set_layout),
       std::move(pipeline_cache),
       std::move(pipeline_layout),
-      std::move(render_pass),
-      std::move(pipeline),
+      std::make_shared<WithDeleter<VkRenderPass>>(std::move(render_pass)),
+      std::make_shared<WithDeleter<VkPipeline>>(std::move(pipeline)),
   });
 }
 
@@ -112,6 +119,7 @@ MeshRenderer::~MeshRenderer() {}
 
 auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
                                VkFramebuffer framebuffer,
+                               VkImage output_color_image,
                                const std::array<int, 4>& viewport_region,
                                const glm::mat4& view_matrix)
     -> ErrorOr<FrameResources> {
@@ -174,18 +182,19 @@ auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
 
   VkRenderPassBeginInfo rpb{};
   rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  rpb.renderPass = data_.render_pass.value();
+  rpb.renderPass = data_.render_pass->value();
   rpb.framebuffer = framebuffer;
-  rpb.renderArea.extent.width = viewport_region[2];
-  rpb.renderArea.extent.height = viewport_region[3];
+  rpb.renderArea.offset.x = viewport_region[0];
+  rpb.renderArea.offset.y = viewport_region[1];
+  rpb.renderArea.extent.width = viewport_region[2] - viewport_region[0];
+  rpb.renderArea.extent.height = viewport_region[3] - viewport_region[1];
   rpb.clearValueCount = clear_values.size();
   rpb.pClearValues = clear_values.data();
 
   vkCmdBeginRenderPass(command_buffer, &rpb, VK_SUBPASS_CONTENTS_INLINE);
-
   if (vulkan_triangle_soup_) {
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      data_.pipeline.value());
+                      data_.pipeline->value());
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             data_.pipeline_layout.value(), 0, 1,
                             &(uniform_descriptor_set.value()), 0, nullptr);
@@ -203,13 +212,12 @@ auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
         static_cast<uint32_t>(triangle_soup_->triangles.size() * 3), 1, 0, 0,
         0);
   }
-
   vkCmdEndRenderPass(command_buffer);
 
   auto resources = std::make_tuple(
-      std::move(uniform_buffer), std::move(uniform_buffer_memory),
-      std::move(descriptor_pool), std::move(uniform_descriptor_set),
-      vulkan_triangle_soup_);
+      vulkan_triangle_soup_, std::move(uniform_descriptor_set),
+      std::move(descriptor_pool), std::move(uniform_buffer_memory),
+      std::move(uniform_buffer), data_.pipeline, data_.render_pass);
   // std::any doesn't support move only types, so we wrap it in a shared_ptr.
   return FrameResources(
       std::make_shared<decltype(resources)>(std::move(resources)));

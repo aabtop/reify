@@ -21,6 +21,7 @@ class SwapChainRenderer {
   std::optional<Error> Render(
       const std::function<ErrorOr<FrameResources>(
           VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+          VkImage output_color_image,
           const std::array<uint32_t, 2>& output_surface_size)>&
           render_function);
 
@@ -32,6 +33,7 @@ class SwapChainRenderer {
       const VkSurfaceFormatKHR& surface_format,
       const VkExtent2D& swap_chain_extent,
       WithDeleter<VkSwapchainKHR>&& swap_chain,
+      std::vector<VkImage>&& swap_chain_images,
       std::vector<WithDeleter<VkImageView>>&& swap_chain_image_views,
       WithDeleter<VkRenderPass>&& render_pass,
       WithDeleter<VkImage>&& depth_image,
@@ -51,6 +53,7 @@ class SwapChainRenderer {
         surface_format_(surface_format),
         swap_chain_extent_(swap_chain_extent),
         swap_chain_(std::move(swap_chain)),
+        swap_chain_images_(swap_chain_images),
         swap_chain_image_views_(std::move(swap_chain_image_views)),
         render_pass_(std::move(render_pass)),
         depth_image_(std::move(depth_image)),
@@ -73,6 +76,7 @@ class SwapChainRenderer {
   VkSurfaceFormatKHR surface_format_;
   VkExtent2D swap_chain_extent_;
   WithDeleter<VkSwapchainKHR> swap_chain_;
+  std::vector<VkImage> swap_chain_images_;
   std::vector<WithDeleter<VkImageView>> swap_chain_image_views_;
   WithDeleter<VkRenderPass> render_pass_;
   WithDeleter<VkImage> depth_image_;
