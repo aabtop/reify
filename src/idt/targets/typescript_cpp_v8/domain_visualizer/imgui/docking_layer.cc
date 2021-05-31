@@ -65,8 +65,6 @@ int child_index_for_direction(ImGuiDir dir) {
   assert(false);
   return ImGuiDir_None;
 }
-
-int other_child_index(int child_index) { return 1 - child_index; }
 }  // namespace
 
 // Find the empty space node, and return a node directly in the

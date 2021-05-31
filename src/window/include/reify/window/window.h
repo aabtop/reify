@@ -7,6 +7,7 @@
 #include <array>
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <variant>

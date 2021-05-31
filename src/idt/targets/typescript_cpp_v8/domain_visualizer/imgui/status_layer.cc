@@ -39,7 +39,6 @@ void StatusLayer::ExecuteImGuiCommands() {
   }
 
   float height = ImGui::GetWindowHeight();
-  ImGuiViewportP* viewport = (ImGuiViewportP*)(void*)ImGui::GetMainViewport();
   ImRect empty_space_rect = docking_layer_->GetEmptySpaceNode()->Rect();
   const ImGuiStyle& style = ImGui::GetStyle();
 

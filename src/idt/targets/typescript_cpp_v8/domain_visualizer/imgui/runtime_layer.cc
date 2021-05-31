@@ -15,10 +15,10 @@ RuntimeLayer::RuntimeLayer(
     const std::function<void(std::function<void()>)>& enqueue_task_function,
     DockingLayer* docking_layer, StatusLayer* status_layer,
     DomainVisualizer* domain_visualizer)
-    : domain_visualizer_(domain_visualizer),
+    : enqueue_task_function_(enqueue_task_function),
       docking_layer_(docking_layer),
       status_layer_(status_layer),
-      enqueue_task_function_(enqueue_task_function) {}
+      domain_visualizer_(domain_visualizer) {}
 
 void RuntimeLayer::SetCompiledModule(
     const std::shared_ptr<reify::CompiledModule>& compiled_module) {
@@ -90,10 +90,8 @@ void RuntimeLayer::ExecuteImGuiCommands() {
         Spinner("status building spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
                 ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
         ImGui::SameLine();
-        ImGui::Text(
-            fmt::format("Building {}...",
-                        previewable_symbols_[selected_symbol_index_].name)
-                .c_str());
+        ImGui::Text("Building %s...",
+                    previewable_symbols_[selected_symbol_index_].name.c_str());
       });
     }
 

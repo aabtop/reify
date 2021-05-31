@@ -320,6 +320,9 @@ void SetImageLayout(VkCommandBuffer command_buffer, VkImage image,
   image_memory_barrier.subresourceRange.layerCount = 1;
 
   switch (old_layout) {
+    case VK_IMAGE_LAYOUT_UNDEFINED:
+      // Leave the bitfield empty here.
+      break;
     case VK_IMAGE_LAYOUT_PREINITIALIZED:
       image_memory_barrier.srcAccessMask =
           VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -337,9 +340,15 @@ void SetImageLayout(VkCommandBuffer command_buffer, VkImage image,
     case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
       image_memory_barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
       break;
+    default:
+      // Not supported.
+      assert(false);
   }
 
   switch (new_layout) {
+    case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+      // Intentionally left empty (mainly because I don't know what to do here).
+      break;
     case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
       image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
       break;
@@ -360,6 +369,9 @@ void SetImageLayout(VkCommandBuffer command_buffer, VkImage image,
           VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
       image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
       break;
+    default:
+      // Not supported.
+      assert(false);
   }
 
   if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
