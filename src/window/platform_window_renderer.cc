@@ -39,8 +39,9 @@ LayerMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
         return "warning";
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
         return "error";
+      default:
+        return "?";
     };
-    return "?";
   }();
 
   std::cerr << "Vulkan validation layer message (" << severity_string

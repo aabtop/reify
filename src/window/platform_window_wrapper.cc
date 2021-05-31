@@ -81,6 +81,8 @@ utils::MaybeError RunPlatformWindowWrapper(
                 event.data.mouse_wheel.angle_in_degrees,
             });
           } break;
+          case kPlatformWindowEventTypeNoEvent:
+          break;
         }
       });
   if (!maybe_window) {
