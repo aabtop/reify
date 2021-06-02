@@ -140,8 +140,6 @@ VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
 ErrorOr<SwapChainRenderer> SwapChainRenderer::Create(
     VkInstance instance, VkSurfaceKHR surface,
     const std::function<std::array<int32_t, 2>()>& get_surface_size) {
-  VkResult err;
-
   VULKAN_UTILS_ASSIGN_OR_RETURN(physical_devices,
                                 EnumeratePhysicalDevices(instance));
 

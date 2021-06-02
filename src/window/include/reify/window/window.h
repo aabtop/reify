@@ -71,8 +71,8 @@ class Window {
     float angle_in_degrees;
   };
   struct KeyboardEvent {
-    // Keycode is defined by Qt's key mapping:
-    // https://doc.qt.io/qt-5/qt.html#Key-enum
+    // Key codes for key events, adopted from Windows virtual key codes:
+    //   https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731%28v=vs.85%29.aspx
     int key;
     bool pressed;
   };
