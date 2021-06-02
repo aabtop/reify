@@ -23,6 +23,8 @@ class DisableIf {
     }
   }
 
+  bool condition() const { return condition_; }
+
  private:
   bool condition_;
 };

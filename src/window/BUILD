@@ -8,6 +8,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "@platform_window//:platform_window_key",
         "@vulkan_sdk//:vulkan",
     ],
 )

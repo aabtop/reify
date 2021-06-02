@@ -8,6 +8,7 @@
 #include "backends/imgui_impl_vulkan.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "platform_window/platform_window_key.h"
 #include "vulkan_utils/vulkan_utils.h"
 
 namespace reify {
@@ -35,7 +36,32 @@ LayerStack::LayerStack(const std::vector<Layer>& layers) : layers_(layers) {
   // the side of no IO.
   io.IniFilename = nullptr;
 
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  io.ConfigFlags |=
+      ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
+
+  // Keyboard mapping. Dear ImGui will use those indices to peek into the
+  // io.KeysDown[] array.
+  io.KeyMap[ImGuiKey_Tab] = kPlatformWindowKeyTab;
+  io.KeyMap[ImGuiKey_LeftArrow] = kPlatformWindowKeyLeft;
+  io.KeyMap[ImGuiKey_RightArrow] = kPlatformWindowKeyRight;
+  io.KeyMap[ImGuiKey_UpArrow] = kPlatformWindowKeyUp;
+  io.KeyMap[ImGuiKey_DownArrow] = kPlatformWindowKeyDown;
+  io.KeyMap[ImGuiKey_PageUp] = kPlatformWindowKeyPrior;
+  io.KeyMap[ImGuiKey_PageDown] = kPlatformWindowKeyNext;
+  io.KeyMap[ImGuiKey_Home] = kPlatformWindowKeyHome;
+  io.KeyMap[ImGuiKey_End] = kPlatformWindowKeyEnd;
+  io.KeyMap[ImGuiKey_Insert] = kPlatformWindowKeyInsert;
+  io.KeyMap[ImGuiKey_Delete] = kPlatformWindowKeyDelete;
+  io.KeyMap[ImGuiKey_Backspace] = kPlatformWindowKeyBackspace;
+  io.KeyMap[ImGuiKey_Space] = kPlatformWindowKeySpace;
+  io.KeyMap[ImGuiKey_Enter] = kPlatformWindowKeyReturn;
+  io.KeyMap[ImGuiKey_Escape] = kPlatformWindowKeyEscape;
+  io.KeyMap[ImGuiKey_A] = kPlatformWindowKeyA;
+  io.KeyMap[ImGuiKey_C] = kPlatformWindowKeyC;
+  io.KeyMap[ImGuiKey_V] = kPlatformWindowKeyV;
+  io.KeyMap[ImGuiKey_X] = kPlatformWindowKeyX;
+  io.KeyMap[ImGuiKey_Y] = kPlatformWindowKeyY;
+  io.KeyMap[ImGuiKey_Z] = kPlatformWindowKeyZ;
 }
 
 LayerStack::~LayerStack() { ImGui::DestroyContext(); }
@@ -73,6 +99,13 @@ bool LayerStack::OnInputEvent(const InputEvent& input_event) {
       return false;
     }
   } else if (auto event = std::get_if<KeyboardEvent>(&input_event)) {
+    io.KeysDown[event->key] = event->pressed;
+    io.KeyCtrl = io.KeysDown[kPlatformWindowKeyControl];
+    io.KeyShift = io.KeysDown[kPlatformWindowKeyShift];
+    io.KeyAlt = io.KeysDown[kPlatformWindowKeyMenu];
+    io.KeySuper = io.KeysDown[kPlatformWindowKeyLwin] ||
+                  io.KeysDown[kPlatformWindowKeyRwin];
+
     if (io.WantCaptureKeyboard && event->pressed) {
       // Only prevent the event from being passed on to the wrapped visualizer
       // if it was a press event and ImGui really wanted to capture it.

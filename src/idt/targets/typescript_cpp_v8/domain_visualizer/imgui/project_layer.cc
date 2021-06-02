@@ -4,6 +4,7 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "platform_window/platform_window_key.h"
 #include "reify/typescript_cpp_v8/imgui/utils.h"
 #include "reify/typescript_cpp_v8/imgui/widgets.h"
 
@@ -117,6 +118,53 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
           });
 }
 
+namespace {
+
+// Helper class for setting up menu items with shortcuts.
+class Action {
+ public:
+  Action(const std::string& menu_label, const std::function<void()>& run,
+         bool enabled, PlatformWindowKey shortcut = kPlatformWindowKeyUnknown)
+      : menu_label_(menu_label),
+        enabled_(enabled),
+        shortcut_(shortcut),
+        run_(run) {}
+
+  void MenuItem(bool enabled) {
+    std::string shortcut_string;
+    if (shortcut_ != kPlatformWindowKeyUnknown) {
+      shortcut_string =
+          std::string("CTRL+") +
+          static_cast<char>('A' + (shortcut_ - kPlatformWindowKeyA));
+    }
+
+    bool result = ImGui::MenuItem(
+        menu_label_.c_str(),
+        shortcut_string.empty() ? nullptr : shortcut_string.c_str());
+
+    if (result) {
+      run_();
+      menu_item_called_ = true;
+    }
+  }
+  ~Action() {
+    if (!menu_item_called_ && enabled_ &&
+        ImGui::GetIO().KeyMods & ImGuiKeyModFlags_Ctrl &&
+        ImGui::IsKeyPressed(shortcut_, false)) {
+      run_();
+    }
+  }
+
+ private:
+  const std::string menu_label_;
+  const bool enabled_;
+  const PlatformWindowKey shortcut_;
+  const std::function<void()> run_;
+
+  bool menu_item_called_ = false;
+};
+
+}  // namespace
 void ProjectLayer::ExecuteImGuiCommands() {
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 8));
   if (ImGui::BeginMainMenuBar()) {
@@ -124,10 +172,12 @@ void ProjectLayer::ExecuteImGuiCommands() {
       DisableIf disable_if_no_project_loaded(!current_project_path_ ||
                                              pending_compilation_results_);
 
+      Action recompile_action(
+          "Recompile", [this] { LoadProject(*current_project_path_); },
+          !disable_if_no_project_loaded.condition(), kPlatformWindowKeyB);
+
       if (ImGui::BeginMenu("Project")) {
-        if (ImGui::MenuItem("Recompile", "CTRL+B")) {
-          LoadProject(*current_project_path_);
-        }
+        recompile_action.MenuItem(!disable_if_no_project_loaded.condition());
         ImGui::EndMenu();
       }
     }
@@ -147,9 +197,7 @@ void ProjectLayer::ExecuteImGuiCommands() {
         Spinner("status compiling spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
                 ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
         ImGui::SameLine();
-        ImGui::Text(
-            fmt::format("Compiling {}...", current_project_path_->string())
-                .c_str());
+        ImGui::Text("Compiling %s...", current_project_path_->string().c_str());
       });
     }
   } else {

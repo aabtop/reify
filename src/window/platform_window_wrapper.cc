@@ -81,8 +81,14 @@ utils::MaybeError RunPlatformWindowWrapper(
                 event.data.mouse_wheel.angle_in_degrees,
             });
           } break;
+          case kPlatformWindowEventTypeKey: {
+            send_wrapped_window_input_event(Window::KeyboardEvent{
+                event.data.key.key,
+                event.data.key.pressed,
+            });
+          } break;
           case kPlatformWindowEventTypeNoEvent:
-          break;
+            break;
         }
       });
   if (!maybe_window) {
