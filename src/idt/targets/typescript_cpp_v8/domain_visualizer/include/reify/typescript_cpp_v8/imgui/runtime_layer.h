@@ -8,6 +8,7 @@
 #include "reify/typescript_cpp_v8/imgui/docking_layer.h"
 #include "reify/typescript_cpp_v8/imgui/status_layer.h"
 #include "reify/utils/error.h"
+#include "reify/utils/thread_with_work_queue.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
@@ -32,7 +33,7 @@ class RuntimeLayer {
  private:
   void RebuildSelectedSymbol();
 
-  const std::function<void(std::function<void()>)> enqueue_task_function_;
+  utils::ScopedWorkQueue self_work_queue_;
   DockingLayer* docking_layer_;
   StatusLayer* status_layer_;
   DomainVisualizer* domain_visualizer_;

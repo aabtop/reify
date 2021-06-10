@@ -164,10 +164,11 @@ utils::MaybeError RunPlatformWindowWrapper(
   // resources about to be shutdown are no longer in use.
   render_looper = std::nullopt;
   wrapped_window_thread
-      ->Enqueue<bool>([device = renderer.swap_chain_renderer.device()] {
-        vkDeviceWaitIdle(device);
-        return true;
-      })
+      ->EnqueueWithResult<bool>(
+          [device = renderer.swap_chain_renderer.device()] {
+            vkDeviceWaitIdle(device);
+            return true;
+          })
       .wait_and_get_results();
 
   return quit_result;

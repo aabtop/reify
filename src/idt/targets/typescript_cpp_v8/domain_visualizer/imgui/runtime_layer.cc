@@ -15,7 +15,7 @@ RuntimeLayer::RuntimeLayer(
     const std::function<void(std::function<void()>)>& enqueue_task_function,
     DockingLayer* docking_layer, StatusLayer* status_layer,
     DomainVisualizer* domain_visualizer)
-    : enqueue_task_function_(enqueue_task_function),
+    : self_work_queue_(enqueue_task_function),
       docking_layer_(docking_layer),
       status_layer_(status_layer),
       domain_visualizer_(domain_visualizer) {}
@@ -113,23 +113,22 @@ void RuntimeLayer::RebuildSelectedSymbol() {
         domain_visualizer_
             ->PrepareSymbolForPreview(
                 compiled_module_, previewable_symbols_[selected_symbol_index_])
-            .watch(
-                [this, enqueue_task_function = enqueue_task_function_](auto x) {
-                  enqueue_task_function([this, x] {
-                    pending_preview_results_ = std::nullopt;
+            .watch([this](auto x) {
+              self_work_queue_.Enqueue([this, x] {
+                pending_preview_results_ = std::nullopt;
 
-                    if (std::holds_alternative<utils::CancelledFuture>(x)) {
-                      preview_error_ = utils::Error{"Compilation cancelled."};
-                      return;
-                    }
+                if (std::holds_alternative<utils::CancelledFuture>(x)) {
+                  preview_error_ = utils::Error{"Compilation cancelled."};
+                  return;
+                }
 
-                    const auto& error_or = *std::get<1>(x);
-                    if (auto error = std::get_if<0>(&error_or)) {
-                      preview_error_ = utils::Error{error->msg};
-                    }
-                    domain_visualizer_->SetPreview(std::get<1>(error_or));
-                  });
-                });
+                const auto& error_or = *std::get<1>(x);
+                if (auto error = std::get_if<0>(&error_or)) {
+                  preview_error_ = utils::Error{error->msg};
+                }
+                domain_visualizer_->SetPreview(std::get<1>(error_or));
+              });
+            });
   }
 }
 

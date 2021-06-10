@@ -47,5 +47,29 @@ void ThreadWithWorkQueue::Enqueue(const std::function<void()>& task) {
   queue_not_empty_.notify_all();
 }
 
+ScopedWorkQueue::ScopedWorkQueue(WorkQueue* wrapped)
+    : enqueue_function_([wrapped](auto x) { wrapped->Enqueue(x); }) {}
+ScopedWorkQueue::ScopedWorkQueue(
+    std::function<void(std::function<void()>)> enqueue_function)
+    : enqueue_function_(enqueue_function) {}
+ScopedWorkQueue::~ScopedWorkQueue() {
+  std::unique_lock lock(mutex_);
+  empty_cond_.wait(lock, [this] { return pending_message_count_ == 0; });
+}
+
+void ScopedWorkQueue::Enqueue(const std::function<void()>& task) {
+  {
+    std::lock_guard lock(mutex_);
+    ++pending_message_count_;
+  }
+  enqueue_function_([this, task] {
+    task();
+    std::lock_guard lock(mutex_);
+    if (--pending_message_count_ == 0) {
+      empty_cond_.notify_all();
+    }
+  });
+}
+
 }  // namespace utils
 }  // namespace reify

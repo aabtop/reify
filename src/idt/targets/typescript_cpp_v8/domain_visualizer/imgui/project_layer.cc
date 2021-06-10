@@ -12,65 +12,81 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
 
-namespace {
-utils::ErrorOr<std::shared_ptr<reify::CompiledModule>> CompileVirtualFile(
+utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
+    const std::filesystem::path& path,
     const std::vector<reify::CompilerEnvironment::InputModule>&
-        typescript_input_modules,
-    const std::string& virtual_filepath, reify::VirtualFilesystem* vfs) {
-  // V8 doesn't like being initialized on one thread and then used on another,
-  // so we just recreate the compiler environment each time.  This means we
-  // need to reload the TypeScript compiler every time we want to compile
-  // something, which kind of sucks.  The output of the Compile() call is
-  // completely independent of the compiler environment, so at least we're
-  // safe there.
-  auto result = [&]() {
-    reify::CompilerEnvironment compile_env(vfs, &typescript_input_modules);
-    return compile_env.Compile(virtual_filepath);
-  }();
-
-  if (auto error = std::get_if<0>(&result)) {
-    return utils::Error{fmt::format("{}:{}:{}: error: {}", error->path,
-                                    error->line + 1, error->column + 1,
-                                    error->message)};
-  }
-
-  return std::get<1>(result);
-}
-
-utils::ErrorOr<std::shared_ptr<reify::CompiledModule>> CompileFile(
-    const std::vector<reify::CompilerEnvironment::InputModule>&
-        typescript_input_modules,
-    const std::filesystem::path& filepath) {
-  if (!std::filesystem::exists(filepath) ||
-      std::filesystem::is_directory(filepath)) {
+        typescript_input_modules) {
+  if (!std::filesystem::exists(path) || std::filesystem::is_directory(path)) {
     return utils::Error{fmt::format(
         "Provided path {} either does not exist or is a directory, not a file.",
-        filepath.string())};
+        path.string())};
   }
 
   // Make or reference a virtual file system based on the current workspace.
-  auto absolute_input_source_file = std::filesystem::absolute(filepath);
+  auto absolute_input_source_file = std::filesystem::absolute(path);
   auto project_directory = absolute_input_source_file.parent_path();
 
-  reify::MountedHostFolderFilesystem vfs(project_directory);
+  std::unique_ptr<MountedHostFolderFilesystem> virtual_filesystem(
+      new MountedHostFolderFilesystem(project_directory));
 
-  auto virtual_path = vfs.HostPathToVirtualPath(absolute_input_source_file);
+  auto virtual_path =
+      virtual_filesystem->HostPathToVirtualPath(absolute_input_source_file);
 
   if (!virtual_path) {
     return utils::Error{fmt::format(
         "Input file {} is not contained within the project root: {}",
-        filepath.string(), vfs.host_root().string())};
+        path.string(), virtual_filesystem->host_root().string())};
   }
 
-  return CompileVirtualFile(typescript_input_modules, *virtual_path, &vfs);
+  return std::unique_ptr<Project>(new Project(
+      absolute_input_source_file,
+      std::unique_ptr<VirtualFilesystem>(virtual_filesystem.release()),
+      typescript_input_modules,
+      [virtual_path_value = *virtual_path] { return virtual_path_value; }));
 }
-}  // namespace
+
+Project::Project(const std::filesystem::path& absolute_path,
+                 std::unique_ptr<VirtualFilesystem> virtual_filesystem,
+                 const std::vector<reify::CompilerEnvironment::InputModule>&
+                     typescript_input_modules,
+                 const std::function<std::string()>& get_sources)
+    : absolute_path_(absolute_path),
+      virtual_filesystem_(std::move(virtual_filesystem)),
+      get_sources_(get_sources),
+      compiler_environment_(virtual_filesystem_.get(),
+                            typescript_input_modules) {}
+
+CompilerEnvironmentThreadSafe::CompilationFuture Project::RebuildProject() {
+  return compiler_environment_.Compile(get_sources_());
+}
+
+CompilerEnvironmentThreadSafe::CompilerEnvironmentThreadSafe(
+    VirtualFilesystem* virtual_filesystem,
+    const std::vector<reify::CompilerEnvironment::InputModule>&
+        typescript_input_modules)
+    : virtual_filesystem_(std::move(virtual_filesystem)),
+      typescript_input_modules_(typescript_input_modules) {
+  compilation_thread_.Enqueue([this] {
+    compiler_environment_.emplace(virtual_filesystem_,
+                                  &typescript_input_modules_);
+  });
+}
+
+CompilerEnvironmentThreadSafe::~CompilerEnvironmentThreadSafe() {
+  compilation_thread_.Enqueue([this] { compiler_environment_ = std::nullopt; });
+}
+
+CompilerEnvironmentThreadSafe::CompilationFuture
+CompilerEnvironmentThreadSafe::Compile(const std::string& sources) {
+  return compilation_thread_.EnqueueWithResult<CompilationResults>(
+      [this, sources] { return compiler_environment_->Compile(sources); });
+}
 
 ProjectLayer::ProjectLayer(
-    utils::ThreadWithWorkQueue* thread, StatusLayer* status_layer,
+    utils::WorkQueue* self_work_queue, StatusLayer* status_layer,
     RuntimeLayer* runtime_layer,
     const std::optional<std::filesystem::path>& initial_project_path)
-    : thread_(thread),
+    : self_work_queue_(self_work_queue),
       status_layer_(status_layer),
       runtime_layer_(runtime_layer),
       domain_visualizer_(runtime_layer_->domain_visualizer()) {
@@ -85,37 +101,54 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
     return;
   }
 
-  if (current_project_path_ && project_path != *current_project_path_) {
-    // If the project path changes, clear out previous results immediately.
-    compilation_results_ = std::nullopt;
-    runtime_layer_->SetCompiledModule(nullptr);
-  }
-  // It would be kind of weird to have incoming results arrive that are not
-  // what we most recently requested to load.
-  pending_compilation_results_ = std::nullopt;
-  current_project_path_ = project_path;
+  auto on_sources_compiled =
+      [this](const CompilerEnvironmentThreadSafe::CompilationFuture::
+                 CancelledOrSharedResult& x) {
+        self_work_queue_.Enqueue([this, x] {
+          pending_compilation_results_ = std::nullopt;
+          if (std::holds_alternative<utils::CancelledFuture>(x)) {
+            compilation_results_ = utils::Error{"Compilation cancelled."};
+          } else {
+            compilation_results_ = *std::get<1>(x);
+          }
+          if (auto module_compilation_result =
+                  std::get_if<1>(&(*compilation_results_))) {
+            if (auto compiled_module =
+                    std::get_if<1>(module_compilation_result)) {
+              runtime_layer_->SetCompiledModule(*compiled_module);
+            }
+          }
+        });
+      };
 
-  pending_compilation_results_ =
-      compilation_thread_
-          .Enqueue<utils::ErrorOr<std::shared_ptr<reify::CompiledModule>>>(
-              [typescript_modules = domain_visualizer_->GetTypeScriptModules(),
-               project_path] {
-                return CompileFile(typescript_modules, project_path);
-              })
-          .watch([this](auto x) {
-            thread_->Enqueue([this, x] {
-              pending_compilation_results_ = std::nullopt;
-              if (std::holds_alternative<utils::CancelledFuture>(x)) {
-                compilation_results_ = utils::Error{"Compilation cancelled."};
-              } else {
-                compilation_results_ = *std::get<1>(x);
-              }
-              if (auto compiled_module =
-                      std::get_if<1>(&(*compilation_results_))) {
-                runtime_layer_->SetCompiledModule(*compiled_module);
-              }
-            });
-          });
+  if (project_ &&
+      std::filesystem::absolute(project_path) == project_->absolute_path()) {
+    // If an existing project exists with the same path, just re-build its
+    // sources.
+    pending_compilation_results_ =
+        project_->RebuildProject().watch(on_sources_compiled);
+  } else {
+    if (project_) {
+      // If the project path changes, clear out previous results to prepare
+      // for loading a new project.
+      runtime_layer_->SetCompiledModule(nullptr);
+      compilation_results_ = std::nullopt;
+      project_.reset();
+    }
+
+    // Load up a new project at the specified path.
+    auto error_or_project = CreateProjectFromPath(
+        project_path, domain_visualizer_->GetTypeScriptModules());
+    if (auto error = std::get_if<0>(&error_or_project)) {
+      compilation_results_ =
+          utils::Error{fmt::format("Error creating project: {}", error->msg)};
+    } else {
+      // We've successfully created a new project, use it to start compiling.
+      project_ = std::move(std::get<1>(error_or_project));
+      pending_compilation_results_ =
+          project_->RebuildProject().watch(on_sources_compiled);
+    }
+  }
 }
 
 namespace {
@@ -169,11 +202,11 @@ void ProjectLayer::ExecuteImGuiCommands() {
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 8));
   if (ImGui::BeginMainMenuBar()) {
     {
-      DisableIf disable_if_no_project_loaded(!current_project_path_ ||
+      DisableIf disable_if_no_project_loaded(!project_ ||
                                              pending_compilation_results_);
 
       Action recompile_action(
-          "Recompile", [this] { LoadProject(*current_project_path_); },
+          "Recompile", [this] { LoadProject(project_->absolute_path()); },
           !disable_if_no_project_loaded.condition(), kPlatformWindowKeyB);
 
       if (ImGui::BeginMenu("Project")) {
@@ -197,7 +230,8 @@ void ProjectLayer::ExecuteImGuiCommands() {
         Spinner("status compiling spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
                 ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
         ImGui::SameLine();
-        ImGui::Text("Compiling %s...", current_project_path_->string().c_str());
+        ImGui::Text("Compiling %s...",
+                    project_->absolute_path().string().c_str());
       });
     }
   } else {

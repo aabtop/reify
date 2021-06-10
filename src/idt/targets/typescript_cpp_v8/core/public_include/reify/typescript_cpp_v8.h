@@ -243,8 +243,8 @@ class CompilerEnvironment {
       VirtualFilesystem* virtual_filesystem,
       const std::vector<InputModule>* initial_modules,
       SnapshotOptions snapshot_options = SnapshotOptions::kNoSnapshot);
+  CompilerEnvironment(CompilerEnvironment&&);
   CompilerEnvironment(const CompilerEnvironment&) = delete;
-  CompilerEnvironment(CompilerEnvironment&&) = delete;
   ~CompilerEnvironment();
 
   std::variant<CompileError, std::shared_ptr<CompiledModule>> Compile(

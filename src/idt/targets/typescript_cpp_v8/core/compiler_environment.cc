@@ -91,6 +91,9 @@ const char* TSCONFIG_JSON_CONTENT = R"json(
 
 }  // namespace
 
+CompilerEnvironment::CompilerEnvironment(CompilerEnvironment&& x)
+    : impl_(std::move(x.impl_)) {}
+
 bool CompilerEnvironment::CreateWorkspaceDirectory(
     const std::filesystem::path& out_dir_path,
     const std::vector<InputModule>& initial_modules) {

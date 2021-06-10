@@ -34,31 +34,33 @@ Project::Impl::Impl(
 
 reify::utils::Future<std::vector<std::shared_ptr<CompiledModule>>>
 Project::Impl::Compile() {
-  return thread_.Enqueue<std::vector<std::shared_ptr<CompiledModule>>>([this] {
-    std::vector<std::filesystem::path> files_to_compile =
-        reify::utils::FindMatchingFilenamesRecursively(
-            absolute_project_directory_, std::regex("\\.ts$"));
+  return thread_
+      .EnqueueWithResult<std::vector<std::shared_ptr<CompiledModule>>>([this] {
+        std::vector<std::filesystem::path> files_to_compile =
+            reify::utils::FindMatchingFilenamesRecursively(
+                absolute_project_directory_, std::regex("\\.ts$"));
 
-    std::vector<std::shared_ptr<CompiledModule>> results;
-    results.reserve(files_to_compile.size());
+        std::vector<std::shared_ptr<CompiledModule>> results;
+        results.reserve(files_to_compile.size());
 
-    for (const auto& source_file : files_to_compile) {
-      auto maybe_virtual_path =
-          virtual_filesystem_.HostPathToVirtualPath(source_file);
-      if (!maybe_virtual_path) {
-        continue;
-      }
+        for (const auto& source_file : files_to_compile) {
+          auto maybe_virtual_path =
+              virtual_filesystem_.HostPathToVirtualPath(source_file);
+          if (!maybe_virtual_path) {
+            continue;
+          }
 
-      auto maybe_compiled_module = compile_env_->Compile(*maybe_virtual_path);
-      if (auto* error = std::get_if<0>(&maybe_compiled_module)) {
-        continue;
-      }
+          auto maybe_compiled_module =
+              compile_env_->Compile(*maybe_virtual_path);
+          if (auto* error = std::get_if<0>(&maybe_compiled_module)) {
+            continue;
+          }
 
-      results.push_back(std::get<1>(maybe_compiled_module));
-    }
+          results.push_back(std::get<1>(maybe_compiled_module));
+        }
 
-    return results;
-  });
+        return results;
+      });
 }
 
 Project::Project(

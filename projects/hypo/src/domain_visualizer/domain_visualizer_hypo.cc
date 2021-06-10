@@ -74,7 +74,7 @@ reify::utils::Future<
 DomainVisualizerHypo::PrepareSymbolForPreview(
     std::shared_ptr<reify::CompiledModule> module,
     const reify::CompiledModule::ExportedSymbol& symbol) {
-  return builder_thread_.Enqueue<ErrorOr<PreparedSymbol>>(
+  return builder_thread_.EnqueueWithResult<ErrorOr<PreparedSymbol>>(
       [module, symbol = std::move(symbol)]() -> ErrorOr<PreparedSymbol> {
         // Setup a V8 runtime environment around the CompiledModule.  This will
         // enable us to call exported functions and query exported values from
