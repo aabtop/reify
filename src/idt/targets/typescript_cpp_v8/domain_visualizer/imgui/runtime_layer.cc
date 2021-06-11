@@ -15,10 +15,10 @@ RuntimeLayer::RuntimeLayer(
     const std::function<void(std::function<void()>)>& enqueue_task_function,
     DockingLayer* docking_layer, StatusLayer* status_layer,
     DomainVisualizer* domain_visualizer)
-    : self_work_queue_(enqueue_task_function),
-      docking_layer_(docking_layer),
+    : docking_layer_(docking_layer),
       status_layer_(status_layer),
-      domain_visualizer_(domain_visualizer) {}
+      domain_visualizer_(domain_visualizer),
+      self_work_queue_(enqueue_task_function) {}
 
 void RuntimeLayer::SetCompiledModule(
     const std::shared_ptr<reify::CompiledModule>& compiled_module) {

@@ -86,10 +86,10 @@ ProjectLayer::ProjectLayer(
     utils::WorkQueue* self_work_queue, StatusLayer* status_layer,
     RuntimeLayer* runtime_layer,
     const std::optional<std::filesystem::path>& initial_project_path)
-    : self_work_queue_(self_work_queue),
-      status_layer_(status_layer),
+    : status_layer_(status_layer),
       runtime_layer_(runtime_layer),
-      domain_visualizer_(runtime_layer_->domain_visualizer()) {
+      domain_visualizer_(runtime_layer_->domain_visualizer()),
+      self_work_queue_(self_work_queue) {
   if (initial_project_path) {
     LoadProject(*initial_project_path);
   }

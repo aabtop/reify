@@ -33,7 +33,6 @@ class RuntimeLayer {
  private:
   void RebuildSelectedSymbol();
 
-  utils::ScopedWorkQueue self_work_queue_;
   DockingLayer* docking_layer_;
   StatusLayer* status_layer_;
   DomainVisualizer* domain_visualizer_;
@@ -51,6 +50,9 @@ class RuntimeLayer {
   std::optional<std::string> selected_symbol_name_;
 
   std::optional<StatusLayer::Window> status_window_;
+
+  // This needs to be last so that it is the first to be destructed.
+  utils::ScopedWorkQueue self_work_queue_;
 };
 
 }  // namespace imgui

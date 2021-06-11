@@ -87,7 +87,6 @@ class ProjectLayer {
   RuntimeLayer* runtime_layer_;
   DomainVisualizer* domain_visualizer_;
 
-  std::unique_ptr<Project> project_;
   std::optional<
       utils::ErrorOr<CompilerEnvironmentThreadSafe::CompilationResults>>
       compilation_results_;
@@ -95,7 +94,10 @@ class ProjectLayer {
       pending_compilation_results_;
 
   std::optional<StatusLayer::Window> status_window_;
+
+  // This needs to be last so that it is the first to be destructed.
   utils::ScopedWorkQueue self_work_queue_;
+  std::unique_ptr<Project> project_;
 };
 
 }  // namespace imgui
