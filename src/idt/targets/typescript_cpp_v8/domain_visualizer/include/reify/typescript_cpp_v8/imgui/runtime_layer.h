@@ -42,10 +42,6 @@ class RuntimeLayer {
 
   std::vector<reify::CompiledModule::ExportedSymbol> previewable_symbols_;
 
-  std::optional<utils::Future<
-      DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol>>::Watch>
-      pending_preview_results_;
-
   int selected_symbol_index_ = -1;
   std::optional<std::string> selected_symbol_name_;
 
@@ -53,6 +49,10 @@ class RuntimeLayer {
 
   // This needs to be last so that it is the first to be destructed.
   utils::ScopedWorkQueue self_work_queue_;
+
+  std::optional<utils::Future<
+      DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol>>::Watch>
+      pending_preview_results_;
 };
 
 }  // namespace imgui
