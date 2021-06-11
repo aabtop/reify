@@ -12,16 +12,19 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
 
-utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
+namespace {
+
+utils::ErrorOr<std::unique_ptr<Project>> CreateDirectoryProjectFromPath(
     const std::filesystem::path& path,
     const std::vector<reify::CompilerEnvironment::InputModule>&
         typescript_input_modules) {
-  if (!std::filesystem::exists(path) || std::filesystem::is_directory(path)) {
-    return utils::Error{fmt::format(
-        "Provided path {} either does not exist or is a directory, not a file.",
-        path.string())};
-  }
+  return utils::Error{"Directory projects not yet implemented."};
+}
 
+utils::ErrorOr<std::unique_ptr<Project>> CreateFileProjectFromPath(
+    const std::filesystem::path& path,
+    const std::vector<reify::CompilerEnvironment::InputModule>&
+        typescript_input_modules) {
   // Make or reference a virtual file system based on the current workspace.
   auto absolute_input_source_file = std::filesystem::absolute(path);
   auto project_directory = absolute_input_source_file.parent_path();
@@ -43,6 +46,24 @@ utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
       std::unique_ptr<VirtualFilesystem>(virtual_filesystem.release()),
       typescript_input_modules,
       [virtual_path_value = *virtual_path] { return virtual_path_value; }));
+}
+
+}  // namespace
+
+utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
+    const std::filesystem::path& path,
+    const std::vector<reify::CompilerEnvironment::InputModule>&
+        typescript_input_modules) {
+  if (!std::filesystem::exists(path)) {
+    return utils::Error{
+        fmt::format("Provided path {} does not exist.", path.string())};
+  }
+
+  if (std::filesystem::is_directory(path)) {
+    return CreateDirectoryProjectFromPath(path, typescript_input_modules);
+  } else {
+    return CreateFileProjectFromPath(path, typescript_input_modules);
+  }
 }
 
 Project::Project(const std::filesystem::path& absolute_path,

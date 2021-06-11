@@ -44,22 +44,17 @@ class CompilerEnvironmentThreadSafe {
 
 class Project {
  public:
-  const std::filesystem::path& absolute_path() const { return absolute_path_; }
-
-  CompilerEnvironmentThreadSafe::CompilationFuture RebuildProject();
-
- private:
-  friend utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
-      const std::filesystem::path& path,
-      const std::vector<reify::CompilerEnvironment::InputModule>&
-          typescript_input_modules);
-
   Project(const std::filesystem::path& absolute_path,
           std::unique_ptr<VirtualFilesystem> virtual_filesystem,
           const std::vector<reify::CompilerEnvironment::InputModule>&
               typescript_input_modules,
           const std::function<std::string()>& get_sources);
 
+  const std::filesystem::path& absolute_path() const { return absolute_path_; }
+
+  CompilerEnvironmentThreadSafe::CompilationFuture RebuildProject();
+
+ private:
   const std::filesystem::path absolute_path_;
   std::unique_ptr<VirtualFilesystem> virtual_filesystem_;
   const std::function<std::string()> get_sources_;
