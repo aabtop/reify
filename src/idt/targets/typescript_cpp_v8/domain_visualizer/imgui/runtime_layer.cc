@@ -39,9 +39,12 @@ RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
 
     for (const auto& symbol : compiled_module->exported_symbols()) {
       if (can_preview(symbol)) {
+        std::string symbol_display_name =
+            compile_results.size() > 1
+                ? fmt::format("{}:{}", compile_result.first, symbol.name)
+                : symbol.name;
         previewable_symbols.push_back(
-            {fmt::format("{}:{}", compile_result.first, symbol.name),
-             compiled_module, symbol});
+            {symbol_display_name, compiled_module, symbol});
       }
     }
   }

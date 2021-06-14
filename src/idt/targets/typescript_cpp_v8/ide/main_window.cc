@@ -360,7 +360,9 @@ bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
   auto compile_complete_callback =
       [this, build_complete_callback](
           std::shared_ptr<reify::CompiledModule> compiled_module) {
-        visualizer_imgui_runtime_layer_.SetCompiledModule(compiled_module);
+        visualizer_imgui_runtime_layer_.SetCompileResults(
+            {{current_filepath_ ? current_filepath_->string() : "untitled",
+              compiled_module}});
         UpdateUiState();
 
         bool previewable_symbols = false;
