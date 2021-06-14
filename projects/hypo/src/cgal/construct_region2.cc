@@ -23,6 +23,11 @@ Polygon_set_2 ConstructRegion2(const hypo::Polygon& polygon) {
   for (auto point : polygon.path) {
     polygon_out.push_back(Point_2(point[0], point[1]));
   }
+
+  if (polygon_out.orientation() == CGAL::NEGATIVE) {
+    polygon_out.reverse_orientation();
+  }
+
   return Polygon_set_2(polygon_out);
 }
 
