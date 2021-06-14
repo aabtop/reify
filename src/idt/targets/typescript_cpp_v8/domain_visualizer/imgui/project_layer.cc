@@ -2,6 +2,9 @@
 
 #include <fmt/format.h>
 
+#include <filesystem>
+#include <regex>
+
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "platform_window/platform_window_key.h"
@@ -15,18 +18,43 @@ namespace imgui {
 namespace {
 
 utils::ErrorOr<std::unique_ptr<Project>> CreateDirectoryProjectFromPath(
-    const std::filesystem::path& path,
+    const std::filesystem::path& absolute_project_path,
     const std::vector<reify::CompilerEnvironment::InputModule>&
         typescript_input_modules) {
-  return utils::Error{"Directory projects not yet implemented."};
+  if (!std::filesystem::is_directory(absolute_project_path)) {
+    return utils::Error{fmt::format("Input path '{}' is not a directory.",
+                                    absolute_project_path.string())};
+  }
+
+  std::unique_ptr<MountedHostFolderFilesystem> project_dir_filesystem(
+      new MountedHostFolderFilesystem(absolute_project_path));
+
+  auto get_sources = [source_file_regex = std::regex(
+                          R"(.*\.ts)", std::regex_constants::ECMAScript,
+                          std::regex_constants::optimize),
+                      filesystem = project_dir_filesystem.get()] {
+    std::set<std::string> source_files;
+    for (auto& path : std::filesystem::recursive_directory_iterator(
+             filesystem->host_root())) {
+      std::string virtual_path = *filesystem->HostPathToVirtualPath(path);
+      if (std::regex_search(virtual_path, source_file_regex)) {
+        source_files.insert(virtual_path);
+      }
+    }
+    return source_files;
+  };
+
+  return std::unique_ptr<Project>(new Project(
+      absolute_project_path,
+      std::unique_ptr<VirtualFilesystem>(project_dir_filesystem.release()),
+      typescript_input_modules, get_sources));
 }
 
 utils::ErrorOr<std::unique_ptr<Project>> CreateFileProjectFromPath(
-    const std::filesystem::path& path,
+    const std::filesystem::path& absolute_input_source_file,
     const std::vector<reify::CompilerEnvironment::InputModule>&
         typescript_input_modules) {
   // Make or reference a virtual file system based on the current workspace.
-  auto absolute_input_source_file = std::filesystem::absolute(path);
   auto project_directory = absolute_input_source_file.parent_path();
 
   std::unique_ptr<MountedHostFolderFilesystem> virtual_filesystem(
@@ -38,14 +66,16 @@ utils::ErrorOr<std::unique_ptr<Project>> CreateFileProjectFromPath(
   if (!virtual_path) {
     return utils::Error{fmt::format(
         "Input file {} is not contained within the project root: {}",
-        path.string(), virtual_filesystem->host_root().string())};
+        absolute_input_source_file.string(),
+        virtual_filesystem->host_root().string())};
   }
 
   return std::unique_ptr<Project>(new Project(
       absolute_input_source_file,
       std::unique_ptr<VirtualFilesystem>(virtual_filesystem.release()),
-      typescript_input_modules,
-      [virtual_path_value = *virtual_path] { return virtual_path_value; }));
+      typescript_input_modules, [virtual_path_value = *virtual_path] {
+        return std::set<std::string>{virtual_path_value};
+      }));
 }
 
 }  // namespace
@@ -58,11 +88,13 @@ utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
     return utils::Error{
         fmt::format("Provided path {} does not exist.", path.string())};
   }
+  auto absolute_path = std::filesystem::absolute(path);
 
-  if (std::filesystem::is_directory(path)) {
-    return CreateDirectoryProjectFromPath(path, typescript_input_modules);
+  if (std::filesystem::is_directory(absolute_path)) {
+    return CreateDirectoryProjectFromPath(absolute_path,
+                                          typescript_input_modules);
   } else {
-    return CreateFileProjectFromPath(path, typescript_input_modules);
+    return CreateFileProjectFromPath(absolute_path, typescript_input_modules);
   }
 }
 
@@ -70,15 +102,15 @@ Project::Project(const std::filesystem::path& absolute_path,
                  std::unique_ptr<VirtualFilesystem> virtual_filesystem,
                  const std::vector<reify::CompilerEnvironment::InputModule>&
                      typescript_input_modules,
-                 const std::function<std::string()>& get_sources)
+                 const std::function<std::set<std::string>()>& get_sources)
     : absolute_path_(absolute_path),
       virtual_filesystem_(std::move(virtual_filesystem)),
       get_sources_(get_sources),
       compiler_environment_(virtual_filesystem_.get(),
                             typescript_input_modules) {}
 
-CompilerEnvironmentThreadSafe::CompilationFuture Project::RebuildProject() {
-  return compiler_environment_.Compile(get_sources_());
+CompilerEnvironmentThreadSafe::MultiCompileFuture Project::RebuildProject() {
+  return compiler_environment_.MultiCompile(get_sources_());
 }
 
 CompilerEnvironmentThreadSafe::CompilerEnvironmentThreadSafe(
@@ -97,10 +129,23 @@ CompilerEnvironmentThreadSafe::~CompilerEnvironmentThreadSafe() {
   compilation_thread_.Enqueue([this] { compiler_environment_ = std::nullopt; });
 }
 
-CompilerEnvironmentThreadSafe::CompilationFuture
+CompilerEnvironmentThreadSafe::CompileFuture
 CompilerEnvironmentThreadSafe::Compile(const std::string& sources) {
-  return compilation_thread_.EnqueueWithResult<CompilationResults>(
+  return compilation_thread_.EnqueueWithResult<CompileResults>(
       [this, sources] { return compiler_environment_->Compile(sources); });
+}
+
+CompilerEnvironmentThreadSafe::MultiCompileFuture
+CompilerEnvironmentThreadSafe::MultiCompile(
+    const std::set<std::string>& sources) {
+  return compilation_thread_.EnqueueWithResult<MultiCompileResults>(
+      [this, sources] {
+        MultiCompileResults results;
+        for (const auto& source : sources) {
+          results[source] = compiler_environment_->Compile(source);
+        }
+        return results;
+      });
 }
 
 ProjectLayer::ProjectLayer(
@@ -117,27 +162,22 @@ ProjectLayer::ProjectLayer(
 }
 
 void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
-  if (pending_compilation_results_) {
+  if (pending_compile_results_) {
     // Don't interrupt an existing load.
+    std::cerr << "An existing compilation is in progress." << std::endl;
     return;
   }
 
   auto on_sources_compiled =
-      [this](const CompilerEnvironmentThreadSafe::CompilationFuture::
+      [this](const CompilerEnvironmentThreadSafe::MultiCompileFuture::
                  CancelledOrSharedResult& x) {
         self_work_queue_.Enqueue([this, x] {
-          pending_compilation_results_ = std::nullopt;
+          pending_compile_results_ = std::nullopt;
           if (std::holds_alternative<utils::CancelledFuture>(x)) {
-            compilation_results_ = utils::Error{"Compilation cancelled."};
+            compile_results_ = std::nullopt;
           } else {
-            compilation_results_ = *std::get<1>(x);
-          }
-          if (auto module_compilation_result =
-                  std::get_if<1>(&(*compilation_results_))) {
-            if (auto compiled_module =
-                    std::get_if<1>(module_compilation_result)) {
-              runtime_layer_->SetCompiledModule(*compiled_module);
-            }
+            compile_results_ = *std::get<1>(x);
+            runtime_layer_->SetCompileResults(*compile_results_);
           }
         });
       };
@@ -146,14 +186,14 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
       std::filesystem::absolute(project_path) == project_->absolute_path()) {
     // If an existing project exists with the same path, just re-build its
     // sources.
-    pending_compilation_results_ =
+    pending_compile_results_ =
         project_->RebuildProject().watch(on_sources_compiled);
   } else {
     if (project_) {
       // If the project path changes, clear out previous results to prepare
       // for loading a new project.
-      runtime_layer_->SetCompiledModule(nullptr);
-      compilation_results_ = std::nullopt;
+      runtime_layer_->SetCompileResults({});
+      compile_results_ = std::nullopt;
       project_.reset();
     }
 
@@ -161,15 +201,17 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
     auto error_or_project = CreateProjectFromPath(
         project_path, domain_visualizer_->GetTypeScriptModules());
     if (auto error = std::get_if<0>(&error_or_project)) {
-      compilation_results_ =
-          utils::Error{fmt::format("Error creating project: {}", error->msg)};
+      compile_results_ = std::nullopt;
+      std::cerr << "Error creating project: " << error->msg << std::endl;
+      return;
     } else {
       // We've successfully created a new project, use it to start compiling.
       project_ = std::move(std::get<1>(error_or_project));
-      pending_compilation_results_ =
+      pending_compile_results_ =
           project_->RebuildProject().watch(on_sources_compiled);
     }
   }
+  return;
 }
 
 namespace {
@@ -224,7 +266,7 @@ void ProjectLayer::ExecuteImGuiCommands() {
   if (ImGui::BeginMainMenuBar()) {
     {
       DisableIf disable_if_no_project_loaded(!project_ ||
-                                             pending_compilation_results_);
+                                             pending_compile_results_);
 
       Action recompile_action(
           "Recompile", [this] { LoadProject(project_->absolute_path()); },
@@ -245,7 +287,7 @@ void ProjectLayer::ExecuteImGuiCommands() {
   }
   ImGui::PopStyleVar();
 
-  if (pending_compilation_results_) {
+  if (pending_compile_results_) {
     if (!status_window_) {
       status_window_.emplace(status_layer_, [this] {
         Spinner("status compiling spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},

@@ -1,6 +1,7 @@
 #ifndef _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_RUNTIME_LAYER_H
 #define _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_RUNTIME_LAYER_H
 
+#include <map>
 #include <optional>
 
 #include "reify/typescript_cpp_v8.h"
@@ -25,22 +26,42 @@ class RuntimeLayer {
 
   DomainVisualizer* domain_visualizer() const { return domain_visualizer_; }
 
-  void SetCompiledModule(
-      const std::shared_ptr<reify::CompiledModule>& compiled_module);
+  void SetCompileResults(
+      const std::map<
+          std::string,
+          std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
+          compile_results);
 
   bool build_active() const { return !!pending_preview_results_; };
 
  private:
+  struct ExportedSymbolWithSourceFile {
+    // This may potentially include the source file as well, if multiple
+    // source files are involved.
+    std::string display_name;
+    std::shared_ptr<CompiledModule> module;
+    reify::CompiledModule::ExportedSymbol symbol;
+  };
+  static std::vector<ExportedSymbolWithSourceFile>
+  ComputePreviewableSymbolsFromCompileResults(
+      const std::map<
+          std::string,
+          std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
+          compile_results,
+      const std::function<bool(reify::CompiledModule::ExportedSymbol)>&
+          can_preview);
   void RebuildSelectedSymbol();
 
   DockingLayer* docking_layer_;
   StatusLayer* status_layer_;
   DomainVisualizer* domain_visualizer_;
-  std::shared_ptr<reify::CompiledModule> compiled_module_;
+  std::map<std::string,
+           std::variant<CompileError, std::shared_ptr<CompiledModule>>>
+      compile_results_;
 
   std::optional<utils::Error> preview_error_;
 
-  std::vector<reify::CompiledModule::ExportedSymbol> previewable_symbols_;
+  std::vector<ExportedSymbolWithSourceFile> previewable_symbols_;
 
   int selected_symbol_index_ = -1;
   std::optional<std::string> selected_symbol_name_;

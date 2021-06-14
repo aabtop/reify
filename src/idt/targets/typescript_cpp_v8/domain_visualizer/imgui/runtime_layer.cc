@@ -20,25 +20,49 @@ RuntimeLayer::RuntimeLayer(
       domain_visualizer_(domain_visualizer),
       self_work_queue_(enqueue_task_function) {}
 
-void RuntimeLayer::SetCompiledModule(
-    const std::shared_ptr<reify::CompiledModule>& compiled_module) {
-  compiled_module_ = compiled_module;
-  previewable_symbols_.clear();
-  for (const auto& symbol : compiled_module_->exported_symbols()) {
-    if (domain_visualizer_->CanPreviewSymbol(symbol)) {
-      previewable_symbols_.push_back(symbol);
+std::vector<RuntimeLayer::ExportedSymbolWithSourceFile>
+RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
+    const std::map<std::string,
+                   std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
+        compile_results,
+    const std::function<bool(reify::CompiledModule::ExportedSymbol)>&
+        can_preview) {
+  std::vector<ExportedSymbolWithSourceFile> previewable_symbols;
+  for (const auto& compile_result : compile_results) {
+    if (std::holds_alternative<CompileError>(compile_result.second)) {
+      // For now we just silently skip over errors.
+      continue;
+    }
+
+    std::shared_ptr<CompiledModule> compiled_module =
+        std::get<1>(compile_result.second);
+
+    for (const auto& symbol : compiled_module->exported_symbols()) {
+      if (can_preview(symbol)) {
+        previewable_symbols.push_back(
+            {fmt::format("{}:{}", compile_result.first, symbol.name),
+             compiled_module, symbol});
+      }
     }
   }
-  if (!compiled_module_) {
-    preview_error_ = std::nullopt;
-    // TODO: Reset the current existing domain_visualizer_ preview.
-  }
+  return previewable_symbols;
+}
+
+void RuntimeLayer::SetCompileResults(
+    const std::map<std::string,
+                   std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
+        compile_results) {
+  compile_results_ = compile_results;
+  previewable_symbols_ = ComputePreviewableSymbolsFromCompileResults(
+      compile_results_,
+      [this](auto x) { return domain_visualizer_->CanPreviewSymbol(x); });
+
   if (previewable_symbols_.empty()) {
     selected_symbol_index_ = -1;
   } else {
     selected_symbol_index_ = 0;
     for (size_t i = 0; i < previewable_symbols_.size(); ++i) {
-      if (selected_symbol_name_ == previewable_symbols_[i].name) {
+      if (selected_symbol_name_ == previewable_symbols_[i].display_name) {
         selected_symbol_index_ = static_cast<int>(i);
         break;
       }
@@ -60,11 +84,11 @@ void RuntimeLayer::ExecuteImGuiCommands() {
 
   ImGui::Begin(WINDOW_NAME);
 
-  if (compiled_module_) {
+  if (!previewable_symbols_.empty()) {
     std::vector<const char*> symbols;
     symbols.reserve(previewable_symbols_.size());
     for (const auto& symbol : previewable_symbols_) {
-      symbols.push_back(symbol.name.c_str());
+      symbols.push_back(symbol.display_name.c_str());
     }
 
     ImGui::Text("Select symbol:");
@@ -74,7 +98,7 @@ void RuntimeLayer::ExecuteImGuiCommands() {
       if (ImGui::ListBox("##preview_symbol_selector", &selected_symbol_index_,
                          symbols.data(), symbols.size(), 6)) {
         selected_symbol_name_ =
-            previewable_symbols_[selected_symbol_index_].name;
+            previewable_symbols_[selected_symbol_index_].display_name;
         RebuildSelectedSymbol();
       }
       ImGui::PopItemWidth();
@@ -90,8 +114,9 @@ void RuntimeLayer::ExecuteImGuiCommands() {
         Spinner("status building spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
                 ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
         ImGui::SameLine();
-        ImGui::Text("Building %s...",
-                    previewable_symbols_[selected_symbol_index_].name.c_str());
+        ImGui::Text(
+            "Building %s...",
+            previewable_symbols_[selected_symbol_index_].display_name.c_str());
       });
     }
 
@@ -108,11 +133,13 @@ void RuntimeLayer::RebuildSelectedSymbol() {
 
   selected_symbol_name_ = std::nullopt;
   if (selected_symbol_index_ >= 0) {
-    selected_symbol_name_ = previewable_symbols_[selected_symbol_index_].name;
+    selected_symbol_name_ =
+        previewable_symbols_[selected_symbol_index_].display_name;
     pending_preview_results_ =
         domain_visualizer_
             ->PrepareSymbolForPreview(
-                compiled_module_, previewable_symbols_[selected_symbol_index_])
+                previewable_symbols_[selected_symbol_index_].module,
+                previewable_symbols_[selected_symbol_index_].symbol)
             .watch([this](auto x) {
               self_work_queue_.Enqueue([this, x] {
                 pending_preview_results_ = std::nullopt;

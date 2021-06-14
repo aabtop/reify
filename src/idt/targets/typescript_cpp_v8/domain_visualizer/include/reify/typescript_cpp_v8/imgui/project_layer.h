@@ -17,9 +17,13 @@ namespace imgui {
 
 class CompilerEnvironmentThreadSafe {
  public:
-  using CompilationResults =
+  using CompileResults =
       std::variant<CompileError, std::shared_ptr<CompiledModule>>;
-  using CompilationFuture = utils::Future<CompilationResults>;
+  using CompileFuture = utils::Future<CompileResults>;
+  using MultiCompileResults =
+      std::map<std::string,
+               std::variant<CompileError, std::shared_ptr<CompiledModule>>>;
+  using MultiCompileFuture = utils::Future<MultiCompileResults>;
   CompilerEnvironmentThreadSafe(
       VirtualFilesystem* virtual_filesystem,
       const std::vector<reify::CompilerEnvironment::InputModule>&
@@ -32,7 +36,10 @@ class CompilerEnvironmentThreadSafe {
   void InvalidateCompiledResultsCache(const std::set<std::string>& sources);
 
   // Compile the specified TypeScript source files into JavaScript output.
-  CompilationFuture Compile(const std::string& sources);
+  CompileFuture Compile(const std::string& sources);
+
+  // Compile multiple source files in one shot.
+  MultiCompileFuture MultiCompile(const std::set<std::string>& sources);
 
  private:
   VirtualFilesystem* virtual_filesystem_;
@@ -48,16 +55,16 @@ class Project {
           std::unique_ptr<VirtualFilesystem> virtual_filesystem,
           const std::vector<reify::CompilerEnvironment::InputModule>&
               typescript_input_modules,
-          const std::function<std::string()>& get_sources);
+          const std::function<std::set<std::string>()>& get_sources);
 
   const std::filesystem::path& absolute_path() const { return absolute_path_; }
 
-  CompilerEnvironmentThreadSafe::CompilationFuture RebuildProject();
+  CompilerEnvironmentThreadSafe::MultiCompileFuture RebuildProject();
 
  private:
   const std::filesystem::path absolute_path_;
   std::unique_ptr<VirtualFilesystem> virtual_filesystem_;
-  const std::function<std::string()> get_sources_;
+  const std::function<std::set<std::string>()> get_sources_;
   CompilerEnvironmentThreadSafe compiler_environment_;
 };
 
@@ -85,13 +92,12 @@ class ProjectLayer {
   std::optional<StatusLayer::Window> status_window_;
 
   std::unique_ptr<Project> project_;
-  std::optional<
-      utils::ErrorOr<CompilerEnvironmentThreadSafe::CompilationResults>>
-      compilation_results_;
+  std::optional<CompilerEnvironmentThreadSafe::MultiCompileResults>
+      compile_results_;
 
   utils::ScopedWorkQueue self_work_queue_;
-  std::optional<CompilerEnvironmentThreadSafe::CompilationFuture::Watch>
-      pending_compilation_results_;
+  std::optional<CompilerEnvironmentThreadSafe::MultiCompileFuture::Watch>
+      pending_compile_results_;
 };
 
 }  // namespace imgui
