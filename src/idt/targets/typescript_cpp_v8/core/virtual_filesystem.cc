@@ -16,7 +16,7 @@ MountedHostFolderFilesystem::MountedHostFolderFilesystem(
 }
 
 MountedHostFolderFilesystem::FilePath MountedHostFolderFilesystem::GetPath(
-    std::string_view virtual_absolute_path) {
+    std::string_view virtual_absolute_path) const {
   std::filesystem::path host_path = TranslateToHostPath(virtual_absolute_path);
 
   return FilePath(
@@ -72,9 +72,9 @@ InMemoryFilesystem::InMemoryFilesystem(const FileMap& file_map)
     : file_map_(file_map) {}
 
 InMemoryFilesystem::FilePath InMemoryFilesystem::GetPath(
-    std::string_view virtual_absolute_path) {
+    std::string_view virtual_absolute_path) const {
   std::string path_as_string(virtual_absolute_path);
-  std::string* contents_ptr = nullptr;
+  const std::string* contents_ptr = nullptr;
   auto found = file_map_.find(path_as_string);
   if (found != file_map_.end()) {
     contents_ptr = &(found->second);

@@ -112,7 +112,7 @@ class VirtualFilesystem {
   // Returns a handle to a file, given a virtual file path.  The virtual
   // file system is the one in which the TypeScript compiler will operate.
   // Virtual absolute paths always start with a `/`.
-  virtual FilePath GetPath(std::string_view virtual_absolute_path) = 0;
+  virtual FilePath GetPath(std::string_view virtual_absolute_path) const = 0;
 };
 
 // Similar to `chroot`, this VirtualFilesystem implementation will create a
@@ -120,7 +120,7 @@ class VirtualFilesystem {
 class MountedHostFolderFilesystem : public VirtualFilesystem {
  public:
   MountedHostFolderFilesystem(const std::filesystem::path& host_root);
-  FilePath GetPath(std::string_view virtual_absolute_path) override;
+  FilePath GetPath(std::string_view virtual_absolute_path) const override;
 
   // Converts a host path into a virtual path.  If the host path is not
   // contained within the mounted folder, a std::nullopt is returend.
@@ -132,7 +132,7 @@ class MountedHostFolderFilesystem : public VirtualFilesystem {
  private:
   std::filesystem::path TranslateToHostPath(
       std::string_view virtual_absolute_path) const;
-  std::filesystem::path host_root_;
+  const std::filesystem::path host_root_;
 };
 
 // Entire filesystem is specified up-front via a filepath to content mapping.
@@ -140,10 +140,10 @@ class InMemoryFilesystem : public VirtualFilesystem {
  public:
   using FileMap = std::unordered_map<std::string, std::string>;
   InMemoryFilesystem(const FileMap& file_map);
-  FilePath GetPath(std::string_view virtual_absolute_path) override;
+  FilePath GetPath(std::string_view virtual_absolute_path) const override;
 
  private:
-  FileMap file_map_;
+  const FileMap file_map_;
 };
 
 class CompiledModule;
