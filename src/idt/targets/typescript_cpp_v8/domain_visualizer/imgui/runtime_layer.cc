@@ -123,15 +123,15 @@ void RuntimeLayer::ExecuteImGuiCommands() {
   ImGui::PopStyleVar();
 
   if (CompileResultsContainErrors(compile_results_)) {
-    const char* ERROR_MESSAGE_WINDOW_NAME = "Errors";
+    const char* ERROR_COMPILER_ERROR_WINDOW_NAME = "Compile Errors";
 
-    if (!ImGui::FindWindowByName(ERROR_MESSAGE_WINDOW_NAME)) {
+    if (!ImGui::FindWindowByName(ERROR_COMPILER_ERROR_WINDOW_NAME)) {
       // If this is the first time we're seeing this window, default it into
       // the bottom dock slot.
       ImGui::SetNextWindowDockID(docking_layer_->GetDockedBottomNodeId());
     }
 
-    ImGui::Begin(ERROR_MESSAGE_WINDOW_NAME);
+    ImGui::Begin(ERROR_COMPILER_ERROR_WINDOW_NAME);
     for (const auto& item : compile_results_) {
       if (auto error = std::get_if<CompileError>(&item.second)) {
         if (ImGui::CollapsingHeader(item.first.c_str(),
@@ -151,6 +151,26 @@ void RuntimeLayer::ExecuteImGuiCommands() {
         }
       }
     }
+    ImGui::End();
+  }
+
+  if (preview_error_) {
+    const char* RUNTIME_ERROR_WINDOW_NAME = "Runtime Errors";
+
+    if (!ImGui::FindWindowByName(RUNTIME_ERROR_WINDOW_NAME)) {
+      // If this is the first time we're seeing this window, default it into
+      // the bottom dock slot.
+      ImGui::SetNextWindowDockID(docking_layer_->GetDockedBottomNodeId());
+    }
+
+    ImGui::Begin(RUNTIME_ERROR_WINDOW_NAME);
+    if (ImGui::Button("Copy")) {
+      ImGui::LogToClipboard();
+      ImGui::LogText(preview_error_->msg.c_str());
+      ImGui::LogFinish();
+    }
+    ImGui::SameLine();
+    ImGui::TextWrapped(preview_error_->msg.c_str());
     ImGui::End();
   }
 
@@ -189,6 +209,7 @@ void RuntimeLayer::RebuildSelectedSymbol() {
             .watch([this](auto x) {
               self_work_queue_.Enqueue([this, x] {
                 pending_preview_results_ = std::nullopt;
+                preview_error_ = std::nullopt;
 
                 if (std::holds_alternative<utils::CancelledFuture>(x)) {
                   preview_error_ = utils::Error{"Compilation cancelled."};
@@ -198,8 +219,9 @@ void RuntimeLayer::RebuildSelectedSymbol() {
                 const auto& error_or = *std::get<1>(x);
                 if (auto error = std::get_if<0>(&error_or)) {
                   preview_error_ = utils::Error{error->msg};
+                } else {
+                  domain_visualizer_->SetPreview(std::get<1>(error_or));
                 }
-                domain_visualizer_->SetPreview(std::get<1>(error_or));
               });
             });
   }
