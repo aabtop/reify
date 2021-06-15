@@ -20,12 +20,16 @@ class DockingLayer {
   void ExecuteImGuiCommands();
 
   ImGuiDockNode* GetEmptySpaceNode() const;
-  ImGuiID GetDockedContentNodeId() const;
+  ImGuiID GetDockedContentNodeId();
+  ImGuiID GetDockedBottomNodeId();
 
   ImGuiID viewport_dock_id() const { return *viewport_dock_id_; };
 
  private:
-  ImGuiID SplitNodeAndReturnContent(ImGuiID parent_node) const;
+  ImGuiID GetOrMakeDockedContentNodeIdForDirection(ImGuiDir docked_dir,
+                                                   float split_fraction);
+  ImGuiID SplitNodeAndReturnContent(ImGuiID parent_node, ImGuiDir docked_dir,
+                                    float split_fraction);
 
   const ImGuiDir default_docked_direction_;
   const float default_docked_split_fraction_;

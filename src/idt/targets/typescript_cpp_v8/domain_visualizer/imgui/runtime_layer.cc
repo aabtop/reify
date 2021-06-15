@@ -74,18 +74,31 @@ void RuntimeLayer::SetCompileResults(
   RebuildSelectedSymbol();
 }
 
-void RuntimeLayer::ExecuteImGuiCommands() {
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 250));
+namespace {
+bool CompileResultsContainErrors(
+    const std::map<std::string,
+                   std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
+        compile_results) {
+  for (const auto& item : compile_results) {
+    if (std::holds_alternative<CompileError>(item.second)) {
+      return true;
+    }
+  }
+  return false;
+}
+}  // namespace
 
+void RuntimeLayer::ExecuteImGuiCommands() {
   // Place this window within the right dock ID by default.
-  const char* WINDOW_NAME = "Runtime";
-  if (!ImGui::FindWindowByName(WINDOW_NAME)) {
+  const char* SELECT_SYMBOL_WINDOW_NAME = "Select Symbol";
+  if (!ImGui::FindWindowByName(SELECT_SYMBOL_WINDOW_NAME)) {
     // If this is the first time we're seeing this window, default it into
     // the docked content menu.
     ImGui::SetNextWindowDockID(docking_layer_->GetDockedContentNodeId());
   }
 
-  ImGui::Begin(WINDOW_NAME);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 250));
+  ImGui::Begin(SELECT_SYMBOL_WINDOW_NAME);
 
   if (!previewable_symbols_.empty()) {
     std::vector<const char*> symbols;
@@ -94,12 +107,11 @@ void RuntimeLayer::ExecuteImGuiCommands() {
       symbols.push_back(symbol.display_name.c_str());
     }
 
-    ImGui::Text("Select symbol:");
     {
       DisableIf disable_if_pending_preview_results(!!pending_preview_results_);
       ImGui::PushItemWidth(-1);
       if (ImGui::ListBox("##preview_symbol_selector", &selected_symbol_index_,
-                         symbols.data(), symbols.size(), 6)) {
+                         symbols.data(), symbols.size(), symbols.size())) {
         selected_symbol_name_ =
             previewable_symbols_[selected_symbol_index_].display_name;
         RebuildSelectedSymbol();
@@ -108,8 +120,39 @@ void RuntimeLayer::ExecuteImGuiCommands() {
     }
   }
   ImGui::End();
-
   ImGui::PopStyleVar();
+
+  if (CompileResultsContainErrors(compile_results_)) {
+    const char* ERROR_MESSAGE_WINDOW_NAME = "Errors";
+
+    if (!ImGui::FindWindowByName(ERROR_MESSAGE_WINDOW_NAME)) {
+      // If this is the first time we're seeing this window, default it into
+      // the bottom dock slot.
+      ImGui::SetNextWindowDockID(docking_layer_->GetDockedBottomNodeId());
+    }
+
+    ImGui::Begin(ERROR_MESSAGE_WINDOW_NAME);
+    for (const auto& item : compile_results_) {
+      if (auto error = std::get_if<CompileError>(&item.second)) {
+        if (ImGui::CollapsingHeader(item.first.c_str(),
+                                    ImGuiTreeNodeFlags_DefaultOpen)) {
+          std::string error_message = fmt::format("{}({}): {}", error->path,
+                                                  error->line, error->message);
+          const float indent_amount = ImGui::GetFontSize() * 2;
+          ImGui::Indent(indent_amount);
+          if (ImGui::Button("Copy")) {
+            ImGui::LogToClipboard();
+            ImGui::LogText(error_message.c_str());
+            ImGui::LogFinish();
+          }
+          ImGui::SameLine();
+          ImGui::TextWrapped(error_message.c_str());
+          ImGui::Unindent(indent_amount);
+        }
+      }
+    }
+    ImGui::End();
+  }
 
   if (build_active()) {
     if (!status_window_) {

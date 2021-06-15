@@ -69,17 +69,27 @@ int child_index_for_direction(ImGuiDir dir) {
 
 // Find the empty space node, and return a node directly in the
 // `default_docked_direction_` direction of it, creating it if it doesn't exist.
-ImGuiID DockingLayer::GetDockedContentNodeId() const {
+ImGuiID DockingLayer::GetDockedContentNodeId() {
+  return GetOrMakeDockedContentNodeIdForDirection(
+      default_docked_direction_, default_docked_split_fraction_);
+}
+
+ImGuiID DockingLayer::GetDockedBottomNodeId() {
+  return GetOrMakeDockedContentNodeIdForDirection(ImGuiDir_Down, 0.25f);
+}
+
+ImGuiID DockingLayer::GetOrMakeDockedContentNodeIdForDirection(
+    ImGuiDir docked_dir, float split_fraction) {
   ImGuiDockNode* empty_space_node = GetEmptySpaceNode();
 
-  ImGuiAxis default_split_axis = axis_for_direction(default_docked_direction_);
+  ImGuiAxis default_split_axis = axis_for_direction(docked_dir);
 
   if (empty_space_node->ParentNode &&
       empty_space_node->ParentNode->SplitAxis == default_split_axis) {
     // We can re-use the existing split here.
     ImGuiDockNode* content_dock_node =
         empty_space_node->ParentNode
-            ->ChildNodes[child_index_for_direction(default_docked_direction_)];
+            ->ChildNodes[child_index_for_direction(docked_dir)];
     if (empty_space_node != content_dock_node &&
         content_dock_node->IsLeafNode()) {
       return content_dock_node->ID;
@@ -88,7 +98,8 @@ ImGuiID DockingLayer::GetDockedContentNodeId() const {
 
   // Okay, we can split this node and and create a new content pane node to
   // return.
-  return SplitNodeAndReturnContent(empty_space_node->ID);
+  return SplitNodeAndReturnContent(empty_space_node->ID, docked_dir,
+                                   split_fraction);
 }
 
 void DockingLayer::ExecuteImGuiCommands() {
@@ -97,10 +108,11 @@ void DockingLayer::ExecuteImGuiCommands() {
                    ImGuiDockNodeFlags_NoDockingInCentralNode);
 }
 
-ImGuiID DockingLayer::SplitNodeAndReturnContent(ImGuiID parent_node) const {
-  return ImGui::DockBuilderSplitNode(parent_node, default_docked_direction_,
-                                     default_docked_split_fraction_, nullptr,
-                                     nullptr);
+ImGuiID DockingLayer::SplitNodeAndReturnContent(ImGuiID parent_node,
+                                                ImGuiDir docked_dir,
+                                                float split_fraction) {
+  return ImGui::DockBuilderSplitNode(parent_node, docked_dir, split_fraction,
+                                     nullptr, nullptr);
 }
 
 }  // namespace imgui
