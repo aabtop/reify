@@ -142,11 +142,11 @@ void RuntimeLayer::ExecuteImGuiCommands() {
           ImGui::Indent(indent_amount);
           if (ImGui::Button("Copy")) {
             ImGui::LogToClipboard();
-            ImGui::LogText(error_message.c_str());
+            ImGui::LogText("%s", error_message.c_str());
             ImGui::LogFinish();
           }
           ImGui::SameLine();
-          ImGui::TextWrapped(error_message.c_str());
+          ImGui::TextWrapped("%s", error_message.c_str());
           ImGui::Unindent(indent_amount);
         }
       }
@@ -166,11 +166,11 @@ void RuntimeLayer::ExecuteImGuiCommands() {
     ImGui::Begin(RUNTIME_ERROR_WINDOW_NAME);
     if (ImGui::Button("Copy")) {
       ImGui::LogToClipboard();
-      ImGui::LogText(preview_error_->msg.c_str());
+      ImGui::LogText("%s", preview_error_->msg.c_str());
       ImGui::LogFinish();
     }
     ImGui::SameLine();
-    ImGui::TextWrapped(preview_error_->msg.c_str());
+    ImGui::TextWrapped("%s", preview_error_->msg.c_str());
     ImGui::End();
   }
 
