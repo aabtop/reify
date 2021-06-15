@@ -62,6 +62,7 @@ cc_library(
     deps = [
         "//src/tsc_wrapper:tsc_wrapper_as_header",
         "//src/utils",
+        "@fmtlib",
         "@v8",
     ],
 )

@@ -4,8 +4,10 @@
 #include <cassert>
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string_view>
 #include <unordered_map>
 #include <variant>
@@ -15,7 +17,9 @@
 #include <v8.h>
 
 #include "reify/typescript_cpp_v8/common_types.h"
+#include "reify/utils/error.h"
 #include "reify/utils/future.h"
+#include "reify/utils/thread_with_work_queue.h"
 
 namespace reify {
 
@@ -239,6 +243,9 @@ class CompilerEnvironment {
     std::string_view content;
   };
 
+  using CompileResults =
+      std::variant<CompileError, std::shared_ptr<CompiledModule>>;
+
   CompilerEnvironment(
       VirtualFilesystem* virtual_filesystem,
       const std::vector<InputModule>* initial_modules,
@@ -247,8 +254,7 @@ class CompilerEnvironment {
   CompilerEnvironment(const CompilerEnvironment&) = delete;
   ~CompilerEnvironment();
 
-  std::variant<CompileError, std::shared_ptr<CompiledModule>> Compile(
-      std::string_view virtual_absolute_path);
+  CompileResults Compile(std::string_view virtual_absolute_path);
 
   // Creates a directory at the specified path containing the root of a
   // TypeScript project setup to recognize the Reify types.  For example,
@@ -264,6 +270,40 @@ class CompilerEnvironment {
   std::unique_ptr<Impl> impl_;
 };
 
+// Similar to CompilerEnvironment above, but this one is thread safe, because
+// it creates a thread dedicated to the compiler environment and shuttles
+// inputs/outputs back and forth from that thread.
+class CompilerEnvironmentThreadSafe {
+ public:
+  using CompileResults = CompilerEnvironment::CompileResults;
+  using CompileFuture = utils::Future<CompileResults>;
+  using MultiCompileResults = std::map<std::string, CompileResults>;
+  using MultiCompileFuture = utils::Future<MultiCompileResults>;
+  CompilerEnvironmentThreadSafe(
+      VirtualFilesystem* virtual_filesystem,
+      const std::vector<reify::CompilerEnvironment::InputModule>&
+          typescript_input_modules);
+  ~CompilerEnvironmentThreadSafe();
+
+  // Invalidates the stored cache for the compiled results of the specified
+  // sources.  It is important to call this whenever inputs change, otherwise
+  // the compiler environment will just used cached copies of input files.
+  void InvalidateCompiledResultsCache(const std::set<std::string>& sources);
+
+  // Compile the specified TypeScript source files into JavaScript output.
+  CompileFuture Compile(const std::string& sources);
+
+  // Compile multiple source files in one shot.
+  MultiCompileFuture MultiCompile(const std::set<std::string>& sources);
+
+ private:
+  VirtualFilesystem* virtual_filesystem_;
+  const std::vector<reify::CompilerEnvironment::InputModule>
+      typescript_input_modules_;
+  std::optional<CompilerEnvironment> compiler_environment_;
+  utils::ThreadWithWorkQueue compilation_thread_;
+};
+
 // Wraps a directory on the filesystem, treating it as a project directory
 // within which all recursively discovered TypeScript ".ts" files will be
 // compiled. Can persist and notify its owner whenever the files under the
@@ -271,16 +311,33 @@ class CompilerEnvironment {
 // out of date.
 class Project {
  public:
-  Project(const std::vector<CompilerEnvironment::InputModule>* initial_modules,
-          const std::filesystem::path& project_directory);
-  ~Project();
+  // Calling CreateProjectFromPath() is the easiest way to create a project,
+  // but using this constructor directly can provide more flexibility.
+  Project(const std::filesystem::path& absolute_path,
+          std::unique_ptr<VirtualFilesystem> virtual_filesystem,
+          const std::vector<reify::CompilerEnvironment::InputModule>&
+              typescript_input_modules,
+          const std::function<std::set<std::string>()>& get_sources);
 
-  reify::utils::Future<std::vector<std::shared_ptr<CompiledModule>>> Compile();
+  const std::filesystem::path& absolute_path() const { return absolute_path_; }
+
+  CompilerEnvironmentThreadSafe::MultiCompileFuture RebuildProject();
 
  private:
-  class Impl;
-  std::unique_ptr<Impl> impl_;
+  const std::filesystem::path absolute_path_;
+  std::unique_ptr<VirtualFilesystem> virtual_filesystem_;
+  const std::function<std::set<std::string>()> get_sources_;
+  CompilerEnvironmentThreadSafe compiler_environment_;
 };
+
+// Given a specified input path, will derive from it a project configuration.
+// If the provided input path is a single file, then only a single file will
+// be visible and compiled, however if a folder is provided instead, all
+// contents within the folder will be compiled and visible.
+utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
+    const std::filesystem::path& path,
+    const std::vector<reify::CompilerEnvironment::InputModule>&
+        typescript_input_modules);
 
 }  // namespace reify
 

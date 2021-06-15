@@ -37,8 +37,8 @@ CompilerEnvironment::CompilerEnvironment(
                                           snapshot_options)) {}
 CompilerEnvironment::~CompilerEnvironment() {}
 
-std::variant<CompileError, std::shared_ptr<CompiledModule>>
-CompilerEnvironment::Compile(std::string_view virtual_absolute_path) {
+CompilerEnvironment::CompileResults CompilerEnvironment::Compile(
+    std::string_view virtual_absolute_path) {
   auto transpile_results_or_error =
       impl_->Compile(virtual_absolute_path, Impl::GenerateDeclarationFiles::No);
   if (auto error =
@@ -138,6 +138,45 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
   }
 
   return true;
+}
+
+CompilerEnvironmentThreadSafe::MultiCompileFuture Project::RebuildProject() {
+  return compiler_environment_.MultiCompile(get_sources_());
+}
+
+CompilerEnvironmentThreadSafe::CompilerEnvironmentThreadSafe(
+    VirtualFilesystem* virtual_filesystem,
+    const std::vector<reify::CompilerEnvironment::InputModule>&
+        typescript_input_modules)
+    : virtual_filesystem_(std::move(virtual_filesystem)),
+      typescript_input_modules_(typescript_input_modules) {
+  compilation_thread_.Enqueue([this] {
+    compiler_environment_.emplace(virtual_filesystem_,
+                                  &typescript_input_modules_);
+  });
+}
+
+CompilerEnvironmentThreadSafe::~CompilerEnvironmentThreadSafe() {
+  compilation_thread_.Enqueue([this] { compiler_environment_ = std::nullopt; });
+}
+
+CompilerEnvironmentThreadSafe::CompileFuture
+CompilerEnvironmentThreadSafe::Compile(const std::string& sources) {
+  return compilation_thread_.EnqueueWithResult<CompileResults>(
+      [this, sources] { return compiler_environment_->Compile(sources); });
+}
+
+CompilerEnvironmentThreadSafe::MultiCompileFuture
+CompilerEnvironmentThreadSafe::MultiCompile(
+    const std::set<std::string>& sources) {
+  return compilation_thread_.EnqueueWithResult<MultiCompileResults>(
+      [this, sources] {
+        MultiCompileResults results;
+        for (const auto& source : sources) {
+          results[source] = compiler_environment_->Compile(source);
+        }
+        return results;
+      });
 }
 
 }  // namespace reify

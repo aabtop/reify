@@ -1,79 +1,104 @@
+#include <fmt/format.h>
+
 #include "reify/typescript_cpp_v8.h"
 #include "reify/utils/file_system.h"
 #include "reify/utils/future.h"
 #include "reify/utils/thread_with_work_queue.h"
 
 namespace reify {
-class Project::Impl {
- public:
-  Impl(const std::vector<CompilerEnvironment::InputModule>* initial_modules,
-       const std::filesystem::path& project_directory);
 
-  reify::utils::Future<std::vector<std::shared_ptr<CompiledModule>>> Compile();
+namespace {
 
- private:
-  const std::filesystem::path absolute_project_directory_;
+utils::ErrorOr<std::unique_ptr<Project>> CreateDirectoryProjectFromPath(
+    const std::filesystem::path& absolute_project_path,
+    const std::vector<reify::CompilerEnvironment::InputModule>&
+        typescript_input_modules) {
+  if (!std::filesystem::is_directory(absolute_project_path)) {
+    return utils::Error{fmt::format("Input path '{}' is not a directory.",
+                                    absolute_project_path.string())};
+  }
 
-  // We do all processing on a separate thread, since compilation can take
-  // a non-trivial amount of time.
-  reify::utils::ThreadWithWorkQueue thread_;
+  std::unique_ptr<MountedHostFolderFilesystem> project_dir_filesystem(
+      new MountedHostFolderFilesystem(absolute_project_path));
 
-  reify::MountedHostFolderFilesystem virtual_filesystem_;
-  std::optional<reify::CompilerEnvironment> compile_env_;
-};
+  auto get_sources = [source_file_regex = std::regex(
+                          R"(.*\.ts)", std::regex_constants::ECMAScript,
+                          std::regex_constants::optimize),
+                      filesystem = project_dir_filesystem.get()] {
+    std::set<std::string> source_files;
+    for (auto& path : std::filesystem::recursive_directory_iterator(
+             filesystem->host_root())) {
+      std::string virtual_path = *filesystem->HostPathToVirtualPath(path);
+      if (std::regex_search(virtual_path, source_file_regex)) {
+        source_files.insert(virtual_path);
+      }
+    }
+    return source_files;
+  };
 
-Project::Impl::Impl(
-    const std::vector<CompilerEnvironment::InputModule>* initial_modules,
-    const std::filesystem::path& project_directory)
-    : absolute_project_directory_(std::filesystem::absolute(project_directory)),
-      virtual_filesystem_(absolute_project_directory_) {
-  thread_.Enqueue([this, initial_modules] {
-    compile_env_.emplace(&virtual_filesystem_, initial_modules);
-  });
+  return std::unique_ptr<Project>(new Project(
+      absolute_project_path,
+      std::unique_ptr<VirtualFilesystem>(project_dir_filesystem.release()),
+      typescript_input_modules, get_sources));
 }
 
-reify::utils::Future<std::vector<std::shared_ptr<CompiledModule>>>
-Project::Impl::Compile() {
-  return thread_
-      .EnqueueWithResult<std::vector<std::shared_ptr<CompiledModule>>>([this] {
-        std::vector<std::filesystem::path> files_to_compile =
-            reify::utils::FindMatchingFilenamesRecursively(
-                absolute_project_directory_, std::regex("\\.ts$"));
+utils::ErrorOr<std::unique_ptr<Project>> CreateFileProjectFromPath(
+    const std::filesystem::path& absolute_input_source_file,
+    const std::vector<reify::CompilerEnvironment::InputModule>&
+        typescript_input_modules) {
+  // Make or reference a virtual file system based on the current workspace.
+  auto project_directory = absolute_input_source_file.parent_path();
 
-        std::vector<std::shared_ptr<CompiledModule>> results;
-        results.reserve(files_to_compile.size());
+  std::unique_ptr<MountedHostFolderFilesystem> virtual_filesystem(
+      new MountedHostFolderFilesystem(project_directory));
 
-        for (const auto& source_file : files_to_compile) {
-          auto maybe_virtual_path =
-              virtual_filesystem_.HostPathToVirtualPath(source_file);
-          if (!maybe_virtual_path) {
-            continue;
-          }
+  auto virtual_path =
+      virtual_filesystem->HostPathToVirtualPath(absolute_input_source_file);
 
-          auto maybe_compiled_module =
-              compile_env_->Compile(*maybe_virtual_path);
-          if (auto* error = std::get_if<0>(&maybe_compiled_module)) {
-            continue;
-          }
+  if (!virtual_path) {
+    return utils::Error{fmt::format(
+        "Input file {} is not contained within the project root: {}",
+        absolute_input_source_file.string(),
+        virtual_filesystem->host_root().string())};
+  }
 
-          results.push_back(std::get<1>(maybe_compiled_module));
-        }
-
-        return results;
-      });
+  return std::unique_ptr<Project>(new Project(
+      absolute_input_source_file,
+      std::unique_ptr<VirtualFilesystem>(virtual_filesystem.release()),
+      typescript_input_modules, [virtual_path_value = *virtual_path] {
+        return std::set<std::string>{virtual_path_value};
+      }));
 }
 
-Project::Project(
-    const std::vector<CompilerEnvironment::InputModule>* initial_modules,
-    const std::filesystem::path& project_directory)
-    : impl_(std::make_unique<Project::Impl>(initial_modules,
-                                            project_directory)) {}
+}  // namespace
 
-Project::~Project() {}
+utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
+    const std::filesystem::path& path,
+    const std::vector<reify::CompilerEnvironment::InputModule>&
+        typescript_input_modules) {
+  if (!std::filesystem::exists(path)) {
+    return utils::Error{
+        fmt::format("Provided path {} does not exist.", path.string())};
+  }
+  auto absolute_path = std::filesystem::absolute(path);
 
-reify::utils::Future<std::vector<std::shared_ptr<CompiledModule>>>
-Project::Compile() {
-  return impl_->Compile();
+  if (std::filesystem::is_directory(absolute_path)) {
+    return CreateDirectoryProjectFromPath(absolute_path,
+                                          typescript_input_modules);
+  } else {
+    return CreateFileProjectFromPath(absolute_path, typescript_input_modules);
+  }
 }
+
+Project::Project(const std::filesystem::path& absolute_path,
+                 std::unique_ptr<VirtualFilesystem> virtual_filesystem,
+                 const std::vector<reify::CompilerEnvironment::InputModule>&
+                     typescript_input_modules,
+                 const std::function<std::set<std::string>()>& get_sources)
+    : absolute_path_(absolute_path),
+      virtual_filesystem_(std::move(virtual_filesystem)),
+      get_sources_(get_sources),
+      compiler_environment_(virtual_filesystem_.get(),
+                            typescript_input_modules) {}
 
 }  // namespace reify

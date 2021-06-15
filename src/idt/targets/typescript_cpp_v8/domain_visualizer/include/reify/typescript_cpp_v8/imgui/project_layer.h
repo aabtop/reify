@@ -15,64 +15,6 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
 
-class CompilerEnvironmentThreadSafe {
- public:
-  using CompileResults =
-      std::variant<CompileError, std::shared_ptr<CompiledModule>>;
-  using CompileFuture = utils::Future<CompileResults>;
-  using MultiCompileResults =
-      std::map<std::string,
-               std::variant<CompileError, std::shared_ptr<CompiledModule>>>;
-  using MultiCompileFuture = utils::Future<MultiCompileResults>;
-  CompilerEnvironmentThreadSafe(
-      VirtualFilesystem* virtual_filesystem,
-      const std::vector<reify::CompilerEnvironment::InputModule>&
-          typescript_input_modules);
-  ~CompilerEnvironmentThreadSafe();
-
-  // Invalidates the stored cache for the compiled results of the specified
-  // sources.  It is important to call this whenever inputs change, otherwise
-  // the compiler environment will just used cached copies of input files.
-  void InvalidateCompiledResultsCache(const std::set<std::string>& sources);
-
-  // Compile the specified TypeScript source files into JavaScript output.
-  CompileFuture Compile(const std::string& sources);
-
-  // Compile multiple source files in one shot.
-  MultiCompileFuture MultiCompile(const std::set<std::string>& sources);
-
- private:
-  VirtualFilesystem* virtual_filesystem_;
-  const std::vector<reify::CompilerEnvironment::InputModule>
-      typescript_input_modules_;
-  std::optional<CompilerEnvironment> compiler_environment_;
-  utils::ThreadWithWorkQueue compilation_thread_;
-};
-
-class Project {
- public:
-  Project(const std::filesystem::path& absolute_path,
-          std::unique_ptr<VirtualFilesystem> virtual_filesystem,
-          const std::vector<reify::CompilerEnvironment::InputModule>&
-              typescript_input_modules,
-          const std::function<std::set<std::string>()>& get_sources);
-
-  const std::filesystem::path& absolute_path() const { return absolute_path_; }
-
-  CompilerEnvironmentThreadSafe::MultiCompileFuture RebuildProject();
-
- private:
-  const std::filesystem::path absolute_path_;
-  std::unique_ptr<VirtualFilesystem> virtual_filesystem_;
-  const std::function<std::set<std::string>()> get_sources_;
-  CompilerEnvironmentThreadSafe compiler_environment_;
-};
-
-utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
-    const std::filesystem::path& path,
-    const std::vector<reify::CompilerEnvironment::InputModule>&
-        typescript_input_modules);
-
 class ProjectLayer {
  public:
   ProjectLayer(
