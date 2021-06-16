@@ -140,10 +140,6 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
   return true;
 }
 
-CompilerEnvironmentThreadSafe::MultiCompileFuture Project::RebuildProject() {
-  return compiler_environment_.MultiCompile(get_sources_());
-}
-
 CompilerEnvironmentThreadSafe::CompilerEnvironmentThreadSafe(
     VirtualFilesystem* virtual_filesystem,
     const std::vector<reify::CompilerEnvironment::InputModule>&

@@ -22,8 +22,7 @@ utils::ErrorOr<std::unique_ptr<Project>> CreateDirectoryProjectFromPath(
       new MountedHostFolderFilesystem(absolute_project_path));
 
   auto get_sources = [source_file_regex = std::regex(
-                          R"(.*\.ts)", std::regex_constants::ECMAScript,
-                          std::regex_constants::optimize),
+                          R"(.*\.ts$)", std::regex_constants::ECMAScript),
                       filesystem = project_dir_filesystem.get()] {
     std::set<std::string> source_files;
     for (auto& path : std::filesystem::recursive_directory_iterator(
@@ -100,5 +99,9 @@ Project::Project(const std::filesystem::path& absolute_path,
       get_sources_(get_sources),
       compiler_environment_(virtual_filesystem_.get(),
                             typescript_input_modules) {}
+
+CompilerEnvironmentThreadSafe::MultiCompileFuture Project::RebuildProject() {
+  return compiler_environment_.MultiCompile(get_sources_());
+}
 
 }  // namespace reify
