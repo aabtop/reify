@@ -16,7 +16,8 @@ void MonacoQtBridge::EnsureModuleListIsRegistered() {
 
 MonacoQtBridge::MonacoQtBridge(
     QWebEnginePage* page,
-    const std::vector<reify::CompilerEnvironment::InputModule>&
+    const std::vector<
+        reify::typescript_cpp_v8::CompilerEnvironment::InputModule>&
         typescript_input_modules,
     const std::function<void()>& on_initialization_complete,
     const std::function<void(bool)>& on_file_dirty_status_change,
@@ -72,7 +73,8 @@ void MonacoQtBridge::FileDirtyStatusChanged(bool is_dirty) {
 
 MonacoInterface::MonacoInterface(
     QWebEnginePage* page,
-    const std::vector<reify::CompilerEnvironment::InputModule>&
+    const std::vector<
+        reify::typescript_cpp_v8::CompilerEnvironment::InputModule>&
         typescript_input_modules,
     const std::function<void()>& on_initialization_complete,
     const std::function<void(bool)>& on_file_dirty_status_change,

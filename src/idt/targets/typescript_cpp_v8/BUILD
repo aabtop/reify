@@ -47,12 +47,15 @@ cc_library(
         "core/global_initialization.cc",
         "core/global_initialization.h",
         "core/project.cc",
-        "core/public_include/reify/typescript_cpp_v8.h",
-        "core/public_include/reify/typescript_cpp_v8/common_types.h",
         "core/runtime_environment.cc",
         "core/typescript_compiler.cc",
         "core/typescript_compiler.h",
         "core/virtual_filesystem.cc",
+    ],
+    hdrs = [
+        "core/public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h",
+        "core/public_include/reify/typescript_cpp_v8/common_types.h",
+        "core/public_include/reify/typescript_cpp_v8/virtual_filesystem.h",
     ],
     includes = [
         "core",

@@ -25,8 +25,7 @@ RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
     const std::map<std::string,
                    std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
         compile_results,
-    const std::function<bool(reify::CompiledModule::ExportedSymbol)>&
-        can_preview) {
+    const std::function<bool(CompiledModule::ExportedSymbol)>& can_preview) {
   std::vector<ExportedSymbolWithSourceFile> previewable_symbols;
   for (const auto& compile_result : compile_results) {
     if (std::holds_alternative<CompileError>(compile_result.second)) {

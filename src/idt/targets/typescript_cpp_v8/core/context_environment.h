@@ -6,9 +6,10 @@
 #include <string>
 #include <vector>
 
-#include "public_include/reify/typescript_cpp_v8.h"
+#include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 struct ContextEnvironment {
   std::shared_ptr<CompiledModule> compiled_module;
@@ -20,6 +21,7 @@ struct ContextEnvironment {
   std::vector<const std::string*> source_file_import_stack;
 };
 
+}  // namespace typescript_cpp_v8
 }  // namespace reify
 
 #endif  // REIFY_CONTEXT_ENVIRONMENT_H_

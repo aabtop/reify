@@ -3,10 +3,11 @@
 #include <string_view>
 
 #include "compiled_module_impl.h"
-#include "public_include/reify/typescript_cpp_v8.h"
+#include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "typescript_compiler.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 class CompilerEnvironment::Impl {
  public:
@@ -142,7 +143,7 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
 
 CompilerEnvironmentThreadSafe::CompilerEnvironmentThreadSafe(
     VirtualFilesystem* virtual_filesystem,
-    const std::vector<reify::CompilerEnvironment::InputModule>&
+    const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules)
     : virtual_filesystem_(std::move(virtual_filesystem)),
       typescript_input_modules_(typescript_input_modules) {
@@ -175,4 +176,5 @@ CompilerEnvironmentThreadSafe::MultiCompile(
       });
 }
 
+}  // namespace typescript_cpp_v8
 }  // namespace reify

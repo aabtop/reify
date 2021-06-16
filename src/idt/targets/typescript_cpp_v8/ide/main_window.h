@@ -67,9 +67,8 @@ class MainWindow : public QMainWindow {
   void QueryContent(const MonacoInterface::QueryContentReplyFunction&
                         query_content_complete_callback);
 
-  bool Compile(
-      const std::function<void(std::shared_ptr<reify::CompiledModule>)>&
-          compile_complete_callback);
+  bool Compile(const std::function<void(std::shared_ptr<CompiledModule>)>&
+                   compile_complete_callback);
   bool Build(const std::function<void()>& build_complete_callback);
 
   void FileDirtyStatusChange(bool is_dirty);
@@ -115,7 +114,7 @@ class MainWindow : public QMainWindow {
       query_content_complete_callback_;
 
   std::optional<std::filesystem::path> current_filepath_;
-  std::shared_ptr<reify::CompiledModule> most_recent_compilation_results_;
+  std::shared_ptr<CompiledModule> most_recent_compilation_results_;
 
   std::optional<std::thread> project_operation_;
 

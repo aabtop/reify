@@ -11,6 +11,7 @@
 #include <string>
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 namespace {
 #include "src_gen/tsc_wrapper.h"
@@ -559,4 +560,6 @@ auto TypeScriptCompiler::TranspileToJavaScript(
   }
   return return_value;
 }
+
+}  // namespace typescript_cpp_v8
 }  // namespace reify

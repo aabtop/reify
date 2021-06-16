@@ -7,9 +7,9 @@
 #include "CLI/CLI.hpp"
 #include "cgal/export_to_file.h"
 #include "reify/purecpp/hypo.h"
-#include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/command_line_tool.h"
 #include "reify/typescript_cpp_v8/hypo.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 using namespace std::chrono;
 
@@ -48,13 +48,15 @@ void PrintResultsInformation(std::ostream& out, microseconds compile_time,
 // be opened by an STL file viewer.
 template <typename T>
 std::optional<CallAndExportResults> CallFunctionAndExportOutput(
-    reify::RuntimeEnvironment* runtime_env, const std::string& function_name,
+    reify::typescript_cpp_v8::RuntimeEnvironment* runtime_env,
+    const std::string& function_name,
     const std::string& output_base_file_path) {
   high_resolution_clock::time_point start_call_time =
       high_resolution_clock::now();
 
   auto entrypoint_or_error =
-      runtime_env->GetExport<reify::Function<T()>>(function_name);
+      runtime_env->GetExport<reify::typescript_cpp_v8::Function<T()>>(
+          function_name);
   if (auto error = std::get_if<0>(&entrypoint_or_error)) {
     std::cerr << "Problem finding entrypoint function: " << *error << std::endl;
     return std::nullopt;
@@ -86,14 +88,16 @@ std::optional<CallAndExportResults> CallFunctionAndExportOutput(
 
 // A non-templated wrapper function around CallFunctionAndExportOutput().
 std::optional<CallAndExportResults> BuildOutputAndSaveToFile(
-    reify::RuntimeEnvironment* runtime_env,
-    const reify::CompiledModule::ExportedSymbol* entry_point_function,
+    reify::typescript_cpp_v8::RuntimeEnvironment* runtime_env,
+    const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol*
+        entry_point_function,
     const std::string& output_base_file_path) {
-  if (entry_point_function->HasType<reify::Function<hypo::Region2()>>()) {
+  if (entry_point_function
+          ->HasType<reify::typescript_cpp_v8::Function<hypo::Region2()>>()) {
     return CallFunctionAndExportOutput<hypo::Region2>(
         runtime_env, entry_point_function->name, output_base_file_path);
-  } else if (entry_point_function
-                 ->HasType<reify::Function<hypo::Region3()>>()) {
+  } else if (entry_point_function->HasType<
+                 reify::typescript_cpp_v8::Function<hypo::Region3()>>()) {
     return CallFunctionAndExportOutput<hypo::Region3>(
         runtime_env, entry_point_function->name, output_base_file_path);
   } else {

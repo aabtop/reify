@@ -5,7 +5,7 @@
 #include "CLI/CLI.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "reify/typescript_cpp_v8.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
 #include "reify/typescript_cpp_v8/imgui/docking_freespace_to_window_viewport_layer.h"
 #include "reify/typescript_cpp_v8/imgui/docking_layer.h"

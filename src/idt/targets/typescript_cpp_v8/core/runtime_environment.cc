@@ -6,9 +6,10 @@
 #include "context_environment.h"
 #include "generic_function_impl.h"
 #include "global_initialization.h"
-#include "public_include/reify/typescript_cpp_v8.h"
+#include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 namespace {
 
@@ -343,4 +344,5 @@ RuntimeEnvironment::GetGenericExport(std::string_view symbol_name) {
       std::move(std::get<std::unique_ptr<GenericFunction::Impl>>(
           generic_function_impl_or_error)));
 }
+}  // namespace typescript_cpp_v8
 }  // namespace reify

@@ -8,8 +8,8 @@
 #include "cgal/construct_region3.h"
 #include "cgal/types_nef_polyhedron_3.h"
 #include "reify/purecpp/hypo.h"
-#include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/hypo.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace {
 TriangleSoup ConvertToTriangleSoup(
@@ -58,60 +58,65 @@ TriangleSoup ConvertToTriangleSoup(
 
 DomainVisualizerHypo::DomainVisualizerHypo() : free_camera_viewport_(0, 0) {}
 
-std::vector<reify::CompilerEnvironment::InputModule>
+std::vector<reify::typescript_cpp_v8::CompilerEnvironment::InputModule>
 DomainVisualizerHypo::GetTypeScriptModules() {
   return reify::typescript_cpp_v8::hypo::typescript_declarations();
 }
 
 bool DomainVisualizerHypo::CanPreviewSymbol(
-    const reify::CompiledModule::ExportedSymbol& symbol) {
-  return (/*symbol.HasType<reify::Function<hypo::Region2()>>() ||*/
-          symbol.HasType<reify::Function<hypo::Region3()>>());
+    const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol) {
+  return (/*symbol.HasType<reify::typescript_cpp_v8::Function<hypo::Region2()>>()
+             ||*/
+          symbol
+              .HasType<reify::typescript_cpp_v8::Function<hypo::Region3()>>());
 }
 
 reify::utils::Future<
     DomainVisualizerHypo::ErrorOr<DomainVisualizerHypo::PreparedSymbol>>
 DomainVisualizerHypo::PrepareSymbolForPreview(
-    std::shared_ptr<reify::CompiledModule> module,
-    const reify::CompiledModule::ExportedSymbol& symbol) {
-  return builder_thread_.EnqueueWithResult<ErrorOr<PreparedSymbol>>(
-      [module, symbol = std::move(symbol)]() -> ErrorOr<PreparedSymbol> {
-        // Setup a V8 runtime environment around the CompiledModule.  This will
-        // enable us to call exported functions and query exported values from
-        // the module.
-        auto runtime_env_or_error = reify::CreateRuntimeEnvironment(module);
-        if (auto error = std::get_if<0>(&runtime_env_or_error)) {
-          return Error{*error};
-        }
+    std::shared_ptr<reify::typescript_cpp_v8::CompiledModule> module,
+    const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol) {
+  return builder_thread_.EnqueueWithResult<
+      ErrorOr<PreparedSymbol>>([module, symbol = std::move(symbol)]()
+                                   -> ErrorOr<PreparedSymbol> {
+    // Setup a V8 runtime environment around the CompiledModule.  This will
+    // enable us to call exported functions and query exported values from
+    // the module.
+    auto runtime_env_or_error =
+        reify::typescript_cpp_v8::CreateRuntimeEnvironment(module);
+    if (auto error = std::get_if<0>(&runtime_env_or_error)) {
+      return Error{*error};
+    }
 
-        reify::RuntimeEnvironment runtime_env(
-            std::move(std::get<1>(runtime_env_or_error)));
+    reify::typescript_cpp_v8::RuntimeEnvironment runtime_env(
+        std::move(std::get<1>(runtime_env_or_error)));
 
-        if (symbol.HasType<reify::Function<hypo::Region3()>>()) {
-          auto entry_point_or_error =
-              runtime_env.GetExport<reify::Function<hypo::Region3()>>(
+    if (symbol.HasType<reify::typescript_cpp_v8::Function<hypo::Region3()>>()) {
+      auto entry_point_or_error =
+          runtime_env
+              .GetExport<reify::typescript_cpp_v8::Function<hypo::Region3()>>(
                   symbol.name);
-          if (auto error = std::get_if<0>(&entry_point_or_error)) {
-            return Error{"Problem finding entrypoint function: " + *error};
-          }
-          auto entry_point = &std::get<1>(entry_point_or_error);
+      if (auto error = std::get_if<0>(&entry_point_or_error)) {
+        return Error{"Problem finding entrypoint function: " + *error};
+      }
+      auto entry_point = &std::get<1>(entry_point_or_error);
 
-          auto result_or_error = entry_point->Call();
-          if (auto error = std::get_if<0>(&result_or_error)) {
-            return Error{"Error running function: " + *error};
-          }
+      auto result_or_error = entry_point->Call();
+      if (auto error = std::get_if<0>(&result_or_error)) {
+        return Error{"Error running function: " + *error};
+      }
 
-          hypo::Region3 result = std::get<1>(result_or_error);
+      hypo::Region3 result = std::get<1>(result_or_error);
 
-          hypo::cgal::Nef_polyhedron_3 polyhedron3 =
-              hypo::cgal::ConstructRegion3(result);
+      hypo::cgal::Nef_polyhedron_3 polyhedron3 =
+          hypo::cgal::ConstructRegion3(result);
 
-          return std::shared_ptr<TriangleSoup>(
-              new TriangleSoup(ConvertToTriangleSoup(polyhedron3)));
-        } else {
-          return Error{"Hypo's visualizer does not support this symbol type."};
-        }
-      });
+      return std::shared_ptr<TriangleSoup>(
+          new TriangleSoup(ConvertToTriangleSoup(polyhedron3)));
+    } else {
+      return Error{"Hypo's visualizer does not support this symbol type."};
+    }
+  });
 }
 
 void DomainVisualizerHypo::SetPreview(const PreparedSymbol& prepared_symbol) {

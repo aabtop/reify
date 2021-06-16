@@ -6,7 +6,7 @@
 #include <optional>
 #include <set>
 
-#include "reify/typescript_cpp_v8.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
 #include "reify/utils/error.h"
 #include "reify/utils/thread_with_work_queue.h"

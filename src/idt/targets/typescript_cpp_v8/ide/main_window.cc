@@ -293,7 +293,7 @@ void MainWindow::QueryContent(const MonacoInterface::QueryContentReplyFunction&
 }
 
 bool MainWindow::Compile(
-    const std::function<void(std::shared_ptr<reify::CompiledModule>)>&
+    const std::function<void(std::shared_ptr<CompiledModule>)>&
         compile_complete_callback) {
   if (HasPendingOperation()) {
     return false;
@@ -327,7 +327,7 @@ bool MainWindow::Compile(
                 }
 
                 most_recent_compilation_results_ =
-                    std::get<std::shared_ptr<reify::CompiledModule>>(result);
+                    std::get<std::shared_ptr<CompiledModule>>(result);
 
                 UpdateUiState();
 
@@ -359,7 +359,7 @@ bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
 
   auto compile_complete_callback =
       [this, build_complete_callback](
-          std::shared_ptr<reify::CompiledModule> compiled_module) {
+          std::shared_ptr<CompiledModule> compiled_module) {
         visualizer_imgui_runtime_layer_.SetCompileResults(
             {{current_filepath_ ? current_filepath_->string() : "untitled",
               compiled_module}});

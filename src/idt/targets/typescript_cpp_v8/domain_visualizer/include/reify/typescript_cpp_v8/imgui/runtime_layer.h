@@ -4,10 +4,10 @@
 #include <map>
 #include <optional>
 
-#include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
 #include "reify/typescript_cpp_v8/imgui/docking_layer.h"
 #include "reify/typescript_cpp_v8/imgui/status_layer.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "reify/utils/error.h"
 #include "reify/utils/thread_with_work_queue.h"
 
@@ -40,7 +40,7 @@ class RuntimeLayer {
     // source files are involved.
     std::string display_name;
     std::shared_ptr<CompiledModule> module;
-    reify::CompiledModule::ExportedSymbol symbol;
+    CompiledModule::ExportedSymbol symbol;
   };
   static std::vector<ExportedSymbolWithSourceFile>
   ComputePreviewableSymbolsFromCompileResults(
@@ -48,8 +48,7 @@ class RuntimeLayer {
           std::string,
           std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
           compile_results,
-      const std::function<bool(reify::CompiledModule::ExportedSymbol)>&
-          can_preview);
+      const std::function<bool(CompiledModule::ExportedSymbol)>& can_preview);
   void RebuildSelectedSymbol();
 
   DockingLayer* docking_layer_;

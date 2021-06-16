@@ -3,9 +3,10 @@
 #include <numeric>
 #include <sstream>
 
-#include "public_include/reify/typescript_cpp_v8.h"
+#include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 MountedHostFolderFilesystem::MountedHostFolderFilesystem(
     const std::filesystem::path& host_root)
@@ -92,4 +93,5 @@ InMemoryFilesystem::FilePath InMemoryFilesystem::GetPath(
       });
 }
 
+}  // namespace typescript_cpp_v8
 }  // namespace reify

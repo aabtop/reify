@@ -11,15 +11,17 @@ class DomainVisualizerHypo : public reify::typescript_cpp_v8::DomainVisualizer {
  public:
   DomainVisualizerHypo();
 
-  std::vector<reify::CompilerEnvironment::InputModule> GetTypeScriptModules()
-      override;
+  std::vector<reify::typescript_cpp_v8::CompilerEnvironment::InputModule>
+  GetTypeScriptModules() override;
 
   bool CanPreviewSymbol(
-      const reify::CompiledModule::ExportedSymbol& symbol) override;
+      const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol)
+      override;
 
   reify::utils::Future<ErrorOr<PreparedSymbol>> PrepareSymbolForPreview(
-      std::shared_ptr<reify::CompiledModule> module,
-      const reify::CompiledModule::ExportedSymbol& symbol) override;
+      std::shared_ptr<reify::typescript_cpp_v8::CompiledModule> module,
+      const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol)
+      override;
   void SetPreview(const PreparedSymbol& prepared_symbol) override;
 
   bool OnInputEvent(const InputEvent& input_event) override;

@@ -98,7 +98,7 @@ int GenerateProjectDirectory(
     const GenerateProjectDirectoryCommandLineParameters& clp,
     const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules) {
-  bool result = reify::CompilerEnvironment::CreateWorkspaceDirectory(
+  bool result = CompilerEnvironment::CreateWorkspaceDirectory(
       clp.project_directory, typescript_input_modules);
   if (result) {
     std::cout << "Created directory " << clp.project_directory

@@ -9,9 +9,10 @@
 #include <vector>
 
 #include "global_initialization.h"
-#include "public_include/reify/typescript_cpp_v8.h"
+#include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 class TypeScriptCompiler {
  public:
@@ -83,6 +84,7 @@ class TypeScriptCompiler {
   v8::Persistent<v8::Function> transpile_function_;
 };
 
+}  // namespace typescript_cpp_v8
 }  // namespace reify
 
 #endif  // TYPESCRIPT_COMPILER_TYPESCRIPT_COMPILER_H_

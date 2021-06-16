@@ -1,17 +1,18 @@
 #include <fmt/format.h>
 
-#include "reify/typescript_cpp_v8.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "reify/utils/file_system.h"
 #include "reify/utils/future.h"
 #include "reify/utils/thread_with_work_queue.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 namespace {
 
 utils::ErrorOr<std::unique_ptr<Project>> CreateDirectoryProjectFromPath(
     const std::filesystem::path& absolute_project_path,
-    const std::vector<reify::CompilerEnvironment::InputModule>&
+    const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules) {
   if (!std::filesystem::is_directory(absolute_project_path)) {
     return utils::Error{fmt::format("Input path '{}' is not a directory.",
@@ -43,7 +44,7 @@ utils::ErrorOr<std::unique_ptr<Project>> CreateDirectoryProjectFromPath(
 
 utils::ErrorOr<std::unique_ptr<Project>> CreateFileProjectFromPath(
     const std::filesystem::path& absolute_input_source_file,
-    const std::vector<reify::CompilerEnvironment::InputModule>&
+    const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules) {
   // Make or reference a virtual file system based on the current workspace.
   auto project_directory = absolute_input_source_file.parent_path();
@@ -73,7 +74,7 @@ utils::ErrorOr<std::unique_ptr<Project>> CreateFileProjectFromPath(
 
 utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
     const std::filesystem::path& path,
-    const std::vector<reify::CompilerEnvironment::InputModule>&
+    const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules) {
   if (!std::filesystem::exists(path)) {
     return utils::Error{
@@ -91,7 +92,7 @@ utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
 
 Project::Project(const std::filesystem::path& absolute_path,
                  std::unique_ptr<VirtualFilesystem> virtual_filesystem,
-                 const std::vector<reify::CompilerEnvironment::InputModule>&
+                 const std::vector<CompilerEnvironment::InputModule>&
                      typescript_input_modules,
                  const std::function<std::set<std::string>()>& get_sources)
     : absolute_path_(absolute_path),
@@ -104,4 +105,5 @@ CompilerEnvironmentThreadSafe::MultiCompileFuture Project::RebuildProject() {
   return compiler_environment_.MultiCompile(get_sources_());
 }
 
+}  // namespace typescript_cpp_v8
 }  // namespace reify

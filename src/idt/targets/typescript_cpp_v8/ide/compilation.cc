@@ -10,9 +10,9 @@ namespace ide {
 namespace {
 
 CompileResult CompileVirtualFile(
-    const std::vector<reify::CompilerEnvironment::InputModule>&
+    const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules,
-    const std::string& virtual_filepath, reify::VirtualFilesystem* vfs) {
+    const std::string& virtual_filepath, VirtualFilesystem* vfs) {
   // V8 doesn't like being initialized on one thread and then used on another,
   // so we just recreate the compiler environment each time.  This means we
   // need to reload the TypeScript compiler every time we want to compile
@@ -20,7 +20,7 @@ CompileResult CompileVirtualFile(
   // completely independent of the compiler environment, so at least we're
   // safe there.
   auto result = [&]() {
-    reify::CompilerEnvironment compile_env(vfs, &typescript_input_modules);
+    CompilerEnvironment compile_env(vfs, &typescript_input_modules);
     return compile_env.Compile(virtual_filepath);
   }();
 
@@ -36,15 +36,14 @@ CompileResult CompileVirtualFile(
 
 }  // namespace
 
-CompileResult CompileFile(
-    const std::vector<reify::CompilerEnvironment::InputModule>&
-        typescript_input_modules,
-    const std::filesystem::path& filepath) {
+CompileResult CompileFile(const std::vector<CompilerEnvironment::InputModule>&
+                              typescript_input_modules,
+                          const std::filesystem::path& filepath) {
   // Make or reference a virtual file system based on the current workspace.
   auto absolute_input_source_file = std::filesystem::absolute(filepath);
   auto project_directory = absolute_input_source_file.parent_path();
 
-  reify::MountedHostFolderFilesystem vfs(project_directory);
+  reify::typescript_cpp_v8::MountedHostFolderFilesystem vfs(project_directory);
 
   auto virtual_path = vfs.HostPathToVirtualPath(absolute_input_source_file);
 
@@ -64,12 +63,14 @@ CompileResult CompileFile(
 }
 
 CompileResult CompileContents(
-    const std::vector<reify::CompilerEnvironment::InputModule>&
+    const std::vector<
+        reify::typescript_cpp_v8::CompilerEnvironment::InputModule>&
         typescript_input_modules,
     const std::string& contents) {
   const std::string input_virtual_filepath = "/untitled.ts";
-  reify::InMemoryFilesystem in_memory_filesystem(
-      reify::InMemoryFilesystem::FileMap{{input_virtual_filepath, contents}});
+  reify::typescript_cpp_v8::InMemoryFilesystem in_memory_filesystem(
+      reify::typescript_cpp_v8::InMemoryFilesystem::FileMap{
+          {input_virtual_filepath, contents}});
 
   return CompileVirtualFile(typescript_input_modules, input_virtual_filepath,
                             &in_memory_filesystem);

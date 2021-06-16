@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "reify/typescript_cpp_v8.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "reify/utils/future.h"
 #include "reify/window/window.h"
 
@@ -25,16 +25,16 @@ class DomainVisualizer : public window::Window {
 
   virtual ~DomainVisualizer(){};
 
-  virtual std::vector<reify::CompilerEnvironment::InputModule>
+  virtual std::vector<CompilerEnvironment::InputModule>
   GetTypeScriptModules() = 0;
 
   virtual bool CanPreviewSymbol(
-      const reify::CompiledModule::ExportedSymbol& symbol) = 0;
+      const CompiledModule::ExportedSymbol& symbol) = 0;
 
   // The callback, `on_preview_prepared`, may be called from a separate thread.
   virtual utils::Future<ErrorOr<PreparedSymbol>> PrepareSymbolForPreview(
-      std::shared_ptr<reify::CompiledModule> module,
-      const reify::CompiledModule::ExportedSymbol& symbol) = 0;
+      std::shared_ptr<CompiledModule> module,
+      const CompiledModule::ExportedSymbol& symbol) = 0;
   virtual void SetPreview(const PreparedSymbol& prepared_symbol) = 0;
 };
 

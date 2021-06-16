@@ -17,11 +17,13 @@
 #include <v8.h>
 
 #include "reify/typescript_cpp_v8/common_types.h"
+#include "reify/typescript_cpp_v8/virtual_filesystem.h"
 #include "reify/utils/error.h"
 #include "reify/utils/future.h"
 #include "reify/utils/thread_with_work_queue.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 using RuntimeException = std::string;
 
@@ -84,70 +86,6 @@ class Function<R()> {
 
  private:
   GenericFunction generic_function_;
-};
-
-// Allows specification of how to find and load imported TypeScript modules.
-class VirtualFilesystem {
- public:
-  struct Error {
-    std::string message;
-  };
-  struct FilePath {
-    FilePath(
-        const std::string& diagnostics_path,
-        const std::function<bool()>& exists,
-        const std::function<std::variant<Error, std::string>()>& get_content)
-        : diagnostics_path(diagnostics_path),
-          exists(exists),
-          get_content(get_content) {}
-
-    // The path that will represent this file for the sake of diagnostics,
-    // for example this is the path that will be displayed to the user when
-    // an error occurs.  By letting this differ from the virtual file path,
-    // we enable error messages to be meaningful to users while the scripts
-    // continue to be sandboxed.
-    std::string diagnostics_path;
-    // Returns true if the file exists, otherwise returns false.
-    std::function<bool()> exists;
-    // A function that, when called, will return the contents of the file.
-    std::function<std::variant<Error, std::string>()> get_content;
-  };
-
-  // Returns a handle to a file, given a virtual file path.  The virtual
-  // file system is the one in which the TypeScript compiler will operate.
-  // Virtual absolute paths always start with a `/`.
-  virtual FilePath GetPath(std::string_view virtual_absolute_path) const = 0;
-};
-
-// Similar to `chroot`, this VirtualFilesystem implementation will create a
-// virtual filesystem with the root set as a folder in the host filesystem.
-class MountedHostFolderFilesystem : public VirtualFilesystem {
- public:
-  MountedHostFolderFilesystem(const std::filesystem::path& host_root);
-  FilePath GetPath(std::string_view virtual_absolute_path) const override;
-
-  // Converts a host path into a virtual path.  If the host path is not
-  // contained within the mounted folder, a std::nullopt is returend.
-  std::optional<std::string> HostPathToVirtualPath(
-      const std::filesystem::path& host_absolute_path) const;
-
-  const std::filesystem::path host_root() const { return host_root_; }
-
- private:
-  std::filesystem::path TranslateToHostPath(
-      std::string_view virtual_absolute_path) const;
-  const std::filesystem::path host_root_;
-};
-
-// Entire filesystem is specified up-front via a filepath to content mapping.
-class InMemoryFilesystem : public VirtualFilesystem {
- public:
-  using FileMap = std::unordered_map<std::string, std::string>;
-  InMemoryFilesystem(const FileMap& file_map);
-  FilePath GetPath(std::string_view virtual_absolute_path) const override;
-
- private:
-  const FileMap file_map_;
 };
 
 class CompiledModule;
@@ -281,7 +219,7 @@ class CompilerEnvironmentThreadSafe {
   using MultiCompileFuture = utils::Future<MultiCompileResults>;
   CompilerEnvironmentThreadSafe(
       VirtualFilesystem* virtual_filesystem,
-      const std::vector<reify::CompilerEnvironment::InputModule>&
+      const std::vector<CompilerEnvironment::InputModule>&
           typescript_input_modules);
   ~CompilerEnvironmentThreadSafe();
 
@@ -298,8 +236,7 @@ class CompilerEnvironmentThreadSafe {
 
  private:
   VirtualFilesystem* virtual_filesystem_;
-  const std::vector<reify::CompilerEnvironment::InputModule>
-      typescript_input_modules_;
+  const std::vector<CompilerEnvironment::InputModule> typescript_input_modules_;
   std::optional<CompilerEnvironment> compiler_environment_;
   utils::ThreadWithWorkQueue compilation_thread_;
 };
@@ -315,7 +252,7 @@ class Project {
   // but using this constructor directly can provide more flexibility.
   Project(const std::filesystem::path& absolute_path,
           std::unique_ptr<VirtualFilesystem> virtual_filesystem,
-          const std::vector<reify::CompilerEnvironment::InputModule>&
+          const std::vector<CompilerEnvironment::InputModule>&
               typescript_input_modules,
           const std::function<std::set<std::string>()>& get_sources);
 
@@ -336,14 +273,15 @@ class Project {
 // contents within the folder will be compiled and visible.
 utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
     const std::filesystem::path& path,
-    const std::vector<reify::CompilerEnvironment::InputModule>&
+    const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules);
 
+}  // namespace typescript_cpp_v8
 }  // namespace reify
 
 namespace reify_v8 {
 template <typename R>
-struct TypeMatchesTypeScriptString<reify::Function<R()>> {
+struct TypeMatchesTypeScriptString<reify::typescript_cpp_v8::Function<R()>> {
   static bool Result(std::string_view ts) {
     const std::string_view kParameterlessSignature("() => ");
     if (ts.substr(0, kParameterlessSignature.size()) !=
