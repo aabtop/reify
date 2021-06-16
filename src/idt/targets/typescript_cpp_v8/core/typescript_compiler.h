@@ -62,7 +62,7 @@ class TypeScriptCompiler {
   ~TypeScriptCompiler();
 
   std::variant<TranspileResults, Error> TranspileToJavaScript(
-      std::string_view virtual_absolute_path,
+      const VirtualFilesystem::AbsolutePath& path,
       const CompileOptions& options = CompileOptions());
 
  private:

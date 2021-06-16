@@ -12,7 +12,7 @@ namespace {
 CompileResult CompileVirtualFile(
     const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules,
-    const std::string& virtual_filepath, VirtualFilesystem* vfs) {
+    const VirtualFilesystem::AbsolutePath& path, VirtualFilesystem* vfs) {
   // V8 doesn't like being initialized on one thread and then used on another,
   // so we just recreate the compiler environment each time.  This means we
   // need to reload the TypeScript compiler every time we want to compile
@@ -21,7 +21,7 @@ CompileResult CompileVirtualFile(
   // safe there.
   auto result = [&]() {
     CompilerEnvironment compile_env(vfs, &typescript_input_modules);
-    return compile_env.Compile(virtual_filepath);
+    return compile_env.Compile(path);
   }();
 
   if (auto error = std::get_if<0>(&result)) {
@@ -67,12 +67,13 @@ CompileResult CompileContents(
         reify::typescript_cpp_v8::CompilerEnvironment::InputModule>&
         typescript_input_modules,
     const std::string& contents) {
-  const std::string input_virtual_filepath = "/untitled.ts";
+  auto input_path =
+      *VirtualFilesystem::AbsolutePath::FromComponents({"untitled.ts"});
   reify::typescript_cpp_v8::InMemoryFilesystem in_memory_filesystem(
       reify::typescript_cpp_v8::InMemoryFilesystem::FileMap{
-          {input_virtual_filepath, contents}});
+          {input_path, contents}});
 
-  return CompileVirtualFile(typescript_input_modules, input_virtual_filepath,
+  return CompileVirtualFile(typescript_input_modules, input_path,
                             &in_memory_filesystem);
 }
 

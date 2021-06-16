@@ -361,7 +361,9 @@ bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
       [this, build_complete_callback](
           std::shared_ptr<CompiledModule> compiled_module) {
         visualizer_imgui_runtime_layer_.SetCompileResults(
-            {{current_filepath_ ? current_filepath_->string() : "untitled",
+            {{*VirtualFilesystem::AbsolutePath::FromComponents(
+                  {current_filepath_ ? current_filepath_->filename().string()
+                                     : "untitled"}),
               compiled_module}});
         UpdateUiState();
 

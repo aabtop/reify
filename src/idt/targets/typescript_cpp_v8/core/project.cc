@@ -25,11 +25,12 @@ utils::ErrorOr<std::unique_ptr<Project>> CreateDirectoryProjectFromPath(
   auto get_sources = [source_file_regex = std::regex(
                           R"(.*\.ts$)", std::regex_constants::ECMAScript),
                       filesystem = project_dir_filesystem.get()] {
-    std::set<std::string> source_files;
+    std::set<VirtualFilesystem::AbsolutePath> source_files;
     for (auto& path : std::filesystem::recursive_directory_iterator(
              filesystem->host_root())) {
-      std::string virtual_path = *filesystem->HostPathToVirtualPath(path);
-      if (std::regex_search(virtual_path, source_file_regex)) {
+      VirtualFilesystem::AbsolutePath virtual_path =
+          *filesystem->HostPathToVirtualPath(path);
+      if (std::regex_search(virtual_path.string(), source_file_regex)) {
         source_files.insert(virtual_path);
       }
     }
@@ -66,7 +67,7 @@ utils::ErrorOr<std::unique_ptr<Project>> CreateFileProjectFromPath(
       absolute_input_source_file,
       std::unique_ptr<VirtualFilesystem>(virtual_filesystem.release()),
       typescript_input_modules, [virtual_path_value = *virtual_path] {
-        return std::set<std::string>{virtual_path_value};
+        return std::set<VirtualFilesystem::AbsolutePath>{virtual_path_value};
       }));
 }
 
@@ -90,11 +91,13 @@ utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
   }
 }
 
-Project::Project(const std::filesystem::path& absolute_path,
-                 std::unique_ptr<VirtualFilesystem> virtual_filesystem,
-                 const std::vector<CompilerEnvironment::InputModule>&
-                     typescript_input_modules,
-                 const std::function<std::set<std::string>()>& get_sources)
+Project::Project(
+    const std::filesystem::path& absolute_path,
+    std::unique_ptr<VirtualFilesystem> virtual_filesystem,
+    const std::vector<CompilerEnvironment::InputModule>&
+        typescript_input_modules,
+    const std::function<std::set<VirtualFilesystem::AbsolutePath>()>&
+        get_sources)
     : absolute_path_(absolute_path),
       virtual_filesystem_(std::move(virtual_filesystem)),
       get_sources_(get_sources),

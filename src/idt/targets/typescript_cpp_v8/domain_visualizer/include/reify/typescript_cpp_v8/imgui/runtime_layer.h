@@ -27,9 +27,7 @@ class RuntimeLayer {
   DomainVisualizer* domain_visualizer() const { return domain_visualizer_; }
 
   void SetCompileResults(
-      const std::map<
-          std::string,
-          std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
+      const CompilerEnvironmentThreadSafe::MultiCompileResults&
           compile_results);
 
   bool build_active() const { return !!pending_preview_results_; };
@@ -44,19 +42,14 @@ class RuntimeLayer {
   };
   static std::vector<ExportedSymbolWithSourceFile>
   ComputePreviewableSymbolsFromCompileResults(
-      const std::map<
-          std::string,
-          std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
-          compile_results,
+      const CompilerEnvironmentThreadSafe::MultiCompileResults& compile_results,
       const std::function<bool(CompiledModule::ExportedSymbol)>& can_preview);
   void RebuildSelectedSymbol();
 
   DockingLayer* docking_layer_;
   StatusLayer* status_layer_;
   DomainVisualizer* domain_visualizer_;
-  std::map<std::string,
-           std::variant<CompileError, std::shared_ptr<CompiledModule>>>
-      compile_results_;
+  CompilerEnvironmentThreadSafe::MultiCompileResults compile_results_;
 
   std::optional<utils::Error> preview_error_;
 

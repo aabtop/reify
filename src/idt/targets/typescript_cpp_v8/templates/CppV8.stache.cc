@@ -30,11 +30,11 @@ namespace {{immRefCntNamespace}} {
 
 std::vector<CompilerEnvironment::InputModule> typescript_declarations() {
   const CompilerEnvironment::InputModule lib_interface_module = {
-      "/{{immRefCntNamespace}}.ts",
+      *VirtualFilesystem::AbsolutePath::FromComponents({"{{immRefCntNamespace}}.ts"}),
       std::string_view(reinterpret_cast<const char*>(lib_ts), lib_ts_len)};
 
   const CompilerEnvironment::InputModule reify_generated_module = {
-      "/reify_generated_interface.ts",
+      *VirtualFilesystem::AbsolutePath::FromComponents({"reify_generated_interface.ts"}),
       std::string_view(
           reinterpret_cast<const char*>(reify_generated_interface_ts),
           reify_generated_interface_ts_len)};

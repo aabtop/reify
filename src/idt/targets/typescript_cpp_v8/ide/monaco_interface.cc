@@ -41,7 +41,7 @@ void MonacoQtBridge::WebChannelInitialized() {
   ModuleList qlist;
   for (const auto& module : typescript_input_modules_) {
     Module qmodule;
-    qmodule.push_back(QString(std::string(module.path).c_str()));
+    qmodule.push_back(QString(module.path.string().c_str()));
     qmodule.push_back(QString(std::string(module.content).c_str()));
     qlist.push_back(qmodule);
   }

@@ -177,7 +177,7 @@ class CompilerEnvironment {
   };
 
   struct InputModule {
-    std::string_view path;
+    VirtualFilesystem::AbsolutePath path;
     std::string_view content;
   };
 
@@ -192,7 +192,7 @@ class CompilerEnvironment {
   CompilerEnvironment(const CompilerEnvironment&) = delete;
   ~CompilerEnvironment();
 
-  CompileResults Compile(std::string_view virtual_absolute_path);
+  CompileResults Compile(const VirtualFilesystem::AbsolutePath& path);
 
   // Creates a directory at the specified path containing the root of a
   // TypeScript project setup to recognize the Reify types.  For example,
@@ -215,7 +215,8 @@ class CompilerEnvironmentThreadSafe {
  public:
   using CompileResults = CompilerEnvironment::CompileResults;
   using CompileFuture = utils::Future<CompileResults>;
-  using MultiCompileResults = std::map<std::string, CompileResults>;
+  using MultiCompileResults =
+      std::map<VirtualFilesystem::AbsolutePath, CompileResults>;
   using MultiCompileFuture = utils::Future<MultiCompileResults>;
   CompilerEnvironmentThreadSafe(
       VirtualFilesystem* virtual_filesystem,
@@ -226,13 +227,15 @@ class CompilerEnvironmentThreadSafe {
   // Invalidates the stored cache for the compiled results of the specified
   // sources.  It is important to call this whenever inputs change, otherwise
   // the compiler environment will just used cached copies of input files.
-  void InvalidateCompiledResultsCache(const std::set<std::string>& sources);
+  void InvalidateCompiledResultsCache(
+      const std::set<VirtualFilesystem::AbsolutePath>& sources) {}
 
   // Compile the specified TypeScript source files into JavaScript output.
-  CompileFuture Compile(const std::string& sources);
+  CompileFuture Compile(const VirtualFilesystem::AbsolutePath& sources);
 
   // Compile multiple source files in one shot.
-  MultiCompileFuture MultiCompile(const std::set<std::string>& sources);
+  MultiCompileFuture MultiCompile(
+      const std::set<VirtualFilesystem::AbsolutePath>& sources);
 
  private:
   VirtualFilesystem* virtual_filesystem_;
@@ -254,7 +257,8 @@ class Project {
           std::unique_ptr<VirtualFilesystem> virtual_filesystem,
           const std::vector<CompilerEnvironment::InputModule>&
               typescript_input_modules,
-          const std::function<std::set<std::string>()>& get_sources);
+          const std::function<std::set<VirtualFilesystem::AbsolutePath>()>&
+              get_sources);
 
   const std::filesystem::path& absolute_path() const { return absolute_path_; }
 
@@ -263,7 +267,7 @@ class Project {
  private:
   const std::filesystem::path absolute_path_;
   std::unique_ptr<VirtualFilesystem> virtual_filesystem_;
-  const std::function<std::set<std::string>()> get_sources_;
+  const std::function<std::set<VirtualFilesystem::AbsolutePath>()> get_sources_;
   CompilerEnvironmentThreadSafe compiler_environment_;
 };
 

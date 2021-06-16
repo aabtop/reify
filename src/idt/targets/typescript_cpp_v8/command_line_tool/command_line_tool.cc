@@ -126,7 +126,7 @@ std::variant<int, std::unique_ptr<CommandLineToolParseResult>> Build(
                             : absolute_input_source_file.parent_path();
 
   result->virtual_filesystem.emplace(project_directory);
-  std::optional<std::string> virtual_input_source_path =
+  std::optional<VirtualFilesystem::AbsolutePath> virtual_input_source_path =
       result->virtual_filesystem->HostPathToVirtualPath(
           absolute_input_source_file);
   if (!virtual_input_source_path) {

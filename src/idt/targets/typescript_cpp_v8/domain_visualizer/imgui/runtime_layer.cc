@@ -22,9 +22,7 @@ RuntimeLayer::RuntimeLayer(
 
 std::vector<RuntimeLayer::ExportedSymbolWithSourceFile>
 RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
-    const std::map<std::string,
-                   std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
-        compile_results,
+    const CompilerEnvironmentThreadSafe::MultiCompileResults& compile_results,
     const std::function<bool(CompiledModule::ExportedSymbol)>& can_preview) {
   std::vector<ExportedSymbolWithSourceFile> previewable_symbols;
   for (const auto& compile_result : compile_results) {
@@ -40,7 +38,8 @@ RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
       if (can_preview(symbol)) {
         std::string symbol_display_name =
             compile_results.size() > 1
-                ? fmt::format("{}:{}", compile_result.first, symbol.name)
+                ? fmt::format("{}:{}", compile_result.first.string(),
+                              symbol.name)
                 : symbol.name;
         previewable_symbols.push_back(
             {symbol_display_name, compiled_module, symbol});
@@ -51,9 +50,7 @@ RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
 }
 
 void RuntimeLayer::SetCompileResults(
-    const std::map<std::string,
-                   std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
-        compile_results) {
+    const CompilerEnvironmentThreadSafe::MultiCompileResults& compile_results) {
   compile_results_ = compile_results;
   previewable_symbols_ = ComputePreviewableSymbolsFromCompileResults(
       compile_results_,
@@ -75,9 +72,7 @@ void RuntimeLayer::SetCompileResults(
 
 namespace {
 bool CompileResultsContainErrors(
-    const std::map<std::string,
-                   std::variant<CompileError, std::shared_ptr<CompiledModule>>>&
-        compile_results) {
+    const CompilerEnvironmentThreadSafe::MultiCompileResults& compile_results) {
   for (const auto& item : compile_results) {
     if (std::holds_alternative<CompileError>(item.second)) {
       return true;
@@ -133,7 +128,7 @@ void RuntimeLayer::ExecuteImGuiCommands() {
     ImGui::Begin(ERROR_COMPILER_ERROR_WINDOW_NAME);
     for (const auto& item : compile_results_) {
       if (auto error = std::get_if<CompileError>(&item.second)) {
-        if (ImGui::CollapsingHeader(item.first.c_str(),
+        if (ImGui::CollapsingHeader(item.first.string().c_str(),
                                     ImGuiTreeNodeFlags_DefaultOpen)) {
           std::string error_message = fmt::format("{}({}): {}", error->path,
                                                   error->line, error->message);

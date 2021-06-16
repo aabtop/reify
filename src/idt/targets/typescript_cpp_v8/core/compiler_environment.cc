@@ -22,7 +22,7 @@ class CompilerEnvironment::Impl {
 
   enum class GenerateDeclarationFiles { Yes, No };
   std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
-  Compile(std::string_view virtual_absolute_path,
+  Compile(const VirtualFilesystem::AbsolutePath& path,
           GenerateDeclarationFiles generate_declaration_files);
 
  private:
@@ -39,9 +39,9 @@ CompilerEnvironment::CompilerEnvironment(
 CompilerEnvironment::~CompilerEnvironment() {}
 
 CompilerEnvironment::CompileResults CompilerEnvironment::Compile(
-    std::string_view virtual_absolute_path) {
+    const VirtualFilesystem::AbsolutePath& path) {
   auto transpile_results_or_error =
-      impl_->Compile(virtual_absolute_path, Impl::GenerateDeclarationFiles::No);
+      impl_->Compile(path, Impl::GenerateDeclarationFiles::No);
   if (auto error =
           std::get_if<TypeScriptCompiler::Error>(&transpile_results_or_error)) {
     return *error;
@@ -55,12 +55,11 @@ CompilerEnvironment::CompileResults CompilerEnvironment::Compile(
 
 std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
 CompilerEnvironment::Impl::Compile(
-    std::string_view virtual_absolute_path,
+    const VirtualFilesystem::AbsolutePath& path,
     GenerateDeclarationFiles generate_declaration_files) {
   return tsc_.TranspileToJavaScript(
-      virtual_absolute_path,
-      {*initial_modules_,
-       (generate_declaration_files == GenerateDeclarationFiles::Yes)});
+      path, {*initial_modules_,
+             (generate_declaration_files == GenerateDeclarationFiles::Yes)});
 }
 
 namespace {
@@ -98,9 +97,8 @@ CompilerEnvironment::CompilerEnvironment(CompilerEnvironment&& x)
 bool CompilerEnvironment::CreateWorkspaceDirectory(
     const std::filesystem::path& out_dir_path,
     const std::vector<InputModule>& initial_modules) {
-  InMemoryFilesystem filesystem(
-      InMemoryFilesystem::FileMap({{std::string(initial_modules[0].path),
-                                    std::string(initial_modules[0].content)}}));
+  InMemoryFilesystem filesystem(InMemoryFilesystem::FileMap(
+      {{initial_modules[0].path, std::string(initial_modules[0].content)}}));
   CompilerEnvironment compiler_environment(&filesystem, &initial_modules);
   auto transpile_results_or_error = compiler_environment.impl_->Compile(
       initial_modules[0].path, Impl::GenerateDeclarationFiles::Yes);
@@ -158,14 +156,15 @@ CompilerEnvironmentThreadSafe::~CompilerEnvironmentThreadSafe() {
 }
 
 CompilerEnvironmentThreadSafe::CompileFuture
-CompilerEnvironmentThreadSafe::Compile(const std::string& sources) {
+CompilerEnvironmentThreadSafe::Compile(
+    const VirtualFilesystem::AbsolutePath& sources) {
   return compilation_thread_.EnqueueWithResult<CompileResults>(
       [this, sources] { return compiler_environment_->Compile(sources); });
 }
 
 CompilerEnvironmentThreadSafe::MultiCompileFuture
 CompilerEnvironmentThreadSafe::MultiCompile(
-    const std::set<std::string>& sources) {
+    const std::set<VirtualFilesystem::AbsolutePath>& sources) {
   return compilation_thread_.EnqueueWithResult<MultiCompileResults>(
       [this, sources] {
         MultiCompileResults results;
