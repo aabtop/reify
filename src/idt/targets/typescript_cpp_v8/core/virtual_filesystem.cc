@@ -167,8 +167,14 @@ MountedHostFolderFilesystem::HostPathToVirtualPath(
     return std::nullopt;
   }
 
-  return AbsolutePath::FromComponents(
-      std::vector<std::string>(relative_path_start, host_absolute_path.end()));
+  std::vector<std::string> components;
+  components.reserve(
+      std::distance(relative_path_start, host_absolute_path.end()));
+  for (auto iter = relative_path_start; iter != host_absolute_path.end();
+       ++iter) {
+    components.push_back(iter->string());
+  }
+  return AbsolutePath::FromComponents(components);
 }
 
 std::filesystem::path MountedHostFolderFilesystem::TranslateToHostPath(
