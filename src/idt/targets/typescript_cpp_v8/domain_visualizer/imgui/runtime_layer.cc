@@ -20,11 +20,11 @@ RuntimeLayer::RuntimeLayer(
       domain_visualizer_(domain_visualizer),
       self_work_queue_(enqueue_task_function) {}
 
-std::vector<RuntimeLayer::ExportedSymbolWithSourceFile>
+RuntimeLayer::PreviewableSymbols
 RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
     const CompilerEnvironmentThreadSafe::MultiCompileResults& compile_results,
     const std::function<bool(CompiledModule::ExportedSymbol)>& can_preview) {
-  std::vector<ExportedSymbolWithSourceFile> previewable_symbols;
+  PreviewableSymbols previewable_symbols;
   for (const auto& compile_result : compile_results) {
     if (std::holds_alternative<CompileError>(compile_result.second)) {
       // For now we just silently skip over errors.
@@ -34,15 +34,20 @@ RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
     std::shared_ptr<CompiledModule> compiled_module =
         std::get<1>(compile_result.second);
 
+    PreviewableSymbols::iterator module_entry = previewable_symbols.end();
     for (const auto& symbol : compiled_module->exported_symbols()) {
       if (can_preview(symbol)) {
-        std::string symbol_display_name =
-            compile_results.size() > 1
-                ? fmt::format("{}:{}", compile_result.first.string(),
-                              symbol.name)
-                : symbol.name;
-        previewable_symbols.push_back(
-            {symbol_display_name, compiled_module, symbol});
+        if (module_entry == previewable_symbols.end()) {
+          module_entry =
+              previewable_symbols
+                  .insert(std::make_pair(
+                      compile_result.first,
+                      PreviewableModuleEntry{compile_result.first,
+                                             std::get<1>(compile_result.second),
+                                             {}}))
+                  .first;
+        }
+        module_entry->second.symbols.push_back(symbol);
       }
     }
   }
@@ -57,13 +62,34 @@ void RuntimeLayer::SetCompileResults(
       [this](auto x) { return domain_visualizer_->CanPreviewSymbol(x); });
 
   if (previewable_symbols_.empty()) {
-    selected_symbol_index_ = -1;
-  } else {
-    selected_symbol_index_ = 0;
-    for (size_t i = 0; i < previewable_symbols_.size(); ++i) {
-      if (selected_symbol_name_ == previewable_symbols_[i].display_name) {
-        selected_symbol_index_ = static_cast<int>(i);
-        break;
+    selected_symbol_ = std::nullopt;
+  } else if (selected_symbol_) {
+    auto found = previewable_symbols_.find(
+        selected_symbol_->previewable_entry.module_path);
+    if (found == previewable_symbols_.end()) {
+      // The selected module path is no longer exists or no longer has any
+      // previewable symbols.
+      selected_symbol_ = std::nullopt;
+    } else {
+      const std::string& selected_symbol_name =
+          selected_symbol_->previewable_entry
+              .symbols[selected_symbol_->symbol_preview_index]
+              .name;
+      const auto& new_symbols = found->second.symbols;
+      size_t new_selected_symbol_index = 0;
+      for (; new_selected_symbol_index < new_symbols.size();
+           ++new_selected_symbol_index) {
+        if (new_symbols[new_selected_symbol_index].name ==
+            selected_symbol_name) {
+          break;
+        }
+      }
+      if (new_selected_symbol_index != new_symbols.size()) {
+        selected_symbol_ =
+            SelectedSymbol{found->second, new_selected_symbol_index};
+      } else {
+        // The symbol originally selected no longer exists :(.
+        selected_symbol_ = std::nullopt;
       }
     }
   }
@@ -80,7 +106,25 @@ bool CompileResultsContainErrors(
   }
   return false;
 }
+
 }  // namespace
+
+RuntimeLayer::SymbolTreeNode RuntimeLayer::VirtualPathSetToComponentTrie(
+    const std::set<VirtualFilesystem::AbsolutePath>& paths) {
+  SymbolTreeNode root;
+  for (const auto& path : paths) {
+    SymbolTreeNode* current = &root;
+    for (const auto& component : path.components()) {
+      auto found = current->find(component);
+      if (found == current->end()) {
+        found =
+            current->insert(found, std::make_pair(component, SymbolTreeNode{}));
+      }
+      current = &(found->second);
+    }
+  }
+  return root;
+}
 
 void RuntimeLayer::ExecuteImGuiCommands() {
   // Place this window within the right dock ID by default.
@@ -95,23 +139,15 @@ void RuntimeLayer::ExecuteImGuiCommands() {
   ImGui::Begin(SELECT_SYMBOL_WINDOW_NAME);
 
   if (!previewable_symbols_.empty()) {
-    std::vector<const char*> symbols;
-    symbols.reserve(previewable_symbols_.size());
-    for (const auto& symbol : previewable_symbols_) {
-      symbols.push_back(symbol.display_name.c_str());
-    }
+    DisableIf disable_if_pending_preview_results(!!pending_preview_results_);
+    ImGui::PushItemWidth(-1);
 
-    {
-      DisableIf disable_if_pending_preview_results(!!pending_preview_results_);
-      ImGui::PushItemWidth(-1);
-      if (ImGui::ListBox("##preview_symbol_selector", &selected_symbol_index_,
-                         symbols.data(), symbols.size(), symbols.size())) {
-        selected_symbol_name_ =
-            previewable_symbols_[selected_symbol_index_].display_name;
-        RebuildSelectedSymbol();
-      }
-      ImGui::PopItemWidth();
+    std::set<VirtualFilesystem::AbsolutePath> module_path_set;
+    for (const auto previewable_symbol : previewable_symbols_) {
+      module_path_set.insert(previewable_symbol.second.module_path);
     }
+    RenderSymbolTree({}, VirtualPathSetToComponentTrie(module_path_set));
+    ImGui::PopItemWidth();
   }
   ImGui::End();
   ImGui::PopStyleVar();
@@ -175,13 +211,78 @@ void RuntimeLayer::ExecuteImGuiCommands() {
                 ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
         ImGui::SameLine();
         ImGui::Text(
-            "Building %s...",
-            previewable_symbols_[selected_symbol_index_].display_name.c_str());
+            "Building %s:%s...",
+            selected_symbol_->previewable_entry.module_path.string().c_str(),
+            selected_symbol_->previewable_entry
+                .symbols[selected_symbol_->symbol_preview_index]
+                .name.c_str());
       });
     }
 
   } else {
     status_window_ = std::nullopt;
+  }
+}
+
+void RuntimeLayer::RenderSymbolTree(
+    const std::vector<std::string>& previous_components,
+    const SymbolTreeNode& tree) {
+  if (tree.empty()) {
+    // Base case
+    auto path =
+        *VirtualFilesystem::AbsolutePath::FromComponents(previous_components);
+    const auto& previewable_symbol_entry =
+        previewable_symbols_.find(path)->second;
+    const auto& symbols = previewable_symbol_entry.symbols;
+    bool is_selected_module =
+        selected_symbol_ &&
+        selected_symbol_->previewable_entry.module_path == path;
+
+    for (size_t i = 0; i < symbols.size(); ++i) {
+      const auto& symbol = symbols[i];
+      ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf |
+                                 ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                 ImGuiTreeNodeFlags_SpanFullWidth;
+      if (is_selected_module && i == selected_symbol_->symbol_preview_index) {
+        flags |= ImGuiTreeNodeFlags_Selected;
+      }
+      ImGui::TreeNodeEx(symbol.name.c_str(), flags, symbol.name.c_str());
+      if (ImGui::IsItemClicked()) {
+        selected_symbol_ = SelectedSymbol{previewable_symbol_entry, i};
+        RebuildSelectedSymbol();
+      }
+    }
+  } else {
+    // Recursive case
+    for (const auto& child : tree) {
+      std::vector<std::string> current_components;
+
+      // Group together strings of single children.
+      const SymbolTreeNode::value_type* current_child = &child;
+      while (true) {
+        current_components.push_back(current_child->first);
+        if (current_child->second.size() != 1) {
+          break;
+        }
+        current_child = &(*current_child->second.begin());
+      }
+
+      std::vector<std::string> next_components;
+      next_components.reserve(previous_components.size() +
+                              current_components.size());
+      next_components.insert(next_components.end(), previous_components.begin(),
+                             previous_components.end());
+      next_components.insert(next_components.end(), current_components.begin(),
+                             current_components.end());
+
+      if (ImGui::TreeNodeEx(VirtualFilesystem::RelativePath(current_components)
+                                .string()
+                                .c_str(),
+                            ImGuiTreeNodeFlags_SpanFullWidth)) {
+        RenderSymbolTree(next_components, current_child->second);
+        ImGui::TreePop();
+      }
+    }
   }
 }
 
@@ -191,34 +292,35 @@ void RuntimeLayer::RebuildSelectedSymbol() {
     return;
   }
 
-  selected_symbol_name_ = std::nullopt;
-  if (selected_symbol_index_ >= 0) {
-    selected_symbol_name_ =
-        previewable_symbols_[selected_symbol_index_].display_name;
-    pending_preview_results_ =
-        domain_visualizer_
-            ->PrepareSymbolForPreview(
-                previewable_symbols_[selected_symbol_index_].module,
-                previewable_symbols_[selected_symbol_index_].symbol)
-            .watch([this](auto x) {
-              self_work_queue_.Enqueue([this, x] {
-                pending_preview_results_ = std::nullopt;
-                preview_error_ = std::nullopt;
-
-                if (std::holds_alternative<utils::CancelledFuture>(x)) {
-                  preview_error_ = utils::Error{"Compilation cancelled."};
-                  return;
-                }
-
-                const auto& error_or = *std::get<1>(x);
-                if (auto error = std::get_if<0>(&error_or)) {
-                  preview_error_ = utils::Error{error->msg};
-                } else {
-                  domain_visualizer_->SetPreview(std::get<1>(error_or));
-                }
-              });
-            });
+  if (!selected_symbol_) {
+    // Nothing is selected, so there's nothing to rebuild.
+    return;
   }
+
+  pending_preview_results_ =
+      domain_visualizer_
+          ->PrepareSymbolForPreview(
+              selected_symbol_->previewable_entry.module,
+              selected_symbol_->previewable_entry
+                  .symbols[selected_symbol_->symbol_preview_index])
+          .watch([this](auto x) {
+            self_work_queue_.Enqueue([this, x] {
+              pending_preview_results_ = std::nullopt;
+              preview_error_ = std::nullopt;
+
+              if (std::holds_alternative<utils::CancelledFuture>(x)) {
+                preview_error_ = utils::Error{"Compilation cancelled."};
+                return;
+              }
+
+              const auto& error_or = *std::get<1>(x);
+              if (auto error = std::get_if<0>(&error_or)) {
+                preview_error_ = utils::Error{error->msg};
+              } else {
+                domain_visualizer_->SetPreview(std::get<1>(error_or));
+              }
+            });
+          });
 }
 
 }  // namespace imgui

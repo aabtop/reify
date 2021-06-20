@@ -33,18 +33,27 @@ class RuntimeLayer {
   bool build_active() const { return !!pending_preview_results_; };
 
  private:
-  struct ExportedSymbolWithSourceFile {
-    // This may potentially include the source file as well, if multiple
-    // source files are involved.
-    std::string display_name;
+  struct SymbolTreeNode : public std::map<std::string, SymbolTreeNode> {};
+  struct PreviewableModuleEntry {
+    VirtualFilesystem::AbsolutePath module_path;
     std::shared_ptr<CompiledModule> module;
-    CompiledModule::ExportedSymbol symbol;
+    std::vector<CompiledModule::ExportedSymbol> symbols;
   };
-  static std::vector<ExportedSymbolWithSourceFile>
-  ComputePreviewableSymbolsFromCompileResults(
+  struct SelectedSymbol {
+    PreviewableModuleEntry previewable_entry;
+    size_t symbol_preview_index;
+  };
+  using PreviewableSymbols =
+      std::map<VirtualFilesystem::AbsolutePath, PreviewableModuleEntry>;
+
+  static PreviewableSymbols ComputePreviewableSymbolsFromCompileResults(
       const CompilerEnvironmentThreadSafe::MultiCompileResults& compile_results,
       const std::function<bool(CompiledModule::ExportedSymbol)>& can_preview);
+  static SymbolTreeNode VirtualPathSetToComponentTrie(
+      const std::set<VirtualFilesystem::AbsolutePath>& paths);
   void RebuildSelectedSymbol();
+  void RenderSymbolTree(const std::vector<std::string>& previous_components,
+                        const SymbolTreeNode& tree);
 
   DockingLayer* docking_layer_;
   StatusLayer* status_layer_;
@@ -53,10 +62,9 @@ class RuntimeLayer {
 
   std::optional<utils::Error> preview_error_;
 
-  std::vector<ExportedSymbolWithSourceFile> previewable_symbols_;
+  PreviewableSymbols previewable_symbols_;
 
-  int selected_symbol_index_ = -1;
-  std::optional<std::string> selected_symbol_name_;
+  std::optional<SelectedSymbol> selected_symbol_;
 
   std::optional<StatusLayer::Window> status_window_;
 

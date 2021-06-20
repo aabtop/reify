@@ -31,11 +31,21 @@ class VirtualFilesystem {
   };
   class AbsolutePath {
    public:
-    AbsolutePath(AbsolutePath&& x) : components_(std::move(x.components_)) {
+    AbsolutePath(AbsolutePath&& x) { *this = std::move(x); }
+    const AbsolutePath& operator=(AbsolutePath&& x) {
+      components_ = std::move(x.components_);
       x.components_ = std::vector<std::string>();
+      return *this;
     }
     AbsolutePath(const AbsolutePath& x) : components_(x.components_) {}
-    //~AbsolutePath() {}
+    const AbsolutePath& operator=(const AbsolutePath& x) {
+      components_ = x.components_;
+      return *this;
+    }
+
+    bool operator==(const AbsolutePath& x) const {
+      return components_ == x.components_;
+    }
 
     static std::optional<AbsolutePath> FromString(const std::string& path);
     static std::optional<AbsolutePath> FromComponents(
