@@ -130,6 +130,14 @@ void DomainVisualizerHypo::SetPreview(const PreparedSymbol& prepared_symbol) {
   }
 }
 
+void DomainVisualizerHypo::ClearPreview() {
+  if (mesh_renderer_) {
+    mesh_renderer_->SetTriangleSoup(nullptr);
+  } else {
+    pending_triangle_soup_ = nullptr;
+  }
+}
+
 bool DomainVisualizerHypo::OnInputEvent(const InputEvent& input_event) {
   if (auto event = std::get_if<MouseMoveEvent>(&input_event)) {
     free_camera_viewport_.AccumulateMouseMove(event->x, event->y);

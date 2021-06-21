@@ -94,6 +94,10 @@ void RuntimeLayer::SetCompileResults(
     }
   }
 
+  if (!selected_symbol_) {
+    domain_visualizer_->ClearPreview();
+  }
+
   // If there's only one symbol, and we don't have anything selected, then
   // by default select the symbol.
   if (previewable_symbols_.size() == 1 &&

@@ -23,6 +23,7 @@ class DomainVisualizerHypo : public reify::typescript_cpp_v8::DomainVisualizer {
       const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol)
       override;
   void SetPreview(const PreparedSymbol& prepared_symbol) override;
+  void ClearPreview() override;
 
   bool OnInputEvent(const InputEvent& input_event) override;
 

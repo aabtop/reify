@@ -36,6 +36,7 @@ class DomainVisualizer : public window::Window {
       std::shared_ptr<CompiledModule> module,
       const CompiledModule::ExportedSymbol& symbol) = 0;
   virtual void SetPreview(const PreparedSymbol& prepared_symbol) = 0;
+  virtual void ClearPreview() = 0;
 };
 
 }  // namespace typescript_cpp_v8

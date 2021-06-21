@@ -226,6 +226,10 @@ auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
 std::optional<MeshRenderer::Error> MeshRenderer::SetTriangleSoup(
     std::shared_ptr<const TriangleSoup> triangle_soup) {
   triangle_soup_ = triangle_soup;
+  if (!triangle_soup_) {
+    vulkan_triangle_soup_ = nullptr;
+    return std::nullopt;
+  }
 
   size_t vertex_buffer_size =
       triangle_soup_->vertices.size() * sizeof(triangle_soup_->vertices[0]);
