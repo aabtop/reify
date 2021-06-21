@@ -93,6 +93,13 @@ void RuntimeLayer::SetCompileResults(
       }
     }
   }
+
+  // If there's only one symbol, and we don't have anything selected, then
+  // by default select the symbol.
+  if (previewable_symbols_.size() == 1 &&
+      previewable_symbols_.begin()->second.symbols.size() == 1) {
+    selected_symbol_ = SelectedSymbol{previewable_symbols_.begin()->second, 0};
+  }
   RebuildSelectedSymbol();
 }
 
@@ -275,10 +282,15 @@ void RuntimeLayer::RenderSymbolTree(
       next_components.insert(next_components.end(), current_components.begin(),
                              current_components.end());
 
+      ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanFullWidth;
+      if (previewable_symbols_.size() == 1) {
+        // If there's only one module, show it automatically expanded.
+        flags = ImGuiTreeNodeFlags_DefaultOpen;
+      }
       if (ImGui::TreeNodeEx(VirtualFilesystem::RelativePath(current_components)
                                 .string()
                                 .c_str(),
-                            ImGuiTreeNodeFlags_SpanFullWidth)) {
+                            flags)) {
         RenderSymbolTree(next_components, current_child->second);
         ImGui::TreePop();
       }
