@@ -26,10 +26,14 @@ class LayerStack : public window::Window {
       VkFormat output_image_format) override;
 
  private:
+  friend class RendererImGui;
   std::vector<Layer> layers_;
 
   std::chrono::duration<float> accumulated_time_since_last_render_ =
       std::chrono::duration<float>::zero();
+
+  std::optional<std::array<int, 2>> size_;
+  std::optional<std::array<int, 2>> mouse_pos_;
 };
 
 }  // namespace imgui

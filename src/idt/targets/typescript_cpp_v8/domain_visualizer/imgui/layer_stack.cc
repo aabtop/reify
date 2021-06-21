@@ -70,7 +70,7 @@ bool LayerStack::OnInputEvent(const InputEvent& input_event) {
   ImGuiIO& io = ImGui::GetIO();
 
   if (auto event = std::get_if<MouseMoveEvent>(&input_event)) {
-    io.MousePos = ImVec2(event->x, event->y);
+    mouse_pos_ = {event->x, event->y};
   } else if (auto event = std::get_if<MouseButtonEvent>(&input_event)) {
     auto to_imgui_button = [](MouseButton button) -> int {
       switch (button) {
@@ -117,13 +117,14 @@ bool LayerStack::OnInputEvent(const InputEvent& input_event) {
   return true;
 }
 
-void LayerStack::OnViewportResize(const std::array<int, 2>& size) {}
+void LayerStack::OnViewportResize(const std::array<int, 2>& size) {
+  size_ = size;
+}
 
 void LayerStack::AdvanceTime(std::chrono::duration<float> seconds) {
   accumulated_time_since_last_render_ += seconds;
 }
 
-namespace {
 class RendererImGui : public window::Window::Renderer {
  public:
   struct VulkanConstructorData {
@@ -142,8 +143,10 @@ class RendererImGui : public window::Window::Renderer {
                               VkFormat output_image_format);
   RendererImGui(VulkanConstructorData&& data,
                 const std::vector<LayerStack::Layer>& layers,
-                std::chrono::duration<float>* time_since_last_render)
+                std::chrono::duration<float>* time_since_last_render,
+                LayerStack* parent)
       : vulkan_constructor_data_(std::move(data)),
+        parent_(parent),
         layers_(layers),
         time_since_last_render_(time_since_last_render) {}
   ~RendererImGui() { ImGui_ImplVulkan_Shutdown(); }
@@ -154,6 +157,7 @@ class RendererImGui : public window::Window::Renderer {
 
  private:
   VulkanConstructorData vulkan_constructor_data_;
+  LayerStack* parent_;
 
   std::vector<LayerStack::Layer> layers_;
 
@@ -161,8 +165,6 @@ class RendererImGui : public window::Window::Renderer {
 
   std::chrono::duration<float>* time_since_last_render_;
 };
-
-}  // namespace
 
 window::Window::ErrorOr<std::unique_ptr<window::Window::Renderer>>
 LayerStack::CreateRenderer(VkInstance instance,
@@ -177,7 +179,7 @@ LayerStack::CreateRenderer(VkInstance instance,
 
   return std::make_unique<RendererImGui>(
       std::move(std::get<1>(error_or_vulkan_constructor_data)), layers_,
-      &accumulated_time_since_last_render_);
+      &accumulated_time_since_last_render_, this);
 }
 
 vulkan_utils::ErrorOr<RendererImGui::VulkanConstructorData>
@@ -296,6 +298,17 @@ RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
   io.DisplaySize = ImVec2(viewport_region.width(), viewport_region.height());
   io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
   io.DeltaTime = std::max(time_since_last_render_->count(), 0.000000001f);
+  float window_scale =
+      parent_->size_ ? viewport_region.width() / (*parent_->size_)[0] : 1.0f;
+  // Sometimes the window events are reported on a different scale than the
+  // rendering surface, but ImGui assumes these are equal. So, in this case,
+  // we make sure to transform our event coordinates into rendering coordinates
+  // before passing them into ImGui.
+  if (parent_->mouse_pos_) {
+    io.MousePos = ImVec2((*parent_->mouse_pos_)[0] * window_scale,
+                         (*parent_->mouse_pos_)[1] * window_scale);
+  }
+  io.FontGlobalScale = window_scale;
   *time_since_last_render_ = std::chrono::duration<float>::zero();
 
   if (!created_imgui_fonts_texture_) {
