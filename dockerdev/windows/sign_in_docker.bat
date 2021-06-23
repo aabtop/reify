@@ -23,9 +23,6 @@ IF %ERRORLEVEL% NEQ 0 goto :error
 CALL certutil -decode %CERTIFICATE_FILE_BASE64% %CERTIFICATE_FILE%
 IF %ERRORLEVEL% NEQ 0 goto :error
 
-CALL signtool sign /f %CERTIFICATE_FILE% /p %CODE_SIGNING_CERTIFICATE_WIN_PASSWORD% /tr %TIMESTAMP_URL% /td sha256 C:\build\out\hypo.exe
-IF %ERRORLEVEL% NEQ 0 goto :error
-
 CALL signtool sign /f %CERTIFICATE_FILE% /p %CODE_SIGNING_CERTIFICATE_WIN_PASSWORD% /tr %TIMESTAMP_URL% /td sha256 C:\build\out\*.exe C:\build\out\*.dll C:\build\out\qt\plugins\platforms\*.dll
 IF %ERRORLEVEL% NEQ 0 goto :error
 
