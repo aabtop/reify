@@ -48,7 +48,8 @@ RUN C:\7zip\7z x msys2-x86_64.tar -o"C:\\"
 RUN C:\msys64\usr\bin\bash.exe -l -c 'exit 0'; \
   C:\msys64\usr\bin\bash.exe -l -c 'echo "Now installing MSYS2..."'; \
   Get-Process | Where-Object {$_.Path -Like 'C:\msys64\*'} | Stop-Process -Force -PassThru | Wait-Process; \
-  Get-Process @('bash', 'dirmngr', 'gpg-agent', 'pacman') -ErrorAction SilentlyContinue | Stop-Process -Force -PassThru | Wait-Process;
+  Get-Process @('bash', 'dirmngr', 'gpg-agent', 'pacman') -ErrorAction SilentlyContinue | Stop-Process -Force -PassThru | Wait-Process; \
+  Write-Host 'Done installing MSYS2 ...';
 ADD ./update_path_with_msys.ps1 c:/update_path_with_msys.ps1
 RUN powershell -Command c:\update_path_with_msys.ps1
 
