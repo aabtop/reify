@@ -27,7 +27,10 @@ struct Rect {
   bool inside(int x, int y) const {
     return left <= x && x < right && top <= y && y < bottom;
   }
-  bool operator==(const Rect& x) const = default;
+  bool operator==(const Rect& x) const {
+    return left == x.left && top == x.top && right == x.right &&
+           bottom == x.bottom;
+  }
 
   static Rect Intersect(const Rect& a, const Rect& b) {
     return Rect{
