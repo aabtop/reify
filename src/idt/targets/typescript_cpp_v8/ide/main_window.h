@@ -116,6 +116,7 @@ class MainWindow : public QMainWindow {
   std::optional<std::filesystem::path> current_filepath_;
   std::shared_ptr<CompiledModule> most_recent_compilation_results_;
 
+  std::shared_ptr<FileProject> file_project_;
   std::optional<std::thread> project_operation_;
 
   // Are the contents of the current file equivalent to what's saved on disk?
