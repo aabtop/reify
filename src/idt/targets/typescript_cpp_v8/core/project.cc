@@ -10,102 +10,117 @@ namespace typescript_cpp_v8 {
 
 namespace {
 
-utils::ErrorOr<std::unique_ptr<Project>> CreateDirectoryProjectFromPath(
-    const std::filesystem::path& absolute_project_path,
-    const std::vector<CompilerEnvironment::InputModule>&
-        typescript_input_modules) {
+utils::ErrorOr<std::unique_ptr<MountedHostFolderFilesystem>>
+CreateFilesystemFromDirectoryPath(
+    const std::filesystem::path& absolute_project_path) {
   if (!std::filesystem::is_directory(absolute_project_path)) {
-    return utils::Error{fmt::format("Input path '{}' is not a directory.",
-                                    absolute_project_path.string())};
+    return utils::Error{fmt::format(
+        "Input path '{}' was expected to be a directory but it is not.",
+        absolute_project_path.string())};
   }
 
-  std::unique_ptr<MountedHostFolderFilesystem> project_dir_filesystem(
+  return std::unique_ptr<MountedHostFolderFilesystem>(
       new MountedHostFolderFilesystem(absolute_project_path));
-
-  auto get_sources = [source_file_regex = std::regex(
-                          R"(.*\.ts$)", std::regex_constants::ECMAScript),
-                      filesystem = project_dir_filesystem.get()] {
-    std::set<VirtualFilesystem::AbsolutePath> source_files;
-    for (auto& path : std::filesystem::recursive_directory_iterator(
-             filesystem->host_root())) {
-      VirtualFilesystem::AbsolutePath virtual_path =
-          *filesystem->HostPathToVirtualPath(path);
-      if (std::regex_search(virtual_path.string(), source_file_regex)) {
-        source_files.insert(virtual_path);
-      }
-    }
-    return source_files;
-  };
-
-  return std::unique_ptr<Project>(new Project(
-      absolute_project_path,
-      std::unique_ptr<VirtualFilesystem>(project_dir_filesystem.release()),
-      typescript_input_modules, get_sources));
 }
 
-utils::ErrorOr<std::unique_ptr<Project>> CreateFileProjectFromPath(
-    const std::filesystem::path& absolute_input_source_file,
-    const std::vector<CompilerEnvironment::InputModule>&
-        typescript_input_modules) {
+utils::ErrorOr<std::unique_ptr<MountedHostFolderFilesystem>>
+CreateFilesystemFromFilePath(
+    const std::filesystem::path& absolute_input_source_file) {
+  if (std::filesystem::is_directory(absolute_input_source_file)) {
+    return utils::Error{fmt::format(
+        "Input path '{}' was expected to be a file, not a directory.",
+        absolute_input_source_file.string())};
+  }
+
   // Make or reference a virtual file system based on the current workspace.
   auto project_directory = absolute_input_source_file.parent_path();
 
-  std::unique_ptr<MountedHostFolderFilesystem> virtual_filesystem(
+  return std::unique_ptr<MountedHostFolderFilesystem>(
       new MountedHostFolderFilesystem(project_directory));
-
-  auto virtual_path =
-      virtual_filesystem->HostPathToVirtualPath(absolute_input_source_file);
-
-  if (!virtual_path) {
-    return utils::Error{fmt::format(
-        "Input file {} is not contained within the project root: {}",
-        absolute_input_source_file.string(),
-        virtual_filesystem->host_root().string())};
-  }
-
-  return std::unique_ptr<Project>(new Project(
-      absolute_input_source_file,
-      std::unique_ptr<VirtualFilesystem>(virtual_filesystem.release()),
-      typescript_input_modules, [virtual_path_value = *virtual_path] {
-        return std::set<VirtualFilesystem::AbsolutePath>{virtual_path_value};
-      }));
 }
 
-}  // namespace
-
-utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
-    const std::filesystem::path& path,
-    const std::vector<CompilerEnvironment::InputModule>&
-        typescript_input_modules) {
+utils::ErrorOr<std::unique_ptr<MountedHostFolderFilesystem>>
+CreateFilesystemFromPath(const std::filesystem::path& path) {
   if (!std::filesystem::exists(path)) {
     return utils::Error{
         fmt::format("Provided path {} does not exist.", path.string())};
   }
+
   auto absolute_path = std::filesystem::absolute(path);
 
   if (std::filesystem::is_directory(absolute_path)) {
-    return CreateDirectoryProjectFromPath(absolute_path,
-                                          typescript_input_modules);
+    return CreateFilesystemFromDirectoryPath(absolute_path);
   } else {
-    return CreateFileProjectFromPath(absolute_path, typescript_input_modules);
+    return CreateFilesystemFromFilePath(absolute_path);
   }
 }
 
-Project::Project(
-    const std::filesystem::path& absolute_path,
-    std::unique_ptr<VirtualFilesystem> virtual_filesystem,
-    const std::vector<CompilerEnvironment::InputModule>&
-        typescript_input_modules,
-    const std::function<std::set<VirtualFilesystem::AbsolutePath>()>&
-        get_sources)
-    : absolute_path_(absolute_path),
-      virtual_filesystem_(std::move(virtual_filesystem)),
-      get_sources_(get_sources),
-      compiler_environment_(virtual_filesystem_.get(),
-                            typescript_input_modules) {}
+std::set<VirtualFilesystem::AbsolutePath> GetAllVisibleTypeScriptSources(
+    const MountedHostFolderFilesystem* virtual_filesystem) {
+  auto source_file_regex =
+      std::regex(R"(.*\.ts$)", std::regex_constants::ECMAScript);
+  std::set<VirtualFilesystem::AbsolutePath> source_files;
+  for (auto& path : std::filesystem::recursive_directory_iterator(
+           virtual_filesystem->host_root())) {
+    VirtualFilesystem::AbsolutePath virtual_path =
+        *virtual_filesystem->HostPathToVirtualPath(path);
+    if (std::regex_search(virtual_path.string(), source_file_regex)) {
+      source_files.insert(virtual_path);
+    }
+  }
+  return source_files;
+}
 
-CompilerEnvironmentThreadSafe::MultiCompileFuture Project::RebuildProject() {
-  return compiler_environment_.MultiCompile(get_sources_());
+std::function<std::set<VirtualFilesystem::AbsolutePath>()>
+CreateDefaultBuildFilesGetter(
+    const std::filesystem::path& path,
+    const MountedHostFolderFilesystem* virtual_filesystem) {
+  auto absolute_path = std::filesystem::absolute(path);
+
+  if (std::filesystem::is_directory(absolute_path)) {
+    return [virtual_filesystem] {
+      return GetAllVisibleTypeScriptSources(virtual_filesystem);
+    };
+  } else {
+    return [virtual_path =
+                *virtual_filesystem->HostPathToVirtualPath(absolute_path)] {
+      return std::set<VirtualFilesystem::AbsolutePath>{virtual_path};
+    };
+  }
+}
+}  // namespace
+
+utils::ErrorOr<HostFilesystemProject> CreateProjectFromPath(
+    const std::filesystem::path& path,
+    const std::vector<CompilerEnvironment::InputModule>&
+        typescript_input_modules) {
+  REIFY_UTILS_ASSIGN_OR_RETURN(virtual_filesystem,
+                               CreateFilesystemFromPath(path));
+
+  auto virtual_filesystem_raw_ptr = virtual_filesystem.get();
+
+  return HostFilesystemProject{
+      std::move(virtual_filesystem),
+      std::unique_ptr<CompilerEnvironmentThreadSafe>(
+          new CompilerEnvironmentThreadSafe(virtual_filesystem_raw_ptr,
+                                            typescript_input_modules)),
+  };
+}
+
+utils::ErrorOr<HostFilesystemProjectWithBuildFilesGetter>
+CreateProjectWithDefaultBuildFilesGetterFromPath(
+    const std::filesystem::path& path,
+    const std::vector<CompilerEnvironment::InputModule>&
+        typescript_input_modules) {
+  REIFY_UTILS_ASSIGN_OR_RETURN(
+      project, CreateProjectFromPath(path, typescript_input_modules));
+  auto build_files_getter =
+      CreateDefaultBuildFilesGetter(path, project.virtual_filesystem.get());
+
+  return HostFilesystemProjectWithBuildFilesGetter{
+      std::move(project),
+      build_files_getter,
+  };
 }
 
 }  // namespace typescript_cpp_v8

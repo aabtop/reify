@@ -50,7 +50,8 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
       };
 
   if (project_ &&
-      std::filesystem::absolute(project_path) == project_->absolute_path()) {
+      std::filesystem::absolute(project_path) ==
+          project_->host_filesystem_project.virtual_filesystem->host_root()) {
     // If an existing project exists with the same path, just re-build its
     // sources.
     pending_compile_results_ =
@@ -65,7 +66,7 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
     }
 
     // Load up a new project at the specified path.
-    auto error_or_project = CreateProjectFromPath(
+    auto error_or_project = CreateProjectWithDefaultBuildFilesGetterFromPath(
         project_path, domain_visualizer_->GetTypeScriptModules());
     if (auto error = std::get_if<0>(&error_or_project)) {
       compile_results_ = std::nullopt;
@@ -136,8 +137,12 @@ void ProjectLayer::ExecuteImGuiCommands() {
                                              pending_compile_results_);
 
       Action recompile_action(
-          "Recompile", [this] { LoadProject(project_->absolute_path()); },
-          !disable_if_no_project_loaded.condition(), kPlatformWindowKeyB);
+          "Recompile",
+          [this] {
+            LoadProject(project_->host_filesystem_project.virtual_filesystem
+                            ->host_root());
+          },
+          !disable_if_no_project_loaded.condition(), kPlatformWindowKeyR);
 
       if (ImGui::BeginMenu("Project")) {
         recompile_action.MenuItem(!disable_if_no_project_loaded.condition());
@@ -160,8 +165,11 @@ void ProjectLayer::ExecuteImGuiCommands() {
         Spinner("status compiling spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
                 ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
         ImGui::SameLine();
-        ImGui::Text("Compiling %s...",
-                    project_->absolute_path().string().c_str());
+        ImGui::Text(
+            "Compiling %s...",
+            project_->host_filesystem_project.virtual_filesystem->host_root()
+                .string()
+                .c_str());
       });
     }
   } else {

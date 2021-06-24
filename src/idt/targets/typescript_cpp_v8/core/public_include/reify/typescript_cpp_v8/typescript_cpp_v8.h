@@ -244,38 +244,40 @@ class CompilerEnvironmentThreadSafe {
   utils::ThreadWithWorkQueue compilation_thread_;
 };
 
-// Wraps a directory on the filesystem, treating it as a project directory
-// within which all recursively discovered TypeScript ".ts" files will be
-// compiled. Can persist and notify its owner whenever the files under the
-// directory are modified, indicating that previously compiled results will be
-// out of date.
-class Project {
- public:
-  // Calling CreateProjectFromPath() is the easiest way to create a project,
-  // but using this constructor directly can provide more flexibility.
-  Project(const std::filesystem::path& absolute_path,
-          std::unique_ptr<VirtualFilesystem> virtual_filesystem,
-          const std::vector<CompilerEnvironment::InputModule>&
-              typescript_input_modules,
-          const std::function<std::set<VirtualFilesystem::AbsolutePath>()>&
-              get_sources);
+struct HostFilesystemProject {
+  std::unique_ptr<MountedHostFolderFilesystem> virtual_filesystem;
+  std::unique_ptr<CompilerEnvironmentThreadSafe> compiler_environment;
 
-  const std::filesystem::path& absolute_path() const { return absolute_path_; }
-
-  CompilerEnvironmentThreadSafe::MultiCompileFuture RebuildProject();
-
- private:
-  const std::filesystem::path absolute_path_;
-  std::unique_ptr<VirtualFilesystem> virtual_filesystem_;
-  const std::function<std::set<VirtualFilesystem::AbsolutePath>()> get_sources_;
-  CompilerEnvironmentThreadSafe compiler_environment_;
+  CompilerEnvironmentThreadSafe::MultiCompileFuture Build(
+      const std::set<VirtualFilesystem::AbsolutePath>& sources) {
+    return compiler_environment->MultiCompile(sources);
+  }
 };
 
-// Given a specified input path, will derive from it a project configuration.
+struct HostFilesystemProjectWithBuildFilesGetter {
+  HostFilesystemProject host_filesystem_project;
+  std::function<std::set<VirtualFilesystem::AbsolutePath>()> get_build_files;
+
+  CompilerEnvironmentThreadSafe::MultiCompileFuture RebuildProject() {
+    return host_filesystem_project.compiler_environment->MultiCompile(
+        get_build_files());
+  }
+};
+
+// Given a specified input path, will derive from it a project that can build
+// files at the specified path. The path can either be a file or a directory. If
+// a file is provided as the path, its parent directory will be used as the
+// virtual filesystem root.
+utils::ErrorOr<HostFilesystemProject> CreateProjectFromPath(
+    const std::filesystem::path& path,
+    const std::vector<CompilerEnvironment::InputModule>&
+        typescript_input_modules);
+
 // If the provided input path is a single file, then only a single file will
 // be visible and compiled, however if a folder is provided instead, all
 // contents within the folder will be compiled and visible.
-utils::ErrorOr<std::unique_ptr<Project>> CreateProjectFromPath(
+utils::ErrorOr<HostFilesystemProjectWithBuildFilesGetter>
+CreateProjectWithDefaultBuildFilesGetterFromPath(
     const std::filesystem::path& path,
     const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules);

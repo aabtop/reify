@@ -23,8 +23,7 @@ struct CommandLineToolParameters {
 };
 
 struct CommandLineToolParseResult {
-  std::optional<MountedHostFolderFilesystem> virtual_filesystem;
-  std::optional<CompilerEnvironment> compile_env;
+  std::optional<HostFilesystemProject> project;
   std::shared_ptr<CompiledModule> compiled_module;
   std::optional<RuntimeEnvironment> runtime_env;
   const CompiledModule::ExportedSymbol* entry_point_symbol;
