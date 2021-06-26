@@ -12,6 +12,7 @@ cc_library(
         "//:hypo_lib",
         "//src/domain_visualizer/vulkan:mesh_renderer",
         "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
+        "@imgui//:frontend",
     ],
     visibility = ["//visibility:public"],
 )

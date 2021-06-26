@@ -61,6 +61,8 @@ class RuntimeLayer {
   CompilerEnvironmentThreadSafe::MultiCompileResults compile_results_;
 
   std::optional<utils::Error> preview_error_;
+  // Is there a symbol currently being previewed in the domain visualizer?
+  bool preview_active = false;
 
   PreviewableSymbols previewable_symbols_;
 

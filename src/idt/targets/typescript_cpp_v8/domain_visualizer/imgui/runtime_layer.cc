@@ -95,6 +95,7 @@ void RuntimeLayer::SetCompileResults(
   }
 
   if (!selected_symbol_) {
+    preview_active = false;
     domain_visualizer_->ClearPreview();
   }
 
@@ -233,6 +234,21 @@ void RuntimeLayer::ExecuteImGuiCommands() {
   } else {
     status_window_ = std::nullopt;
   }
+
+  if (preview_active && domain_visualizer_->HasImGuiWindow()) {
+    std::string visualizer_window_title =
+        domain_visualizer_->ImGuiWindowPanelTitle();
+
+    if (!ImGui::FindWindowByName(visualizer_window_title.c_str())) {
+      // If this is the first time we're seeing this window, default it into
+      // the bottom dock slot.
+      ImGui::SetNextWindowDockID(docking_layer_->GetDockedContentNodeId());
+    }
+
+    ImGui::Begin(visualizer_window_title.c_str());
+    domain_visualizer_->RenderImGuiWindow();
+    ImGui::End();
+  }
 }
 
 void RuntimeLayer::RenderSymbolTree(
@@ -334,6 +350,7 @@ void RuntimeLayer::RebuildSelectedSymbol() {
                 preview_error_ = utils::Error{error->msg};
               } else {
                 domain_visualizer_->SetPreview(std::get<1>(error_or));
+                preview_active = true;
               }
             });
           });

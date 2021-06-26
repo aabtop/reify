@@ -35,6 +35,10 @@ class DomainVisualizerHypo : public reify::typescript_cpp_v8::DomainVisualizer {
       VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
       VkFormat output_image_format) override;
 
+  bool HasImGuiWindow() const override;
+  std::string ImGuiWindowPanelTitle() const override;
+  void RenderImGuiWindow() override;
+
  private:
   reify::utils::ThreadWithWorkQueue builder_thread_;
 

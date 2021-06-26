@@ -7,6 +7,7 @@
 #include "cgal/construct_region2.h"
 #include "cgal/construct_region3.h"
 #include "cgal/types_nef_polyhedron_3.h"
+#include "imgui.h"
 #include "reify/purecpp/hypo.h"
 #include "reify/typescript_cpp_v8/hypo.h"
 #include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
@@ -217,4 +218,16 @@ DomainVisualizerHypo::CreateRenderer(VkInstance instance,
       std::move(mesh_renderer),
       [this]() { return free_camera_viewport_.ViewMatrix(); },
       [this]() { mesh_renderer_ = nullptr; });
+}
+
+bool DomainVisualizerHypo::HasImGuiWindow() const { return true; }
+
+std::string DomainVisualizerHypo::ImGuiWindowPanelTitle() const {
+  return "Region3 Options";
+}
+
+void DomainVisualizerHypo::RenderImGuiWindow() {
+  if (ImGui::Button("Reset Camera")) {
+    free_camera_viewport_.Reset();
+  }
 }

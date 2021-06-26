@@ -37,6 +37,10 @@ class DomainVisualizer : public window::Window {
       const CompiledModule::ExportedSymbol& symbol) = 0;
   virtual void SetPreview(const PreparedSymbol& prepared_symbol) = 0;
   virtual void ClearPreview() = 0;
+
+  virtual bool HasImGuiWindow() const { return false; }
+  virtual std::string ImGuiWindowPanelTitle() const { return ""; }
+  virtual void RenderImGuiWindow() {}
 };
 
 }  // namespace typescript_cpp_v8
