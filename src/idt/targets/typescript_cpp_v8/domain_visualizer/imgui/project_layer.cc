@@ -185,6 +185,31 @@ void ProjectLayer::ExecuteImGuiCommands() {
       ImGui::EndMenu();
     }
 
+    // Render text that shows the path of the currently loaded project in the
+    // menu bar center.
+    {
+      std::string project_path_text = fmt::format("({})", [this] {
+        if (project_) {
+          return project_->host_filesystem_project.virtual_filesystem
+              ->host_root()
+              .string();
+        } else {
+          return std::string("no project loaded");
+        }
+      }());
+      float text_width = ImGui::CalcTextSize(project_path_text.c_str()).x;
+      float current_position = ImGui::GetCurrentWindow()->DC.CursorPos.x;
+      float remaining_space = ImGui::GetWindowSize().x - current_position;
+
+      if (text_width < remaining_space) {
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha,
+                            ImGui::GetStyle().Alpha * 0.5f);
+        ImGui::SameLine(current_position + (remaining_space - text_width) / 2);
+        ImGui::Text(project_path_text.c_str());
+        ImGui::PopStyleVar();
+      }
+    }
+
     ImGui::EndMainMenuBar();
   }
   ImGui::PopStyleVar();
