@@ -4,10 +4,14 @@
 
 #include <thread>
 
+// clang-format off
+#include "imgui.h"
+#include "imfilebrowser.h"
+// clang-format on
 #include "cgal/construct_region2.h"
 #include "cgal/construct_region3.h"
+#include "cgal/export_to_stl.h"
 #include "cgal/types_nef_polyhedron_3.h"
-#include "imgui.h"
 #include "reify/purecpp/hypo.h"
 #include "reify/typescript_cpp_v8/hypo.h"
 #include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
@@ -109,11 +113,9 @@ DomainVisualizerHypo::PrepareSymbolForPreview(
 
       hypo::Region3 result = std::get<1>(result_or_error);
 
-      hypo::cgal::Nef_polyhedron_3 polyhedron3 =
-          hypo::cgal::ConstructRegion3(result);
-
-      return std::shared_ptr<TriangleSoup>(
-          new TriangleSoup(ConvertToTriangleSoup(polyhedron3)));
+      return std::shared_ptr<hypo::cgal::Nef_polyhedron_3>(
+          new hypo::cgal::Nef_polyhedron_3(
+              hypo::cgal::ConstructRegion3(result)));
     } else {
       return Error{"Hypo's visualizer does not support this symbol type."};
     }
@@ -121,9 +123,11 @@ DomainVisualizerHypo::PrepareSymbolForPreview(
 }
 
 void DomainVisualizerHypo::SetPreview(const PreparedSymbol& prepared_symbol) {
+  current_preview_ =
+      std::any_cast<std::shared_ptr<hypo::cgal::Nef_polyhedron_3>>(
+          prepared_symbol);
   auto triangle_soup =
-      std::any_cast<std::shared_ptr<TriangleSoup>>(prepared_symbol);
-
+      std::make_shared<TriangleSoup>(ConvertToTriangleSoup(*current_preview_));
   if (mesh_renderer_) {
     mesh_renderer_->SetTriangleSoup(triangle_soup);
   } else {
@@ -132,6 +136,8 @@ void DomainVisualizerHypo::SetPreview(const PreparedSymbol& prepared_symbol) {
 }
 
 void DomainVisualizerHypo::ClearPreview() {
+  current_preview_ = nullptr;
+
   if (mesh_renderer_) {
     mesh_renderer_->SetTriangleSoup(nullptr);
   } else {
@@ -229,5 +235,32 @@ std::string DomainVisualizerHypo::ImGuiWindowPanelTitle() const {
 void DomainVisualizerHypo::RenderImGuiWindow() {
   if (ImGui::Button("Reset Camera")) {
     free_camera_viewport_.Reset();
+  }
+  if (ImGui::Button("Export to STL")) {
+    export_file_selector_.reset(
+        new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc |
+                               ImGuiFileBrowserFlags_EnterNewFilename |
+                               ImGuiFileBrowserFlags_CreateNewDir));
+    export_file_selector_->SetTitle("Export to STL");
+    export_file_selector_->SetTypeFilters({".stl"});
+    export_file_selector_->Open();
+  }
+
+  if (export_file_selector_) {
+    export_file_selector_->Display();
+    if (export_file_selector_->HasSelected()) {
+      std::filesystem::path selected_path =
+          std::filesystem::absolute(export_file_selector_->GetSelected());
+      if (!selected_path.has_extension()) {
+        selected_path.replace_extension("stl");
+      }
+
+      hypo::cgal::ExportToSTL(*current_preview_,
+                              std::filesystem::absolute(selected_path));
+      export_file_selector_->Close();
+    }
+    if (!export_file_selector_->IsOpened()) {
+      export_file_selector_.reset();
+    }
   }
 }

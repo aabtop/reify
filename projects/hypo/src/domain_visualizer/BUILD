@@ -13,6 +13,7 @@ cc_library(
         "//src/domain_visualizer/vulkan:mesh_renderer",
         "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
         "@imgui//:frontend",
+        "@imgui-filebrowser",
     ],
     visibility = ["//visibility:public"],
 )

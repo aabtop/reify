@@ -5,8 +5,10 @@
 #include <filesystem>
 #include <regex>
 
-#include "imfilebrowser.h"
+// clang-format off
 #include "imgui.h"
+#include "imfilebrowser.h"
+// clang-format on
 #include "imgui_internal.h"
 #include "platform_window/platform_window_key.h"
 #include "reify/typescript_cpp_v8/imgui/utils.h"
@@ -217,7 +219,7 @@ void ProjectLayer::ExecuteImGuiCommands() {
   if (file_browser_) {
     file_browser_->Display();
     if (file_browser_->HasSelected()) {
-      LoadProject(std::filesystem::absolute(file_browser_->GetSelected()));
+      LoadProject(std::filesystem::canonical(file_browser_->GetSelected()));
       file_browser_->Close();
     }
     if (!file_browser_->IsOpened()) {

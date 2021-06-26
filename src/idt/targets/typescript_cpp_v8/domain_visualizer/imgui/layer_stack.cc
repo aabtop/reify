@@ -107,6 +107,44 @@ bool LayerStack::OnInputEvent(const InputEvent& input_event) {
     io.KeySuper = io.KeysDown[kPlatformWindowKeyLwin] ||
                   io.KeysDown[kPlatformWindowKeyRwin];
 
+    // This is really not great at all, we should really setup platform_window
+    // to hook into the OS's character generation system.
+    if (event->pressed) {
+      auto map_key_to_char = [](PlatformWindowKey key,
+                                bool capitalize) -> std::optional<char> {
+        if (key >= kPlatformWindowKeyA && key <= kPlatformWindowKeyZ) {
+          return key - kPlatformWindowKeyA + (capitalize ? 'A' : 'a');
+        } else {
+          switch (key) {
+            case kPlatformWindowKeyOemMinus:
+              return (capitalize ? '_' : '-');
+            case kPlatformWindowKeyOemPeriod:
+              return (capitalize ? '>' : '.');
+            case kPlatformWindowKeyOemComma:
+              return (capitalize ? '<' : ',');
+            case kPlatformWindowKeySpace:
+              return ' ';
+            case kPlatformWindowKeyBackspace:
+              return '\b';
+            case kPlatformWindowKeyDelete:
+              return 127;
+            case kPlatformWindowKeyReturn:
+              return '\r';
+            default:
+              return std::nullopt;
+          }
+        }
+      };
+      auto maybe_char = map_key_to_char(
+          static_cast<PlatformWindowKey>(event->key), io.KeyShift);
+      if (maybe_char) {
+        char buffer[2];
+        buffer[1] = '\0';
+        buffer[0] = *maybe_char;
+        io.AddInputCharactersUTF8(buffer);
+      }
+    }
+
     if (io.WantCaptureKeyboard && event->pressed) {
       // Only prevent the event from being passed on to the wrapped visualizer
       // if it was a press event and ImGui really wanted to capture it.
