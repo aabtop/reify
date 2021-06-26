@@ -11,6 +11,12 @@
 #include "reify/utils/error.h"
 #include "reify/utils/thread_with_work_queue.h"
 
+namespace ImGui {
+// We forward declare this class to avoid including `imfilebrowser.h`, which
+// includes <windows.h>, which is huge.
+class FileBrowser;
+}  // namespace ImGui
+
 namespace reify {
 namespace typescript_cpp_v8 {
 namespace imgui {
@@ -21,6 +27,7 @@ class ProjectLayer {
       utils::WorkQueue* self_work_queue, StatusLayer* status_layer,
       RuntimeLayer* runtime_layer,
       const std::optional<std::filesystem::path>& initial_project_path);
+  ~ProjectLayer();
 
   void ExecuteImGuiCommands();
 
@@ -40,6 +47,8 @@ class ProjectLayer {
   utils::ScopedWorkQueue self_work_queue_;
   std::optional<CompilerEnvironmentThreadSafe::MultiCompileFuture::Watch>
       pending_compile_results_;
+
+  std::unique_ptr<ImGui::FileBrowser> file_browser_;
 };
 
 }  // namespace imgui

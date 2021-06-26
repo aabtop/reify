@@ -78,3 +78,11 @@ def reify_deps1():
         urls = ["https://github.com/aabtop/platform_window/archive/0330ec83bc5b39f8d2192982e5ab86df457c0834.zip"],
         sha256 = "95cf696988ca6313dbba40942bc63cc5d700dfbb7d988b1ac1e4f78fb076cff2",
     )
+
+    http_archive(
+        name = "imgui-filebrowser",
+        strip_prefix = "imgui-filebrowser-02be68a5d5c6bc4ab1d18fabe0963dc737b226a6",
+        urls = ["https://github.com/AirGuanZ/imgui-filebrowser/archive/02be68a5d5c6bc4ab1d18fabe0963dc737b226a6.zip"],
+        sha256 = "dc7dda7aeadc65e1201c8b6210d82bb146de957a582930d14650d544d165ae34",
+        build_file = "@reify//:third_party/imgui-filebrowser/imgui-filebrowser.BUILD",
+    )

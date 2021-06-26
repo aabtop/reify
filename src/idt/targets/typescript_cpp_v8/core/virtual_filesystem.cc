@@ -158,8 +158,9 @@ MountedHostFolderFilesystem::File MountedHostFolderFilesystem::GetFile(
 std::optional<VirtualFilesystem::AbsolutePath>
 MountedHostFolderFilesystem::HostPathToVirtualPath(
     const std::filesystem::path& host_absolute_path) const {
+  auto host_canonical_path = std::filesystem::canonical(host_absolute_path);
   auto [host_root_end, relative_path_start] = std::mismatch(
-      host_root_.begin(), host_root_.end(), host_absolute_path.begin());
+      host_root_.begin(), host_root_.end(), host_canonical_path.begin());
 
   if (host_root_end != host_root_.end()) {
     // This file folder is outside of the project root, so we will refuse to
@@ -169,8 +170,8 @@ MountedHostFolderFilesystem::HostPathToVirtualPath(
 
   std::vector<std::string> components;
   components.reserve(
-      std::distance(relative_path_start, host_absolute_path.end()));
-  for (auto iter = relative_path_start; iter != host_absolute_path.end();
+      std::distance(relative_path_start, host_canonical_path.end()));
+  for (auto iter = relative_path_start; iter != host_canonical_path.end();
        ++iter) {
     components.push_back(iter->string());
   }

@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <regex>
 
+#include "imfilebrowser.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "platform_window/platform_window_key.h"
@@ -27,6 +28,8 @@ ProjectLayer::ProjectLayer(
     LoadProject(*initial_project_path);
   }
 }
+
+ProjectLayer::~ProjectLayer() {}
 
 void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
   if (pending_compile_results_) {
@@ -132,6 +135,33 @@ class Action {
 void ProjectLayer::ExecuteImGuiCommands() {
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 8));
   if (ImGui::BeginMainMenuBar()) {
+    Action open_file_action(
+        "Open file",
+        [this] {
+          file_browser_.reset(
+              new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc));
+          file_browser_->SetTitle("Open file");
+          file_browser_->SetTypeFilters({".ts"});
+          file_browser_->Open();
+        },
+        !file_browser_, kPlatformWindowKeyO);
+    Action open_dir_action(
+        "Open directory",
+        [this] {
+          file_browser_.reset(
+              new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc |
+                                     ImGuiFileBrowserFlags_SelectDirectory));
+          file_browser_->SetTitle("Open directory");
+          file_browser_->Open();
+        },
+        !file_browser_);
+
+    if (ImGui::BeginMenu("File")) {
+      open_file_action.MenuItem(true);
+      open_dir_action.MenuItem(true);
+      ImGui::EndMenu();
+    }
+
     {
       DisableIf disable_if_no_project_loaded(!project_ ||
                                              pending_compile_results_);
@@ -158,6 +188,17 @@ void ProjectLayer::ExecuteImGuiCommands() {
     ImGui::EndMainMenuBar();
   }
   ImGui::PopStyleVar();
+
+  if (file_browser_) {
+    file_browser_->Display();
+    if (file_browser_->HasSelected()) {
+      LoadProject(std::filesystem::absolute(file_browser_->GetSelected()));
+      file_browser_->Close();
+    }
+    if (!file_browser_->IsOpened()) {
+      file_browser_.reset();
+    }
+  }
 
   if (pending_compile_results_) {
     if (!status_window_) {

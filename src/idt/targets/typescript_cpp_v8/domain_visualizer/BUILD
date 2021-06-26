@@ -76,6 +76,7 @@ cc_library(
         ":imgui_status_layer",
         "@imgui//:frontend",
         "@fmtlib",
+        "@imgui-filebrowser",
     ],
     visibility = ["//visibility:public"],
 )
