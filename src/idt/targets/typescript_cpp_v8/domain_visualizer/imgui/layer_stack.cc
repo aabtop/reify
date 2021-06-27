@@ -84,7 +84,6 @@ bool LayerStack::OnInputEvent(const InputEvent& input_event) {
     };
     int imgui_button = to_imgui_button(event->button);
     if (imgui_button != -1) {
-      static int ff = 0;
       io.MouseDown[imgui_button] = event->pressed;
 
       if (io.WantCaptureMouse && event->pressed) {

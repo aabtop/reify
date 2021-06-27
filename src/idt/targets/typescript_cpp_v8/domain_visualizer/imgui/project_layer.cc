@@ -207,7 +207,7 @@ void ProjectLayer::ExecuteImGuiCommands() {
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha,
                             ImGui::GetStyle().Alpha * 0.5f);
         ImGui::SameLine(current_position + (remaining_space - text_width) / 2);
-        ImGui::Text(project_path_text.c_str());
+        ImGui::Text("%s", project_path_text.c_str());
         ImGui::PopStyleVar();
       }
     }

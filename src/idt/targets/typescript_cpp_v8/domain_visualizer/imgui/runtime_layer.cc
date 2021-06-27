@@ -155,7 +155,7 @@ void RuntimeLayer::ExecuteImGuiCommands() {
     ImGui::PushItemWidth(-1);
 
     std::set<VirtualFilesystem::AbsolutePath> module_path_set;
-    for (const auto previewable_symbol : previewable_symbols_) {
+    for (const auto& previewable_symbol : previewable_symbols_) {
       module_path_set.insert(previewable_symbol.second.module_path);
     }
     RenderSymbolTree({}, VirtualPathSetToComponentTrie(module_path_set));
@@ -273,7 +273,7 @@ void RuntimeLayer::RenderSymbolTree(
       if (is_selected_module && i == selected_symbol_->symbol_preview_index) {
         flags |= ImGuiTreeNodeFlags_Selected;
       }
-      ImGui::TreeNodeEx(symbol.name.c_str(), flags, symbol.name.c_str());
+      ImGui::TreeNodeEx(symbol.name.c_str(), flags, "%s", symbol.name.c_str());
       if (ImGui::IsItemClicked()) {
         selected_symbol_ = SelectedSymbol{previewable_symbol_entry, i};
         RebuildSelectedSymbol();

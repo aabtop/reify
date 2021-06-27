@@ -17,6 +17,7 @@ class FileBrowser;
 class DomainVisualizerHypo : public reify::typescript_cpp_v8::DomainVisualizer {
  public:
   DomainVisualizerHypo();
+  ~DomainVisualizerHypo();
 
   std::vector<reify::typescript_cpp_v8::CompilerEnvironment::InputModule>
   GetTypeScriptModules() override;

@@ -63,6 +63,8 @@ TriangleSoup ConvertToTriangleSoup(
 
 DomainVisualizerHypo::DomainVisualizerHypo() : free_camera_viewport_(0, 0) {}
 
+DomainVisualizerHypo::~DomainVisualizerHypo() {}
+
 std::vector<reify::typescript_cpp_v8::CompilerEnvironment::InputModule>
 DomainVisualizerHypo::GetTypeScriptModules() {
   return reify::typescript_cpp_v8::hypo::typescript_declarations();
