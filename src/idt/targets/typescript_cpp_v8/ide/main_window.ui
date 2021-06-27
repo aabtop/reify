@@ -6,15 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1024</width>
-    <height>500</height>
+    <width>1920</width>
+    <height>1080</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Hypo IDE</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout1">
     <item>
      <widget class="QSplitter" name="verticalSplitter">
       <property name="sizePolicy">
@@ -43,7 +43,7 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout">
+        <layout class="QVBoxLayout" name="verticalLayout2">
          <item>
           <widget class="QWebEngineView" name="editor" native="true">
            <property name="sizePolicy">
