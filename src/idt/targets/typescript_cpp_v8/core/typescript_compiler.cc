@@ -11,6 +11,7 @@
 #include <string>
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 namespace {
 #include "src_gen/tsc_wrapper.h"
@@ -61,9 +62,10 @@ void GetSourceFile(const v8::FunctionCallbackInfo<v8::Value>& args) {
     return;
   }
 
-  std::string virtual_file_path = ToStdString(isolate, args[0]);
+  auto virtual_filepath = *VirtualFilesystem::AbsolutePath::FromString(
+      ToStdString(isolate, args[0]));
 
-  auto file = GetVirtualFilesystem(isolate)->GetPath(virtual_file_path);
+  auto file = GetVirtualFilesystem(isolate)->GetFile(virtual_filepath);
   auto maybe_file_contents = file.get_content();
 
   if (auto* error =
@@ -99,10 +101,11 @@ void FileExists(const v8::FunctionCallbackInfo<v8::Value>& args) {
     return;
   }
 
-  std::string virtual_file_path = ToStdString(isolate, args[0]);
+  auto virtual_filepath = *VirtualFilesystem::AbsolutePath::FromString(
+      ToStdString(isolate, args[0]));
 
   bool exists =
-      GetVirtualFilesystem(isolate)->GetPath(virtual_file_path).exists();
+      GetVirtualFilesystem(isolate)->GetFile(virtual_filepath).exists();
   args.GetReturnValue().Set(v8::Boolean::New(isolate, exists));
 }
 
@@ -323,9 +326,11 @@ v8::Local<v8::Object> CreateSystemModuleMap(
     const std::vector<TypeScriptCompiler::InputModule>& system_modules) {
   v8::Local<v8::Object> system_module_map = v8::Object::New(isolate);
   for (const auto& module : system_modules) {
+    std::string module_path_as_string = module.path.string();
     auto path_value =
-        v8::String::NewFromUtf8(isolate, module.path.data(),
-                                v8::NewStringType::kNormal, module.path.size())
+        v8::String::NewFromUtf8(isolate, module_path_as_string.data(),
+                                v8::NewStringType::kNormal,
+                                module_path_as_string.size())
             .ToLocalChecked();
     auto content_value = v8::String::NewFromUtf8(isolate, module.content.data(),
                                                  v8::NewStringType::kNormal,
@@ -340,7 +345,7 @@ v8::Local<v8::Object> CreateSystemModuleMap(
 }  // namespace
 
 auto TypeScriptCompiler::TranspileToJavaScript(
-    std::string_view virtual_absolute_path, const CompileOptions& options)
+    const VirtualFilesystem::AbsolutePath& path, const CompileOptions& options)
     -> std::variant<TranspileResults, Error> {
   v8::Isolate::Scope isolate_scope(isolate_);
   v8::HandleScope handle_scope(isolate_);
@@ -354,17 +359,17 @@ auto TypeScriptCompiler::TranspileToJavaScript(
   auto transpile_function =
       v8::Local<v8::Function>::New(isolate_, transpile_function_);
 
+  auto path_as_str = path.string();
   auto input_path_v8_str =
-      v8::String::NewFromUtf8(isolate_, virtual_absolute_path.data(),
-                              v8::NewStringType::kNormal,
-                              virtual_absolute_path.size())
+      v8::String::NewFromUtf8(isolate_, path_as_str.data(),
+                              v8::NewStringType::kNormal, path_as_str.size())
           .ToLocalChecked();
 
   std::string diagnostics_path =
-      virtual_filesystem_->GetPath(virtual_absolute_path).diagnostics_path;
+      virtual_filesystem_->GetFile(path).diagnostics_path;
 
   auto maybe_input_typescript =
-      virtual_filesystem_->GetPath(virtual_absolute_path).get_content();
+      virtual_filesystem_->GetFile(path).get_content();
   if (auto error =
           std::get_if<VirtualFilesystem::Error>(&maybe_input_typescript)) {
     return Error{
@@ -453,12 +458,13 @@ auto TypeScriptCompiler::TranspileToJavaScript(
             .As<v8::String>();
     assert(message->IsString());
 
-    std::string virtual_path = ToStdString(isolate_, path);
+    auto virtual_filepath = *VirtualFilesystem::AbsolutePath::FromString(
+        ToStdString(isolate_, path));
 
-    return Error{virtual_filesystem_->GetPath(virtual_path).diagnostics_path,
-                 static_cast<int>(line->Value()),
-                 static_cast<int>(column->Value()),
-                 ToStdString(isolate_, message)};
+    return Error{
+        virtual_filesystem_->GetFile(virtual_filepath).diagnostics_path,
+        static_cast<int>(line->Value()), static_cast<int>(column->Value()),
+        ToStdString(isolate_, message)};
   }
 
   auto output_field_name = v8::String::NewFromUtf8Literal(isolate_, "output");
@@ -559,4 +565,6 @@ auto TypeScriptCompiler::TranspileToJavaScript(
   }
   return return_value;
 }
+
+}  // namespace typescript_cpp_v8
 }  // namespace reify

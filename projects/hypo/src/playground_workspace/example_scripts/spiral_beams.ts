@@ -28,6 +28,10 @@ function SpiralStack(stackSize: number): h.Region3[] {
   ];
 }
 
+export function SingleBeam() {
+  return Beam(2, 4);
+}
+
 export function Main() {
   const stackSize = 10;
 

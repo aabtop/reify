@@ -32,3 +32,5 @@ ENV LANG en_US.UTF-8
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
     && mkdir -p /commandhistory \
     && echo $SNIPPET >> "/root/.bashrc"
+
+RUN apt-get -y install libx11-dev

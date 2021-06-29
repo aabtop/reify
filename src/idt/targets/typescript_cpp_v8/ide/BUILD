@@ -39,8 +39,12 @@ qt_cc_library(
     ":monaco_wrapper_resources",
     ":monaco_interface",
     ":about_dialog",
-    ":domain_visualizer_interface",
-    ":domain_visualizer_qt_widget",
+    ":reify_window_qt_widget",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_layer_stack",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_runtime_layer",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_status_layer",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_docking_freespace_to_window_viewport_layer",
   ],
 )
 
@@ -66,31 +70,18 @@ qt_cc_library(
 
 # Embeds a DomainVisualizer into a Qt Widget for use in Qt applications.
 qt_cc_library(
-    name = "domain_visualizer_qt_widget",
+    name = "reify_window_qt_widget",
     srcs = [
-        "domain_visualizer_qt_widget.cc",
+        "reify_window_qt_widget.cc",
     ],
-    hdr = "domain_visualizer_qt_widget.h",
+    hdr = "reify_window_qt_widget.h",
     defines = select({
         "@bazel_tools//src/conditions:windows": ["BAZEL_TARGET_OS_WINDOWS"],
         "//conditions:default": ["BAZEL_TARGET_OS_LINUX"],
     }),
     deps = [
-        ":domain_visualizer_interface",
+        "//src/window",
     ],
-)
-
-cc_library(
-  name = "domain_visualizer_interface",
-  hdrs = ["include/reify/typescript_cpp_v8/domain_visualizer.h"],
-  includes = [
-    "include",
-  ],
-  deps = [
-    "//src/idt/targets/typescript_cpp_v8:core",
-    "@vulkan_sdk//:vulkan",
-  ],
-  visibility = ["//visibility:public"],
 )
 
 cc_library(
@@ -106,7 +97,7 @@ cc_library(
   ],
   deps = [
     ":main_window",
-    ":domain_visualizer_interface",
+    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
   ],
   visibility = ["//visibility:public"],
 )

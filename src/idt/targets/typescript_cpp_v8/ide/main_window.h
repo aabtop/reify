@@ -8,6 +8,11 @@
 #include <thread>
 
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/typescript_cpp_v8/imgui/docking_freespace_to_window_viewport_layer.h"
+#include "reify/typescript_cpp_v8/imgui/layer_stack.h"
+#include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
+#include "reify/typescript_cpp_v8/imgui/status_layer.h"
+#include "reify/window/window_stack.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/compilation.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
 
@@ -62,9 +67,8 @@ class MainWindow : public QMainWindow {
   void QueryContent(const MonacoInterface::QueryContentReplyFunction&
                         query_content_complete_callback);
 
-  bool Compile(
-      const std::function<void(std::shared_ptr<reify::CompiledModule>)>&
-          compile_complete_callback);
+  bool Compile(const std::function<void(std::shared_ptr<CompiledModule>)>&
+                   compile_complete_callback);
   bool Build(const std::function<void()>& build_complete_callback);
 
   void FileDirtyStatusChange(bool is_dirty);
@@ -80,7 +84,6 @@ class MainWindow : public QMainWindow {
     QueryingContent,
     Saving,
     Compiling,
-    Building,
   };
   PendingOperation GetCurrentPendingOperation() const;
   bool HasPendingOperation() const {
@@ -91,20 +94,29 @@ class MainWindow : public QMainWindow {
   QString default_title_;
 
   std::unique_ptr<DomainVisualizer> domain_visualizer_;
+  window::WindowViewport visualizer_window_viewport_;
+
+  imgui::DockingLayer visualizer_imgui_docking_layer_;
+  imgui::DockingFreespaceToWindowViewportLayer
+      visualizer_imgui_docking_freespace_to_window_viewport_layer_;
+  imgui::StatusLayer visualizer_imgui_status_layer_;
+  imgui::RuntimeLayer visualizer_imgui_runtime_layer_;
+  imgui::LayerStack visualizer_imgui_stack_;
+  window::WindowStack visualizer_window_;
+
   std::unique_ptr<QWidget> domain_visualizer_widget_;
   std::unique_ptr<MonacoInterface> monaco_interface_;
 
   std::unique_ptr<QProgressBar> progress_bar_;
-
-  bool domain_build_active_ = false;
 
   std::optional<SaveCompleteFunction> save_complete_callback_;
   std::optional<MonacoInterface::QueryContentReplyFunction>
       query_content_complete_callback_;
 
   std::optional<std::filesystem::path> current_filepath_;
-  std::shared_ptr<reify::CompiledModule> most_recent_compilation_results_;
+  std::shared_ptr<CompiledModule> most_recent_compilation_results_;
 
+  std::shared_ptr<FileProject> file_project_;
   std::optional<std::thread> project_operation_;
 
   // Are the contents of the current file equivalent to what's saved on disk?

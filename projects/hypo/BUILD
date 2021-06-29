@@ -88,7 +88,22 @@ qt_cc_binary(
     "src/main_ide.cc",
   ],
   deps = [
+    "//src/domain_visualizer:domain_visualizer_hypo",
     "@reify//src/idt/targets/typescript_cpp_v8:ide",
+    "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_layer_stack",
+    "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_runtime_layer",
+    "@reify//src/window:window",
+    "@reify//src/window:window_utils",
+  ],
+)
+
+cc_binary(
+  name = "visualizer",
+  srcs = [
+    "src/main_visualizer.cc",
+  ],
+  deps = [
+    "@reify//src/idt/targets/typescript_cpp_v8:visualizer_tool",
     "//src/domain_visualizer:domain_visualizer_hypo",
   ],
 )

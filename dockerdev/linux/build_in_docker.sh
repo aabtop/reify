@@ -5,12 +5,12 @@ echo "In container, building..."
 
 export BUILD_CONFIG=opt
 
-export OUTPUT_DIR=/out
+export OUTPUT_DIR="/out"
 
 cd /src
 
 cd projects/hypo
-bazel build //:hypo //:ide -c $BUILD_CONFIG --symlink_prefix=/bazel- --verbose_failures
+bazel build //:hypo //:ide //:visualizer -c $BUILD_CONFIG --symlink_prefix=/bazel- --verbose_failures
 
 rm -rf ${OUTPUT_DIR}/*
 
@@ -18,10 +18,14 @@ rm -rf ${OUTPUT_DIR}/*
 # output directory.
 strip -s /bazel-bin/hypo -o ${OUTPUT_DIR}/hypo
 
-OUTPUT_DIR="/out"
-
 cp -rL /bazel-bin/ide.runfiles/hypo/* ${OUTPUT_DIR}
+chmod +w ${OUTPUT_DIR}/ide
 strip -s ${OUTPUT_DIR}/ide
+
+cp -rL /bazel-bin/visualizer.runfiles/hypo/* ${OUTPUT_DIR}
+chmod +w ${OUTPUT_DIR}/visualizer
+strip -s ${OUTPUT_DIR}/visualizer
+
 # Bazel automatically sets all files as executable, even if they're not.
 # (See https://github.com/bazelbuild/bazel/issues/6530#issuecomment-435779225).
 # This isn't a big deal, but aesthetically it's nice to have our top-level files

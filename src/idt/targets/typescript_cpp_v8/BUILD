@@ -46,12 +46,16 @@ cc_library(
         "core/generic_function_impl.h",
         "core/global_initialization.cc",
         "core/global_initialization.h",
-        "core/public_include/reify/typescript_cpp_v8.h",
-        "core/public_include/reify/typescript_cpp_v8/common_types.h",
+        "core/project.cc",
         "core/runtime_environment.cc",
         "core/typescript_compiler.cc",
         "core/typescript_compiler.h",
         "core/virtual_filesystem.cc",
+    ],
+    hdrs = [
+        "core/public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h",
+        "core/public_include/reify/typescript_cpp_v8/common_types.h",
+        "core/public_include/reify/typescript_cpp_v8/virtual_filesystem.h",
     ],
     includes = [
         "core",
@@ -60,6 +64,8 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/tsc_wrapper:tsc_wrapper_as_header",
+        "//src/utils",
+        "@fmtlib",
         "@v8",
     ],
 )
@@ -73,19 +79,27 @@ cc_library(
     includes = [
         "command_line_tool/include",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         ":core",
         "//third_party:CLI11",
     ],
-    visibility = ["//visibility:public"],
 )
 
 cc_library(
     name = "ide",
-    deps = [
-        "//src/idt/targets/typescript_cpp_v8/ide:ide",
-    ],
     visibility = ["//visibility:public"],
+    deps = [
+        "//src/idt/targets/typescript_cpp_v8/ide",
+    ],
+)
+
+cc_library(
+    name = "visualizer_tool",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/idt/targets/typescript_cpp_v8/domain_visualizer:visualizer_tool",
+    ],
 )
 
 exports_files(["Main.hs"])

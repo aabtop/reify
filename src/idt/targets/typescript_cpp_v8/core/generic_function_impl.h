@@ -1,6 +1,7 @@
-#include "public_include/reify/typescript_cpp_v8.h"
+#include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 class GenericFunction::Impl {
  public:
@@ -18,4 +19,5 @@ class GenericFunction::Impl {
   friend struct GenericFunction::CallContext;
 };
 
+}  // namespace typescript_cpp_v8
 }  // namespace reify

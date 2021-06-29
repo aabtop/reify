@@ -6,23 +6,28 @@
 #include <optional>
 #include <variant>
 
-#include "reify/typescript_cpp_v8.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
 namespace ide {
 
-using CompileError = std::string;
-using CompileResult =
-    std::variant<CompileError, std::shared_ptr<reify::CompiledModule>>;
-CompileResult CompileFile(
-    const std::vector<reify::CompilerEnvironment::InputModule>&
-        typescript_input_modules,
-    const std::filesystem::path& filepath);
-CompileResult CompileContents(
-    const std::vector<reify::CompilerEnvironment::InputModule>&
+struct FileProject {
+  std::filesystem::path filepath;
+  HostFilesystemProjectWithBuildFilesGetter project;
+};
+
+FileProject CreateFileProject(
+    const std::filesystem::path& path,
+    const std::vector<CompilerEnvironment::InputModule>&
+        typescript_input_modules);
+
+CompilerEnvironment::CompileResults CompileContents(
+    const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules,
     const std::string& contents);
+
+std::string CompileErrorToString(const CompileError& error);
 
 }  // namespace ide
 }  // namespace typescript_cpp_v8

@@ -1,22 +1,22 @@
-#ifndef _SRC_IDT_TARGETS_TYPESCRIPT_CPP_V8_IDE_DOMAIN_VISUALIZER_QT_WIDGET_H
-#define _SRC_IDT_TARGETS_TYPESCRIPT_CPP_V8_IDE_DOMAIN_VISUALIZER_QT_WIDGET_H
+#ifndef _SRC_IDT_TARGETS_TYPESCRIPT_CPP_V8_IDE_REIFY_WINDOW_QT_WIDGET_H
+#define _SRC_IDT_TARGETS_TYPESCRIPT_CPP_V8_IDE_REIFY_WINDOW_QT_WIDGET_H
 
 #include <QVulkanInstance>
 #include <QVulkanWindow>
 #include <QWidget>
 #include <memory>
 
-#include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/window/window.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
 namespace ide {
 
-class DomainVisualizerVulkanWindowRenderer : public QVulkanWindowRenderer {
+class ReifyWindowVulkanWindowRenderer : public QVulkanWindowRenderer {
  public:
-  DomainVisualizerVulkanWindowRenderer(QVulkanWindow* window,
-                                       DomainVisualizer* domain_visualizer)
-      : domain_visualizer_(domain_visualizer), window_(window) {}
+  ReifyWindowVulkanWindowRenderer(QVulkanWindow* window,
+                                  window::Window* reify_window)
+      : reify_window_(reify_window), window_(window) {}
 
   void initResources() override;
 
@@ -27,23 +27,23 @@ class DomainVisualizerVulkanWindowRenderer : public QVulkanWindowRenderer {
   void startNextFrame() override;
 
  private:
-  DomainVisualizer* domain_visualizer_;
+  window::Window* reify_window_;
 
   QVulkanWindow* window_;
-  std::unique_ptr<DomainVisualizer::Renderer> domain_visualizer_renderer_;
+  std::unique_ptr<window::Window::Renderer> reify_window_renderer_;
 
-  std::vector<std::optional<DomainVisualizer::Renderer::FrameResources>>
+  std::vector<std::optional<window::Window::Renderer::FrameResources>>
       frame_resources_;
 
   std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
       last_render_time_;
 };
 
-class DomainVisualizerVulkanWindow : public QVulkanWindow {
+class ReifyWindowVulkanWindow : public QVulkanWindow {
   Q_OBJECT
 
  public:
-  DomainVisualizerVulkanWindow(DomainVisualizer* domain_visualizer);
+  ReifyWindowVulkanWindow(window::Window* reify_window);
   QVulkanWindowRenderer* createRenderer() override;
 
  protected:
@@ -56,18 +56,18 @@ class DomainVisualizerVulkanWindow : public QVulkanWindow {
   void keyReleaseEvent(QKeyEvent* event) override;
 
  private:
-  DomainVisualizer* domain_visualizer_;
+  window::Window* reify_window_;
 
   QVulkanInstance q_vulkan_instance_;
 
-  DomainVisualizerVulkanWindowRenderer* renderer_ = nullptr;
+  ReifyWindowVulkanWindowRenderer* renderer_ = nullptr;
 };
 
-std::unique_ptr<QWidget> MakeDomainVisualizerWidget(
-    DomainVisualizer* domain_visualizer, QWidget* parent);
+std::unique_ptr<QWidget> MakeReifyWindowWidget(window::Window* reify_window,
+                                               QWidget* parent);
 
 }  // namespace ide
 }  // namespace typescript_cpp_v8
 }  // namespace reify
 
-#endif  // _SRC_IDT_TARGETS_TYPESCRIPT_CPP_V8_IDE_DOMAIN_VISUALIZER_QT_WIDGET_H
+#endif  // _SRC_IDT_TARGETS_TYPESCRIPT_CPP_V8_IDE_REIFY_WINDOW_QT_WIDGET_H

@@ -7,7 +7,7 @@
 #include <variant>
 
 #include "CLI/CLI.hpp"
-#include "reify/typescript_cpp_v8.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
@@ -18,16 +18,15 @@ struct CommandLineToolParameters {
   // Defines which type declarations are visible to user TypeScript code.  This
   // is usually taken straight from the IDT generated output to ensure that the
   // TypeScript declarations match up with the CPP declarations.
-  std::vector<reify::CompilerEnvironment::InputModule> typescript_input_modules;
+  std::vector<CompilerEnvironment::InputModule> typescript_input_modules;
   std::function<void(CLI::App*)> add_options_hook;
 };
 
 struct CommandLineToolParseResult {
-  std::optional<reify::MountedHostFolderFilesystem> virtual_filesystem;
-  std::optional<reify::CompilerEnvironment> compile_env;
-  std::shared_ptr<reify::CompiledModule> compiled_module;
-  std::optional<reify::RuntimeEnvironment> runtime_env;
-  const reify::CompiledModule::ExportedSymbol* entry_point_symbol;
+  std::optional<HostFilesystemProject> project;
+  std::shared_ptr<CompiledModule> compiled_module;
+  std::optional<RuntimeEnvironment> runtime_env;
+  const CompiledModule::ExportedSymbol* entry_point_symbol;
 
   // How long it took to compile the user TypeScript.
   std::chrono::microseconds compile_time;

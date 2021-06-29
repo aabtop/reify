@@ -6,9 +6,10 @@
 #include "context_environment.h"
 #include "generic_function_impl.h"
 #include "global_initialization.h"
-#include "public_include/reify/typescript_cpp_v8.h"
+#include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 namespace {
 
@@ -73,16 +74,16 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
 
   const TypeScriptCompiler::Module* module;
 
-  if (!specifier_as_str.empty() && specifier_as_str[0] == '.') {
+  if (specifier_as_str.size() > 2 && specifier_as_str[0] == '.' &&
+      specifier_as_str[1] == '/') {
     // Lookup a TypeScript "relateive module" relative to the current file.
-    auto importer_directory =
-        std::filesystem::path(
-            *context_environment->source_file_import_stack.back())
-            .parent_path();
-    module = transpile_results.LookupPath(
-        (importer_directory / (specifier_as_str + ".js"))
-            .lexically_normal()
-            .string());
+    const std::string& current_file =
+        *context_environment->source_file_import_stack.back();
+    auto importer_directory = current_file.substr(0, current_file.rfind("/"));
+
+    std::string absolute_path =
+        importer_directory + "/" + specifier_as_str.substr(2) + ".js";
+    module = transpile_results.LookupPath(absolute_path);
   } else if (!specifier_as_str.empty() && specifier_as_str[0] == '/') {
     // Lookup a TypeScript "relative module" via an absolute path.
     module = transpile_results.LookupPath(specifier_as_str + ".js");
@@ -343,4 +344,5 @@ RuntimeEnvironment::GetGenericExport(std::string_view symbol_name) {
       std::move(std::get<std::unique_ptr<GenericFunction::Impl>>(
           generic_function_impl_or_error)));
 }
+}  // namespace typescript_cpp_v8
 }  // namespace reify

@@ -31,6 +31,9 @@ class FreeCameraViewport3d {
 
   glm::mat4 ViewMatrix() const;
 
+  // Reset all view parameters (e.g. camera orientation, position, etc..)
+  void Reset();
+
  private:
   glm::vec3 ToArcballPoint(const glm::vec2& viewport_point) const;
   // Converts window coordinates from pixel units into units of a fraction

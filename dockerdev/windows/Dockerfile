@@ -40,22 +40,16 @@ RUN copy C:\Python27\python.exe C:\Python27\python2.exe
 # this is required for proper Bazel setup.  Some of this setup code is taken
 # from https://github.com/mback2k/docker-windows-buildbot-msys2/blob/6b02cd848796fd5971e8d4364a0e23af88766f74/Dockerfile.
 RUN Invoke-WebRequest -UserAgent 'DockerCI' -outfile 7zsetup.exe http://www.7-zip.org/a/7z1604-x64.exe
-RUN Invoke-WebRequest -UserAgent 'DockerCI' -outfile msys2-x86_64-latest.tar.xz http://repo.msys2.org/distrib/msys2-x86_64-latest.tar.xz 
+
+RUN Invoke-WebRequest -UserAgent 'DockerCI' -outfile msys2-x86_64.tar.xz http://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20210228.tar.xz
 RUN Start-Process .\7zsetup -ArgumentList '/S /D=c:/7zip' -Wait
-RUN C:\7zip\7z e msys2-x86_64-latest.tar.xz -Wait
-RUN C:\7zip\7z x msys2-x86_64-latest.tar -o"C:\\"
+RUN C:\7zip\7z e msys2-x86_64.tar.xz -Wait
+RUN C:\7zip\7z x msys2-x86_64.tar -o"C:\\"
 RUN C:\msys64\usr\bin\bash.exe -l -c 'exit 0'; \
   C:\msys64\usr\bin\bash.exe -l -c 'echo "Now installing MSYS2..."'; \
-  C:\msys64\usr\bin\bash.exe -l -c 'pacman -Syuu --needed --noconfirm --noprogressbar'; \
-  C:\msys64\usr\bin\bash.exe -l -c 'pacman -Syu  --needed --noconfirm --noprogressbar'; \
-  C:\msys64\usr\bin\bash.exe -l -c 'pacman -Su   --needed --noconfirm --noprogressbar'; \
-  C:\msys64\usr\bin\bash.exe -l -c 'pacman -Scc --noconfirm'; \
-  C:\msys64\usr\bin\bash.exe -l -c 'echo "Successfully installed MSYS2"'; \
-  C:\msys64\usr\bin\bash.exe -l -c 'exit 0'; \
   Get-Process | Where-Object {$_.Path -Like 'C:\msys64\*'} | Stop-Process -Force -PassThru | Wait-Process; \
   Get-Process @('bash', 'dirmngr', 'gpg-agent', 'pacman') -ErrorAction SilentlyContinue | Stop-Process -Force -PassThru | Wait-Process; \
-  Remove-Item @('C:\$Recycle.Bin\*') -Force -Recurse -ErrorAction Continue; \
-  Write-Host 'Cleared Recycle Bin ...';
+  Write-Host 'Done installing MSYS2 ...';
 ADD ./update_path_with_msys.ps1 c:/update_path_with_msys.ps1
 RUN powershell -Command c:\update_path_with_msys.ps1
 

@@ -8,9 +8,10 @@
 #include <fstream>
 #include <sstream>
 
+#include "reify/window/window_viewport.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/about_dialog.h"
-#include "src/idt/targets/typescript_cpp_v8/ide/domain_visualizer_qt_widget.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
+#include "src/idt/targets/typescript_cpp_v8/ide/reify_window_qt_widget.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/ui_main_window.h"
 
 namespace reify {
@@ -23,14 +24,42 @@ MainWindow::MainWindow(const std::string& window_title,
     : QMainWindow(parent),
       ui_(new Ui::MainWindow),
       default_title_(QString(window_title.c_str())),
-      domain_visualizer_(std::move(domain_visualizer)) {
+      domain_visualizer_(std::move(domain_visualizer)),
+      visualizer_window_viewport_(domain_visualizer_.get()),
+      visualizer_imgui_docking_layer_(ImGuiDir_Left, 0.2f),
+      visualizer_imgui_docking_freespace_to_window_viewport_layer_(
+          &visualizer_window_viewport_, &visualizer_imgui_docking_layer_),
+      visualizer_imgui_status_layer_(&visualizer_imgui_docking_layer_),
+      visualizer_imgui_runtime_layer_(
+          [this](std::function<void()> x) {
+            QMetaObject::invokeMethod(this, x);
+          },
+          &visualizer_imgui_docking_layer_, &visualizer_imgui_status_layer_,
+          domain_visualizer_.get()),
+      visualizer_imgui_stack_({
+          [docking_layer = &visualizer_imgui_docking_layer_]() {
+            docking_layer->ExecuteImGuiCommands();
+          },
+          [status_layer = &visualizer_imgui_status_layer_]() {
+            status_layer->ExecuteImGuiCommands();
+          },
+          [runtime_layer = &visualizer_imgui_runtime_layer_]() {
+            runtime_layer->ExecuteImGuiCommands();
+          },
+          [docking_freespace_to_window_viewport_layer =
+               &visualizer_imgui_docking_freespace_to_window_viewport_layer_]() {
+            docking_freespace_to_window_viewport_layer->ExecuteImGuiCommands();
+          },
+      }),
+      visualizer_window_(
+          {&visualizer_window_viewport_, &visualizer_imgui_stack_}) {
   ui_->setupUi(this);
 
   ui_->visualizer->setAutoFillBackground(false);
   ui_->visualizer->setStyleSheet("background-color:transparent;");
 
   domain_visualizer_widget_ =
-      MakeDomainVisualizerWidget(domain_visualizer_.get(), ui_->visualizer);
+      MakeReifyWindowWidget(&visualizer_window_, ui_->visualizer);
 
   monaco_interface_.reset(new MonacoInterface(
       ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(),
@@ -118,7 +147,7 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
 void MainWindow::on_actionNew_triggered() {
   SaveIfDirtyCheck([this]() {
-    current_filepath_ = std::nullopt;
+    file_project_.reset();
     current_file_is_dirty_ = false;
     UpdateUiState();
     monaco_interface_->NewFile();
@@ -144,7 +173,9 @@ void MainWindow::on_actionOpen_triggered() {
       return;
     }
 
-    current_filepath_ = filepath.toStdString();
+    file_project_ = std::make_shared<FileProject>(CreateFileProject(
+        filepath.toStdString(), domain_visualizer_->GetTypeScriptModules()));
+
     current_file_is_dirty_ = false;
     UpdateUiState();
     monaco_interface_->Open(filepath, QString(content.str().c_str()));
@@ -175,10 +206,10 @@ bool MainWindow::Save(const SaveCompleteFunction& save_complete_callback) {
     return false;
   }
 
-  if (current_filepath_) {
+  if (file_project_) {
     save_complete_callback_ = save_complete_callback;
     monaco_interface_->SaveAs(
-        QString(current_filepath_->string().c_str()),
+        QString(file_project_->filepath.string().c_str()),
         [this](const QString& filepath, const QString& content) {
           OnSaveAsComplete(filepath, content);
         });
@@ -201,7 +232,8 @@ bool MainWindow::SaveAs(const SaveCompleteFunction& save_complete_callback) {
     return false;
   }
 
-  current_filepath_ = filepath.toStdString();
+  file_project_ = std::make_shared<FileProject>(CreateFileProject(
+      filepath.toStdString(), domain_visualizer_->GetTypeScriptModules()));
   save_complete_callback_ = save_complete_callback;
 
   monaco_interface_->SaveAs(
@@ -264,51 +296,54 @@ void MainWindow::QueryContent(const MonacoInterface::QueryContentReplyFunction&
 }
 
 bool MainWindow::Compile(
-    const std::function<void(std::shared_ptr<reify::CompiledModule>)>&
+    const std::function<void(std::shared_ptr<CompiledModule>)>&
         compile_complete_callback) {
   if (HasPendingOperation()) {
     return false;
   }
 
-  auto query_content_complete_callback =
-      [this, compile_complete_callback](const QString& content) {
-        assert(!project_operation_);
-        project_operation_.emplace([this, content = content.toStdString(),
-                                    compile_complete_callback]() {
-          auto result = [typescript_modules =
-                             domain_visualizer_->GetTypeScriptModules(),
-                         &content, current_filepath = current_filepath_]() {
-            if (current_filepath) {
-              return CompileFile(typescript_modules, *current_filepath);
-            } else {
-              return CompileContents(typescript_modules, content);
-            }
-          }();
+  auto query_content_complete_callback = [this, compile_complete_callback](
+                                             const QString& content) {
+    assert(!project_operation_);
+    project_operation_.emplace([this, content = content.toStdString(),
+                                compile_complete_callback]() {
+      auto result = [typescript_modules =
+                         domain_visualizer_->GetTypeScriptModules(),
+                     &content, file_project = file_project_]() {
+        if (file_project) {
+          return std::get<1>(file_project->project.RebuildProject()
+                                 .wait_and_get_results())
+              .begin()
+              ->second;
+        } else {
+          return CompileContents(typescript_modules, content);
+        }
+      }();
 
-          QMetaObject::invokeMethod(
-              this, [this, result, compile_complete_callback]() {
-                project_operation_->join();
-                project_operation_.reset();
+      QMetaObject::invokeMethod(this, [this, result,
+                                       compile_complete_callback]() {
+        project_operation_->join();
+        project_operation_.reset();
 
-                if (auto* error = std::get_if<CompileError>(&result)) {
-                  UpdateUiState();
-                  QMessageBox::warning(this, "Error compiling",
-                                       QString(error->c_str()));
-                  return;
-                }
+        if (auto* error = std::get_if<CompileError>(&result)) {
+          UpdateUiState();
+          QMessageBox::warning(this, "Error compiling",
+                               QString(CompileErrorToString(*error).c_str()));
+          return;
+        }
 
-                most_recent_compilation_results_ =
-                    std::get<std::shared_ptr<reify::CompiledModule>>(result);
+        most_recent_compilation_results_ =
+            std::get<std::shared_ptr<CompiledModule>>(result);
 
-                UpdateUiState();
-
-                compile_complete_callback(most_recent_compilation_results_);
-              });
-        });
         UpdateUiState();
-      };
 
-  if (current_filepath_) {
+        compile_complete_callback(most_recent_compilation_results_);
+      });
+    });
+    UpdateUiState();
+  };
+
+  if (file_project_) {
     return Save([this, query_content_complete_callback](
                     const ErrorOr<SaveResults>& maybe_results) {
       if (auto* error = std::get_if<0>(&maybe_results)) {
@@ -330,49 +365,27 @@ bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
 
   auto compile_complete_callback =
       [this, build_complete_callback](
-          std::shared_ptr<reify::CompiledModule> compiled_module) {
-        if (ui_->comboBox->currentIndex() == -1) {
-          if (ui_->comboBox->count() == 0) {
-            QMessageBox::warning(
-                this, "No symbols available",
-                QString("You must export symbols of the correct type."));
-            return;
-          } else if (ui_->comboBox->count() > 0) {
-            ui_->comboBox->setCurrentIndex(0);
-          }
-        }
-
-        std::string symbol_name = ui_->comboBox->currentText().toStdString();
-
-        domain_build_active_ = true;
+          std::shared_ptr<CompiledModule> compiled_module) {
+        visualizer_imgui_runtime_layer_.SetCompileResults(
+            {{*VirtualFilesystem::AbsolutePath::FromComponents(
+                  {file_project_ ? file_project_->filepath.filename().string()
+                                 : "untitled"}),
+              compiled_module}});
         UpdateUiState();
 
-        domain_visualizer_->PrepareSymbolForPreview(
-            compiled_module, *compiled_module->GetExportedSymbol(symbol_name),
-            [this, build_complete_callback](
-                DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol>
-                    prepared_symbol_or_error) {
-              // Since this callback could be called from any thread, we use
-              // `invokeMethod` to ensure we resolve this on the correct thread.
-              QMetaObject::invokeMethod(
-                  this, [this,
-                         prepared_symbol_or_error =
-                             std::move(prepared_symbol_or_error),
-                         build_complete_callback]() {
-                    domain_build_active_ = false;
-                    UpdateUiState();
+        bool previewable_symbols = false;
+        for (const auto& symbol : compiled_module->exported_symbols()) {
+          if (domain_visualizer_->CanPreviewSymbol(symbol)) {
+            previewable_symbols = true;
+          }
+        }
+        if (!previewable_symbols) {
+          QMessageBox::warning(
+              this, "No symbols available",
+              QString("You must export symbols of the correct type."));
+        }
 
-                    if (auto error =
-                            std::get_if<0>(&prepared_symbol_or_error)) {
-                      QMessageBox::warning(this, "Error building symbol",
-                                           QString(error->msg.c_str()));
-                      return;
-                    }
-                    domain_visualizer_->Preview(
-                        std::get<1>(prepared_symbol_or_error));
-                    build_complete_callback();
-                  });
-            });
+        build_complete_callback();
       };
   return Compile(compile_complete_callback);
 }
@@ -391,8 +404,6 @@ MainWindow::PendingOperation MainWindow::GetCurrentPendingOperation() const {
     return PendingOperation::QueryingContent;
   } else if (project_operation_) {
     return PendingOperation::Compiling;
-  } else if (domain_build_active_) {
-    return PendingOperation::Building;
   } else {
     return PendingOperation::Idle;
   }
@@ -400,8 +411,8 @@ MainWindow::PendingOperation MainWindow::GetCurrentPendingOperation() const {
 
 void MainWindow::UpdateUiState() {
   QString title = default_title_ + " - ";
-  if (current_filepath_) {
-    title += QString(current_filepath_->string().c_str());
+  if (file_project_) {
+    title += QString(file_project_->filepath.string().c_str());
   } else {
     title += "untitled";
   }
@@ -409,31 +420,6 @@ void MainWindow::UpdateUiState() {
     title += " *";
   }
   setWindowTitle(title);
-
-  if (most_recent_compilation_results_) {
-    std::optional<QString> previous_combo_box_text;
-    if (ui_->comboBox->currentIndex() != -1) {
-      previous_combo_box_text = ui_->comboBox->currentText();
-    }
-
-    ui_->comboBox->clear();
-    if (most_recent_compilation_results_) {
-      for (const auto& symbol :
-           most_recent_compilation_results_->exported_symbols()) {
-        if (domain_visualizer_->CanPreviewSymbol(symbol)) {
-          ui_->comboBox->addItem(QString(symbol.name.c_str()));
-        }
-      }
-    }
-
-    if (!previous_combo_box_text) {
-      // If nothing was selected before the compile, maintain this.
-      ui_->comboBox->setCurrentIndex(-1);
-    } else {
-      ui_->comboBox->setCurrentIndex(
-          ui_->comboBox->findText(*previous_combo_box_text));
-    }
-  }
 
   switch (GetCurrentPendingOperation()) {
     case PendingOperation::Initializing: {
@@ -455,10 +441,6 @@ void MainWindow::UpdateUiState() {
     case PendingOperation::Compiling: {
       progress_bar_->setVisible(true);
       statusBar()->showMessage(tr("Compiling..."));
-    } break;
-    case PendingOperation::Building: {
-      progress_bar_->setVisible(true);
-      statusBar()->showMessage(tr("Building..."));
     } break;
   }
 }

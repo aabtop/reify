@@ -3,10 +3,11 @@
 #include <string_view>
 
 #include "compiled_module_impl.h"
-#include "public_include/reify/typescript_cpp_v8.h"
+#include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "typescript_compiler.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 class CompilerEnvironment::Impl {
  public:
@@ -21,7 +22,7 @@ class CompilerEnvironment::Impl {
 
   enum class GenerateDeclarationFiles { Yes, No };
   std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
-  Compile(std::string_view virtual_absolute_path,
+  Compile(const VirtualFilesystem::AbsolutePath& path,
           GenerateDeclarationFiles generate_declaration_files);
 
  private:
@@ -37,10 +38,10 @@ CompilerEnvironment::CompilerEnvironment(
                                           snapshot_options)) {}
 CompilerEnvironment::~CompilerEnvironment() {}
 
-std::variant<CompileError, std::shared_ptr<CompiledModule>>
-CompilerEnvironment::Compile(std::string_view virtual_absolute_path) {
+CompilerEnvironment::CompileResults CompilerEnvironment::Compile(
+    const VirtualFilesystem::AbsolutePath& path) {
   auto transpile_results_or_error =
-      impl_->Compile(virtual_absolute_path, Impl::GenerateDeclarationFiles::No);
+      impl_->Compile(path, Impl::GenerateDeclarationFiles::No);
   if (auto error =
           std::get_if<TypeScriptCompiler::Error>(&transpile_results_or_error)) {
     return *error;
@@ -54,12 +55,11 @@ CompilerEnvironment::Compile(std::string_view virtual_absolute_path) {
 
 std::variant<TypeScriptCompiler::TranspileResults, TypeScriptCompiler::Error>
 CompilerEnvironment::Impl::Compile(
-    std::string_view virtual_absolute_path,
+    const VirtualFilesystem::AbsolutePath& path,
     GenerateDeclarationFiles generate_declaration_files) {
   return tsc_.TranspileToJavaScript(
-      virtual_absolute_path,
-      {*initial_modules_,
-       (generate_declaration_files == GenerateDeclarationFiles::Yes)});
+      path, {*initial_modules_,
+             (generate_declaration_files == GenerateDeclarationFiles::Yes)});
 }
 
 namespace {
@@ -91,12 +91,14 @@ const char* TSCONFIG_JSON_CONTENT = R"json(
 
 }  // namespace
 
+CompilerEnvironment::CompilerEnvironment(CompilerEnvironment&& x)
+    : impl_(std::move(x.impl_)) {}
+
 bool CompilerEnvironment::CreateWorkspaceDirectory(
     const std::filesystem::path& out_dir_path,
     const std::vector<InputModule>& initial_modules) {
-  InMemoryFilesystem filesystem(
-      InMemoryFilesystem::FileMap({{std::string(initial_modules[0].path),
-                                    std::string(initial_modules[0].content)}}));
+  InMemoryFilesystem filesystem(InMemoryFilesystem::FileMap(
+      {{initial_modules[0].path, std::string(initial_modules[0].content)}}));
   CompilerEnvironment compiler_environment(&filesystem, &initial_modules);
   auto transpile_results_or_error = compiler_environment.impl_->Compile(
       initial_modules[0].path, Impl::GenerateDeclarationFiles::Yes);
@@ -137,4 +139,41 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
   return true;
 }
 
+CompilerEnvironmentThreadSafe::CompilerEnvironmentThreadSafe(
+    VirtualFilesystem* virtual_filesystem,
+    const std::vector<CompilerEnvironment::InputModule>&
+        typescript_input_modules)
+    : virtual_filesystem_(std::move(virtual_filesystem)),
+      typescript_input_modules_(typescript_input_modules) {
+  compilation_thread_.Enqueue([this] {
+    compiler_environment_.emplace(virtual_filesystem_,
+                                  &typescript_input_modules_);
+  });
+}
+
+CompilerEnvironmentThreadSafe::~CompilerEnvironmentThreadSafe() {
+  compilation_thread_.Enqueue([this] { compiler_environment_ = std::nullopt; });
+}
+
+CompilerEnvironmentThreadSafe::CompileFuture
+CompilerEnvironmentThreadSafe::Compile(
+    const VirtualFilesystem::AbsolutePath& sources) {
+  return compilation_thread_.EnqueueWithResult<CompileResults>(
+      [this, sources] { return compiler_environment_->Compile(sources); });
+}
+
+CompilerEnvironmentThreadSafe::MultiCompileFuture
+CompilerEnvironmentThreadSafe::MultiCompile(
+    const std::set<VirtualFilesystem::AbsolutePath>& sources) {
+  return compilation_thread_.EnqueueWithResult<MultiCompileResults>(
+      [this, sources] {
+        MultiCompileResults results;
+        for (const auto& source : sources) {
+          results[source] = compiler_environment_->Compile(source);
+        }
+        return results;
+      });
+}
+
+}  // namespace typescript_cpp_v8
 }  // namespace reify

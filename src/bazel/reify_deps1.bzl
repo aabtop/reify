@@ -59,7 +59,30 @@ def reify_deps1():
 
     http_archive(
         name = "aabtop_rules_qt",
-        strip_prefix = "rules_qt-4703da94a8a996e9372e6ec3d33bb082a2882e8d",
-        url = "https://github.com/aabtop/rules_qt/archive/4703da94a8a996e9372e6ec3d33bb082a2882e8d.zip",
-        sha256 = "ba7912fe87a6a389bb83f83baa1d89d9f899abf1739b3aaf972169d934da6c9b",
+        strip_prefix = "rules_qt-8c56615696d7bc4873a2afb011b7bf032867be89",
+        url = "https://github.com/aabtop/rules_qt/archive/8c56615696d7bc4873a2afb011b7bf032867be89.zip",
+        sha256 = "50dbb11fc0a51bdbad322db038383d146478d4dbd95011e7b1e75cfa27692734",
+    )
+
+    http_archive(
+        name = "imgui",
+        strip_prefix = "imgui-1ad1429c6df657f9694b619d53fa0e65e482f32b",
+        url = "https://github.com/ocornut/imgui/archive/1ad1429c6df657f9694b619d53fa0e65e482f32b.zip",
+        sha256 = "08213444a7b93999494921215807960f39255509d320c6923270ba698f5c4e56",
+        build_file = "@reify//:third_party/imgui/imgui.BUILD",
+    )
+
+    http_archive(
+        name = "platform_window",
+        strip_prefix = "platform_window-cb72997b983b1d65ebc554139aebbcdb4240ef31",
+        urls = ["https://github.com/aabtop/platform_window/archive/cb72997b983b1d65ebc554139aebbcdb4240ef31.zip"],
+        sha256 = "43557d873cd3027fe0170a1ac89d9796ee8acebcfaa622fd4bb5e2875ebb8d8e",
+    )
+
+    http_archive(
+        name = "imgui-filebrowser",
+        strip_prefix = "imgui-filebrowser-02be68a5d5c6bc4ab1d18fabe0963dc737b226a6",
+        urls = ["https://github.com/AirGuanZ/imgui-filebrowser/archive/02be68a5d5c6bc4ab1d18fabe0963dc737b226a6.zip"],
+        sha256 = "dc7dda7aeadc65e1201c8b6210d82bb146de957a582930d14650d544d165ae34",
+        build_file = "@reify//:third_party/imgui-filebrowser/imgui-filebrowser.BUILD",
     )

@@ -11,18 +11,20 @@
 #include <any>
 #include <queue>
 
-#include "reify/typescript_cpp_v8.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 class MonacoQtBridge : public QObject {
   Q_OBJECT
 
  public:
-  MonacoQtBridge(QWebEnginePage* page,
-                 const std::vector<reify::CompilerEnvironment::InputModule>&
-                     typescript_input_modules,
-                 const std::function<void()>& on_initialization_complete,
-                 const std::function<void(bool)>& on_file_dirty_status_change,
-                 QWidget* parent);
+  MonacoQtBridge(
+      QWebEnginePage* page,
+      const std::vector<
+          reify::typescript_cpp_v8::CompilerEnvironment::InputModule>&
+          typescript_input_modules,
+      const std::function<void()>& on_initialization_complete,
+      const std::function<void(bool)>& on_file_dirty_status_change,
+      QWidget* parent);
 
   using SaveAsReplyFunction =
       std::function<void(const QString&, const QString&)>;
@@ -57,7 +59,7 @@ class MonacoQtBridge : public QObject {
   void TypeScriptWrapperConstructor(const ModuleList& modules);
 
  private:
-  const std::vector<reify::CompilerEnvironment::InputModule>
+  const std::vector<reify::typescript_cpp_v8::CompilerEnvironment::InputModule>
       typescript_input_modules_;
   QWebChannel web_channel_;
 
@@ -70,12 +72,14 @@ class MonacoQtBridge : public QObject {
 
 class MonacoInterface {
  public:
-  MonacoInterface(QWebEnginePage* page,
-                  const std::vector<reify::CompilerEnvironment::InputModule>&
-                      typescript_input_modules,
-                  const std::function<void()>& on_initialization_complete,
-                  const std::function<void(bool)>& on_file_dirty_status_change,
-                  QWidget* parent);
+  MonacoInterface(
+      QWebEnginePage* page,
+      const std::vector<
+          reify::typescript_cpp_v8::CompilerEnvironment::InputModule>&
+          typescript_input_modules,
+      const std::function<void()>& on_initialization_complete,
+      const std::function<void(bool)>& on_file_dirty_status_change,
+      QWidget* parent);
 
   using SaveAsReplyFunction = MonacoQtBridge::SaveAsReplyFunction;
   using QueryContentReplyFunction = MonacoQtBridge::QueryContentReplyFunction;

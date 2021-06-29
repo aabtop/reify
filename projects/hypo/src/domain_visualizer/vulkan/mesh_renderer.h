@@ -13,42 +13,16 @@
 #include <variant>
 
 #include "triangle_soup.h"
+#include "vulkan_utils/vulkan_utils.h"
 
-template <typename T>
-class WithDeleter {
- public:
-  WithDeleter(T&& value, const std::function<void(T&&)>& deleter)
-      : value_(std::move(value)), deleter_(deleter) {}
-  WithDeleter(WithDeleter&&) = default;
-  WithDeleter(const WithDeleter&) = delete;
-  WithDeleter& operator=(const WithDeleter&) = delete;
-  WithDeleter& operator=(WithDeleter&&) = default;
-
-  // Move an existing value but use a different deleter.
-  WithDeleter(WithDeleter&& other, const std::function<void(T&&)>& deleter)
-      : value_(std::move(other.value_)), deleter_(deleter) {}
-
-  ~WithDeleter() {
-    if (deleter_) {
-      deleter_(std::move(value_));
-    }
-  }
-
-  const T& value() const { return value_; }
-
- private:
-  T value_;
-  std::function<void(T&&)> deleter_;
-};
+using vulkan_utils::WithDeleter;
 
 class MeshRenderer {
  public:
-  struct Error {
-    std::string msg;
-  };
+  using Error = vulkan_utils::Error;
   template <typename T>
-  using ErrorOr = std::variant<Error, T>;
-  using FrameResources = std::any;
+  using ErrorOr = vulkan_utils::ErrorOr<T>;
+  using FrameResources = vulkan_utils::FrameResources;
 
   static ErrorOr<MeshRenderer> Create(VkInstance instance,
                                       VkPhysicalDevice physical_device,
@@ -61,10 +35,11 @@ class MeshRenderer {
   std::optional<Error> SetTriangleSoup(
       std::shared_ptr<const TriangleSoup> triangle_soup);
 
-  ErrorOr<FrameResources> RenderFrame(
-      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      const std::array<uint32_t, 2>& output_surface_size,
-      const glm::mat4& view_matrix);
+  ErrorOr<FrameResources> RenderFrame(VkCommandBuffer command_buffer,
+                                      VkFramebuffer framebuffer,
+                                      VkImage output_color_image,
+                                      const std::array<int, 4>& viewport_region,
+                                      const glm::mat4& view_matrix);
 
  private:
   struct MeshRendererConstructorData {
@@ -77,8 +52,11 @@ class MeshRenderer {
     WithDeleter<VkPipelineCache> pipeline_cache;
     WithDeleter<VkPipelineLayout> pipeline_layout;
 
-    WithDeleter<VkRenderPass> render_pass;
-    WithDeleter<VkPipeline> pipeline;
+    // We'll continually use the same pipeline, but we set it up as a
+    // shared_ptr because it needs to also out-live any rendering draw calls
+    // that reference it.
+    std::shared_ptr<WithDeleter<VkRenderPass>> render_pass;
+    std::shared_ptr<WithDeleter<VkPipeline>> pipeline;
   };
 
   MeshRenderer(MeshRendererConstructorData&& data) : data_(std::move(data)) {}

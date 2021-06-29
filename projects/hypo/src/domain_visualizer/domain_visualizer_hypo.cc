@@ -4,12 +4,17 @@
 
 #include <thread>
 
+// clang-format off
+#include "imgui.h"
+#include "imfilebrowser.h"
+// clang-format on
 #include "cgal/construct_region2.h"
 #include "cgal/construct_region3.h"
+#include "cgal/export_to_stl.h"
 #include "cgal/types_nef_polyhedron_3.h"
 #include "reify/purecpp/hypo.h"
-#include "reify/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/hypo.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace {
 TriangleSoup ConvertToTriangleSoup(
@@ -58,67 +63,73 @@ TriangleSoup ConvertToTriangleSoup(
 
 DomainVisualizerHypo::DomainVisualizerHypo() : free_camera_viewport_(0, 0) {}
 
-std::vector<reify::CompilerEnvironment::InputModule>
+DomainVisualizerHypo::~DomainVisualizerHypo() {}
+
+std::vector<reify::typescript_cpp_v8::CompilerEnvironment::InputModule>
 DomainVisualizerHypo::GetTypeScriptModules() {
   return reify::typescript_cpp_v8::hypo::typescript_declarations();
 }
 
 bool DomainVisualizerHypo::CanPreviewSymbol(
-    const reify::CompiledModule::ExportedSymbol& symbol) {
-  return (/*symbol.HasType<reify::Function<hypo::Region2()>>() ||*/
-          symbol.HasType<reify::Function<hypo::Region3()>>());
+    const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol) {
+  return (/*symbol.HasType<reify::typescript_cpp_v8::Function<hypo::Region2()>>()
+             ||*/
+          symbol
+              .HasType<reify::typescript_cpp_v8::Function<hypo::Region3()>>());
 }
 
-void DomainVisualizerHypo::PrepareSymbolForPreview(
-    std::shared_ptr<reify::CompiledModule> module,
-    const reify::CompiledModule::ExportedSymbol& symbol,
-    const std::function<void(ErrorOr<PreparedSymbol>)>& on_preview_prepared) {
-  std::thread thread([module, symbol = std::move(symbol),
-                      on_preview_prepared = std::move(on_preview_prepared)]() {
+reify::utils::Future<
+    DomainVisualizerHypo::ErrorOr<DomainVisualizerHypo::PreparedSymbol>>
+DomainVisualizerHypo::PrepareSymbolForPreview(
+    std::shared_ptr<reify::typescript_cpp_v8::CompiledModule> module,
+    const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol) {
+  return builder_thread_.EnqueueWithResult<
+      ErrorOr<PreparedSymbol>>([module, symbol = std::move(symbol)]()
+                                   -> ErrorOr<PreparedSymbol> {
     // Setup a V8 runtime environment around the CompiledModule.  This will
-    // enable us to call exported functions and query exported values from the
-    // module.
-    auto runtime_env_or_error = reify::CreateRuntimeEnvironment(module);
+    // enable us to call exported functions and query exported values from
+    // the module.
+    auto runtime_env_or_error =
+        reify::typescript_cpp_v8::CreateRuntimeEnvironment(module);
     if (auto error = std::get_if<0>(&runtime_env_or_error)) {
-      on_preview_prepared(*error);
-      return;
+      return Error{*error};
     }
 
-    reify::RuntimeEnvironment runtime_env(
+    reify::typescript_cpp_v8::RuntimeEnvironment runtime_env(
         std::move(std::get<1>(runtime_env_or_error)));
 
-    if (symbol.HasType<reify::Function<hypo::Region3()>>()) {
+    if (symbol.HasType<reify::typescript_cpp_v8::Function<hypo::Region3()>>()) {
       auto entry_point_or_error =
-          runtime_env.GetExport<reify::Function<hypo::Region3()>>(symbol.name);
+          runtime_env
+              .GetExport<reify::typescript_cpp_v8::Function<hypo::Region3()>>(
+                  symbol.name);
       if (auto error = std::get_if<0>(&entry_point_or_error)) {
-        on_preview_prepared("Problem finding entrypoint function: " + *error);
-        return;
+        return Error{"Problem finding entrypoint function: " + *error};
       }
       auto entry_point = &std::get<1>(entry_point_or_error);
 
       auto result_or_error = entry_point->Call();
       if (auto error = std::get_if<0>(&result_or_error)) {
-        on_preview_prepared("Error running function: " + *error);
-        return;
+        return Error{"Error running function: " + *error};
       }
 
       hypo::Region3 result = std::get<1>(result_or_error);
 
-      hypo::cgal::Nef_polyhedron_3 polyhedron3 =
-          hypo::cgal::ConstructRegion3(result);
-
-      on_preview_prepared(std::shared_ptr<TriangleSoup>(
-          new TriangleSoup(ConvertToTriangleSoup(polyhedron3))));
+      return std::shared_ptr<hypo::cgal::Nef_polyhedron_3>(
+          new hypo::cgal::Nef_polyhedron_3(
+              hypo::cgal::ConstructRegion3(result)));
+    } else {
+      return Error{"Hypo's visualizer does not support this symbol type."};
     }
   });
-
-  thread.detach();  // TODO: Manage the threading framework better.
 }
 
-void DomainVisualizerHypo::Preview(const PreparedSymbol& prepared_symbol) {
+void DomainVisualizerHypo::SetPreview(const PreparedSymbol& prepared_symbol) {
+  current_preview_ =
+      std::any_cast<std::shared_ptr<hypo::cgal::Nef_polyhedron_3>>(
+          prepared_symbol);
   auto triangle_soup =
-      std::any_cast<std::shared_ptr<TriangleSoup>>(prepared_symbol);
-
+      std::make_shared<TriangleSoup>(ConvertToTriangleSoup(*current_preview_));
   if (mesh_renderer_) {
     mesh_renderer_->SetTriangleSoup(triangle_soup);
   } else {
@@ -126,7 +137,17 @@ void DomainVisualizerHypo::Preview(const PreparedSymbol& prepared_symbol) {
   }
 }
 
-void DomainVisualizerHypo::OnInputEvent(const InputEvent& input_event) {
+void DomainVisualizerHypo::ClearPreview() {
+  current_preview_ = nullptr;
+
+  if (mesh_renderer_) {
+    mesh_renderer_->SetTriangleSoup(nullptr);
+  } else {
+    pending_triangle_soup_ = nullptr;
+  }
+}
+
+bool DomainVisualizerHypo::OnInputEvent(const InputEvent& input_event) {
   if (auto event = std::get_if<MouseMoveEvent>(&input_event)) {
     free_camera_viewport_.AccumulateMouseMove(event->x, event->y);
   } else if (auto event = std::get_if<MouseButtonEvent>(&input_event)) {
@@ -137,6 +158,8 @@ void DomainVisualizerHypo::OnInputEvent(const InputEvent& input_event) {
   } else if (auto event = std::get_if<KeyboardEvent>(&input_event)) {
     free_camera_viewport_.AccumulateKeyboardEvent(event->key, event->pressed);
   }
+
+  return false;
 }
 
 void DomainVisualizerHypo::OnViewportResize(const std::array<int, 2>& size) {
@@ -162,9 +185,13 @@ class RendererHypo
 
   ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      const std::array<uint32_t, 2>& output_surface_size) override {
-    return mesh_renderer_->RenderFrame(command_buffer, framebuffer,
-                                       output_surface_size, get_view_matrix_());
+      VkImage output_color_image,
+      const reify::window::Rect& viewport_region) override {
+    return mesh_renderer_->RenderFrame(
+        command_buffer, framebuffer, output_color_image,
+        {viewport_region.left, viewport_region.top, viewport_region.right,
+         viewport_region.bottom},
+        get_view_matrix_());
   }
 
  private:
@@ -199,4 +226,43 @@ DomainVisualizerHypo::CreateRenderer(VkInstance instance,
       std::move(mesh_renderer),
       [this]() { return free_camera_viewport_.ViewMatrix(); },
       [this]() { mesh_renderer_ = nullptr; });
+}
+
+bool DomainVisualizerHypo::HasImGuiWindow() const { return true; }
+
+std::string DomainVisualizerHypo::ImGuiWindowPanelTitle() const {
+  return "Region3 Options";
+}
+
+void DomainVisualizerHypo::RenderImGuiWindow() {
+  if (ImGui::Button("Reset Camera")) {
+    free_camera_viewport_.Reset();
+  }
+  if (ImGui::Button("Export to STL")) {
+    export_file_selector_.reset(
+        new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc |
+                               ImGuiFileBrowserFlags_EnterNewFilename |
+                               ImGuiFileBrowserFlags_CreateNewDir));
+    export_file_selector_->SetTitle("Export to STL");
+    export_file_selector_->SetTypeFilters({".stl"});
+    export_file_selector_->Open();
+  }
+
+  if (export_file_selector_) {
+    export_file_selector_->Display();
+    if (export_file_selector_->HasSelected()) {
+      std::filesystem::path selected_path =
+          std::filesystem::absolute(export_file_selector_->GetSelected());
+      if (!selected_path.has_extension()) {
+        selected_path.replace_extension("stl");
+      }
+
+      hypo::cgal::ExportToSTL(*current_preview_,
+                              std::filesystem::absolute(selected_path));
+      export_file_selector_->Close();
+    }
+    if (!export_file_selector_->IsOpened()) {
+      export_file_selector_.reset();
+    }
+  }
 }

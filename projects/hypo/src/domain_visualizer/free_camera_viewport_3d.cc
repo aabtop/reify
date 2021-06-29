@@ -7,20 +7,27 @@
 FreeCameraViewport3d::FreeCameraViewport3d(int viewport_width_in_pixels,
                                            int viewport_height_in_pixels)
     : viewport_width_in_pixels_(viewport_width_in_pixels),
-      viewport_height_in_pixels_(viewport_height_in_pixels),
-      focus_position_(0.0f, 0.0f, 0.0f),
-      camera_distance_from_focus_(8.0),
-      camera_orientation_(0, 0, 0, 1.0) {
+      viewport_height_in_pixels_(viewport_height_in_pixels) {
   for (int i = 0; i < static_cast<int>(MouseButton::Count); ++i) {
     mouse_button_pressed_[i] = false;
   }
+  Reset();
+}
+
+void FreeCameraViewport3d::Reset() {
+  focus_position_ = glm::vec3(0.0f, 0.0f, 0.0f);
+  camera_distance_from_focus_ = 8.0;
+  camera_orientation_ = glm::quat(0, 0, 0, 1.0);
 }
 
 void FreeCameraViewport3d::AccumulateViewportResize(
     int viewport_width_in_pixels, int viewport_height_in_pixels) {
-  viewport_width_in_pixels_ = viewport_width_in_pixels;
-  viewport_height_in_pixels_ = viewport_height_in_pixels;
-  previous_viewport_point_ = std::nullopt;
+  if (viewport_width_in_pixels_ != viewport_width_in_pixels ||
+      viewport_height_in_pixels_ != viewport_height_in_pixels) {
+    viewport_width_in_pixels_ = viewport_width_in_pixels;
+    viewport_height_in_pixels_ = viewport_height_in_pixels;
+    previous_viewport_point_ = std::nullopt;
+  }
 }
 
 namespace {

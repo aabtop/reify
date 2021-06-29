@@ -1,7 +1,8 @@
 #include "compiled_module_impl.h"
-#include "public_include/reify/typescript_cpp_v8.h"
+#include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace reify {
+namespace typescript_cpp_v8 {
 
 CompiledModule::CompiledModule(std::unique_ptr<Impl> impl)
     : impl_(std::move(impl)){};
@@ -22,4 +23,5 @@ const CompiledModule::ExportedSymbol* CompiledModule::GetExportedSymbol(
   return nullptr;
 }
 
+}  // namespace typescript_cpp_v8
 }  // namespace reify

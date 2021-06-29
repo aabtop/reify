@@ -1,8 +1,8 @@
 #include "generic_function_impl.h"
-#include "public_include/reify/typescript_cpp_v8.h"
+#include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 
 namespace reify {
-
+namespace typescript_cpp_v8 {
 GenericFunction::Impl::Impl(v8::Local<v8::Context> context,
                             v8::Local<v8::Function> function)
     : isolate_(context->GetIsolate()),
@@ -42,4 +42,5 @@ GenericFunction::GenericFunction(std::unique_ptr<Impl> impl)
 GenericFunction::GenericFunction(GenericFunction&&) = default;
 GenericFunction::~GenericFunction() {}
 
+}  // namespace typescript_cpp_v8
 }  // namespace reify

@@ -98,7 +98,7 @@ int GenerateProjectDirectory(
     const GenerateProjectDirectoryCommandLineParameters& clp,
     const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules) {
-  bool result = reify::CompilerEnvironment::CreateWorkspaceDirectory(
+  bool result = CompilerEnvironment::CreateWorkspaceDirectory(
       clp.project_directory, typescript_input_modules);
   if (result) {
     std::cout << "Created directory " << clp.project_directory
@@ -121,29 +121,37 @@ std::variant<int, std::unique_ptr<CommandLineToolParseResult>> Build(
   // the input source file.
   auto absolute_input_source_file =
       std::filesystem::absolute(clp.input_typescript_path);
-  auto project_directory =
-      clp.project_directory ? std::filesystem::absolute(*clp.project_directory)
-                            : absolute_input_source_file.parent_path();
 
-  result->virtual_filesystem.emplace(project_directory);
-  std::optional<std::string> virtual_input_source_path =
-      result->virtual_filesystem->HostPathToVirtualPath(
-          absolute_input_source_file);
-  if (!virtual_input_source_path) {
-    std::cerr << "Input file " << clp.input_typescript_path
-              << " is not contained within the specified project root folder, "
-              << project_directory << std::endl;
+  utils::ErrorOr<HostFilesystemProject> error_or_project =
+      CreateProjectFromPath(clp.project_directory ? std::filesystem::absolute(
+                                                        *clp.project_directory)
+                                                  : absolute_input_source_file,
+                            typescript_input_modules);
+  if (auto error = std::get_if<0>(&error_or_project)) {
+    std::cerr << error->msg << std::endl;
     return 1;
   }
 
-  // Setup a TypeScript compiler environment.
-  result->compile_env.emplace(&(*result->virtual_filesystem),
-                              &typescript_input_modules);
+  result->project = std::move(std::get<1>(error_or_project));
+
+  std::optional<VirtualFilesystem::AbsolutePath> input_source_path =
+      result->project->virtual_filesystem->HostPathToVirtualPath(
+          absolute_input_source_file);
+  if (!input_source_path) {
+    assert(clp.project_directory);
+    std::cerr << "Input file " << clp.input_typescript_path
+              << " is not contained within the specified project root folder, "
+              << *clp.project_directory << std::endl;
+    return 1;
+  }
 
   // Compile the contents of the user's script in memory and check if there were
   // any errors.
   auto compiled_module_or_error =
-      result->compile_env->Compile(*virtual_input_source_path);
+      std::get<1>(
+          result->project->Build({*input_source_path}).wait_and_get_results())
+          .begin()
+          ->second;
   if (auto error = std::get_if<0>(&compiled_module_or_error)) {
     std::cerr << "Error compiling TypeScript:" << std::endl;
     std::cerr << error->path << ":" << error->line + 1 << ":"
