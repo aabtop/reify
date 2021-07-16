@@ -287,6 +287,13 @@ CreateProjectWithDefaultBuildFilesGetterFromPath(
 
 namespace reify_v8 {
 template <typename R>
+struct TypeScriptTypeString<reify::typescript_cpp_v8::Function<R()>> {
+  static std::string value() {
+    return "() => " + TypeScriptTypeString<R>::value();
+  }
+};
+
+template <typename R>
 struct TypeMatchesTypeScriptString<reify::typescript_cpp_v8::Function<R()>> {
   static bool Result(std::string_view ts) {
     const std::string_view kParameterlessSignature("() => ");

@@ -31,8 +31,7 @@ class MainWindow : public QMainWindow {
 
  public:
   MainWindow(const std::string& window_title,
-             std::unique_ptr<DomainVisualizer> domain_visualizer,
-             QWidget* parent = nullptr);
+             DomainVisualizer* domain_visualizer, QWidget* parent = nullptr);
   ~MainWindow();
 
  protected:
@@ -93,7 +92,7 @@ class MainWindow : public QMainWindow {
   std::unique_ptr<Ui::MainWindow> ui_;
   QString default_title_;
 
-  std::unique_ptr<DomainVisualizer> domain_visualizer_;
+  DomainVisualizer* domain_visualizer_;
   window::WindowViewport visualizer_window_viewport_;
 
   imgui::DockingLayer visualizer_imgui_docking_layer_;

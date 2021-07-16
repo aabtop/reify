@@ -15,10 +15,17 @@ struct Value {};
 template <typename T>
 struct FromImmRefCnt {};
 
+template <typename T>
+struct TypeScriptTypeString {};
+
 // Parses a TypeScript string and returns true if it matches the passed in
 // C++ string.
 template <typename T>
-struct TypeMatchesTypeScriptString {};
+struct TypeMatchesTypeScriptString {
+  static bool Result(std::string_view ts) {
+    return ts == TypeScriptTypeString<T>::value();
+  }
+};
 
 void InstallInterfaceToGlobalObject(
     v8::Isolate* isolate, v8::Local<v8::ObjectTemplate> global_template);
@@ -60,8 +67,8 @@ struct FromImmRefCnt<std::string> {
   using type = v8::String;
 };
 template <>
-struct TypeMatchesTypeScriptString<std::string> {
-  static bool Result(std::string_view ts) { return ts == "string"; }
+struct TypeScriptTypeString<std::string> {
+  static std::string value() { return "string"; }
 };
 
 class I32 : public v8::Number {
@@ -90,8 +97,8 @@ struct FromImmRefCnt<int32_t> {
   using type = I32;
 };
 template <>
-struct TypeMatchesTypeScriptString<int32_t> {
-  static bool Result(std::string_view ts) { return ts == "number"; }
+struct TypeScriptTypeString<int32_t> {
+  static std::string value() { return "number"; }
 };
 
 class F32 : public v8::Number {
@@ -119,8 +126,8 @@ struct FromImmRefCnt<float> {
   using type = F32;
 };
 template <>
-struct TypeMatchesTypeScriptString<float> {
-  static bool Result(std::string_view ts) { return ts == "number"; }
+struct TypeScriptTypeString<float> {
+  static std::string value() { return "number"; }
 };
 
 template <>
@@ -134,8 +141,8 @@ struct FromImmRefCnt<bool> {
   using type = v8::Boolean;
 };
 template <>
-struct TypeMatchesTypeScriptString<bool> {
-  static bool Result(std::string_view ts) { return ts == "boolean"; }
+struct TypeScriptTypeString<bool> {
+  static std::string value() { return "boolean"; }
 };
 
 template <typename T>
@@ -178,11 +185,8 @@ struct FromImmRefCnt<std::vector<T>> {
   using type = List<typename FromImmRefCnt<T>::type>;
 };
 template <typename T>
-struct TypeMatchesTypeScriptString<std::vector<T>> {
-  static bool Result(std::string_view ts) {
-    assert(false);  // Not implemented.
-    return false;
-  }
+struct TypeScriptTypeString<std::vector<T>> {
+  // Not implemented.
 };
 
 template <typename T, int S>
@@ -225,11 +229,8 @@ struct FromImmRefCnt<std::array<T, S>> {
   using type = FixedSizeArray<typename FromImmRefCnt<T>::type, S>;
 };
 template <typename T, int S>
-struct TypeMatchesTypeScriptString<std::array<T, S>> {
-  static bool Result(std::string_view ts) {
-    assert(false);  // Not implemented.
-    return false;
-  }
+struct TypeScriptTypeString<std::array<T, S>> {
+  // Not implemented.
 };
 
 namespace internal {
@@ -279,11 +280,8 @@ struct FromImmRefCnt<std::tuple<Ts...>> {
   using type = Tuple<typename FromImmRefCnt<Ts>::type...>;
 };
 template <typename... Ts>
-struct TypeMatchesTypeScriptString<std::tuple<Ts...>> {
-  static bool Result(std::string_view ts) {
-    assert(false);  // Not implemented.
-    return false;
-  }
+struct TypeScriptTypeString<std::tuple<Ts...>> {
+  // Not implemented.
 };
 
 template <typename T>
@@ -355,6 +353,11 @@ struct Value<Ref<T>> {
 template <typename T>
 struct FromImmRefCnt<std::shared_ptr<const T>> {
   using type = Ref<typename FromImmRefCnt<T>::type>;
+};
+
+template <typename T>
+struct TypeScriptTypeString<std::shared_ptr<const T>> {
+  static std::string value() { return TypeScriptTypeString<T>::value(); }
 };
 
 template <typename T>

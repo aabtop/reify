@@ -73,8 +73,7 @@ class RuntimeLayer {
   // This needs to be last so that it is the first to be destructed.
   utils::ScopedWorkQueue self_work_queue_;
 
-  std::optional<utils::Future<
-      DomainVisualizer::ErrorOr<DomainVisualizer::PreparedSymbol>>::Watch>
+  std::optional<utils::Future<DomainVisualizer::ErrorOr<std::any>>::Watch>
       pending_preview_results_;
 };
 

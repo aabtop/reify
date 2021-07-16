@@ -5,7 +5,6 @@
 #include "CLI/CLI.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "reify/typescript_cpp_v8/domain_visualizer.h"
 #include "reify/typescript_cpp_v8/imgui/docking_freespace_to_window_viewport_layer.h"
 #include "reify/typescript_cpp_v8/imgui/docking_layer.h"
@@ -13,6 +12,7 @@
 #include "reify/typescript_cpp_v8/imgui/project_layer.h"
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
 #include "reify/typescript_cpp_v8/imgui/status_layer.h"
+#include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "reify/utils/thread_with_work_queue.h"
 #include "reify/window/platform_window_wrapper.h"
 #include "reify/window/window_stack.h"
@@ -43,16 +43,12 @@ std::variant<int, VisualizerToolOptions> ParseVisualizerToolOptions(
   return options;
 }
 
-utils::MaybeError RunVisualizerTool(
-    const std::string& window_title,
-    const std::function<std::unique_ptr<DomainVisualizer>()>&
-        create_domain_visualizer,
-    const VisualizerToolOptions& options) {
+utils::MaybeError RunVisualizerTool(const std::string& window_title,
+                                    DomainVisualizer* domain_visualizer,
+                                    const VisualizerToolOptions& options) {
   utils::ThreadWithWorkQueue visualizer_thread;
 
-  std::unique_ptr<DomainVisualizer> domain_visualizer =
-      create_domain_visualizer();
-  window::WindowViewport domain_visualizer_viewport(domain_visualizer.get());
+  window::WindowViewport domain_visualizer_viewport(domain_visualizer);
 
   imgui::DockingLayer docking_layer(ImGuiDir_Left, 0.2f);
   imgui::DockingFreespaceToWindowViewportLayer
@@ -61,7 +57,7 @@ utils::MaybeError RunVisualizerTool(
   imgui::StatusLayer status_layer(&docking_layer);
   imgui::RuntimeLayer runtime_layer(
       [&visualizer_thread](auto x) { visualizer_thread.Enqueue(x); },
-      &docking_layer, &status_layer, domain_visualizer.get());
+      &docking_layer, &status_layer, domain_visualizer);
   imgui::ProjectLayer project_layer(&visualizer_thread, &status_layer,
                                     &runtime_layer, options.project_path);
   imgui::LayerStack imgui_layer_stack(

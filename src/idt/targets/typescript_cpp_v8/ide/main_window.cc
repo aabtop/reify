@@ -19,13 +19,12 @@ namespace typescript_cpp_v8 {
 namespace ide {
 
 MainWindow::MainWindow(const std::string& window_title,
-                       std::unique_ptr<DomainVisualizer> domain_visualizer,
-                       QWidget* parent)
+                       DomainVisualizer* domain_visualizer, QWidget* parent)
     : QMainWindow(parent),
       ui_(new Ui::MainWindow),
       default_title_(QString(window_title.c_str())),
-      domain_visualizer_(std::move(domain_visualizer)),
-      visualizer_window_viewport_(domain_visualizer_.get()),
+      domain_visualizer_(domain_visualizer),
+      visualizer_window_viewport_(domain_visualizer_),
       visualizer_imgui_docking_layer_(ImGuiDir_Left, 0.2f),
       visualizer_imgui_docking_freespace_to_window_viewport_layer_(
           &visualizer_window_viewport_, &visualizer_imgui_docking_layer_),
@@ -35,7 +34,7 @@ MainWindow::MainWindow(const std::string& window_title,
             QMetaObject::invokeMethod(this, x);
           },
           &visualizer_imgui_docking_layer_, &visualizer_imgui_status_layer_,
-          domain_visualizer_.get()),
+          domain_visualizer_),
       visualizer_imgui_stack_({
           [docking_layer = &visualizer_imgui_docking_layer_]() {
             docking_layer->ExecuteImGuiCommands();

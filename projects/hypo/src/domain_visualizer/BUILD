@@ -14,6 +14,7 @@ cc_library(
         "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
         "@imgui//:frontend",
         "@imgui-filebrowser",
+        "@fmtlib",
     ],
     visibility = ["//visibility:public"],
 )

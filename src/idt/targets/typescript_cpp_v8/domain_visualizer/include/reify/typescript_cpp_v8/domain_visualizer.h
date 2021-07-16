@@ -21,7 +21,6 @@ class DomainVisualizer : public window::Window {
  public:
   template <typename T>
   using ErrorOr = window::Window::ErrorOr<T>;
-  using PreparedSymbol = std::any;
 
   virtual ~DomainVisualizer(){};
 
@@ -32,10 +31,10 @@ class DomainVisualizer : public window::Window {
       const CompiledModule::ExportedSymbol& symbol) = 0;
 
   // The callback, `on_preview_prepared`, may be called from a separate thread.
-  virtual utils::Future<ErrorOr<PreparedSymbol>> PrepareSymbolForPreview(
+  virtual utils::Future<ErrorOr<std::any>> PrepareSymbolForPreview(
       std::shared_ptr<CompiledModule> module,
       const CompiledModule::ExportedSymbol& symbol) = 0;
-  virtual void SetPreview(const PreparedSymbol& prepared_symbol) = 0;
+  virtual void SetPreview(const std::any& prepared_symbol) = 0;
   virtual void ClearPreview() = 0;
 
   virtual bool HasImGuiWindow() const { return false; }

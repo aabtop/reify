@@ -36,6 +36,10 @@ struct FromImmRefCnt<{{immRefCntNamespace}}::{{name}}> {
   using type = {{namespace}}::{{name}};
 };
 template <>
+struct TypeScriptTypeString<{{immRefCntNamespace}}::{{name}}> {
+  static std::string value() { return "{{name}}"; }
+};
+template <>
 struct TypeMatchesTypeScriptString<{{immRefCntNamespace}}::{{name}}> {
   static bool Result(std::string_view ts) {
     return ts == "{{name}}"

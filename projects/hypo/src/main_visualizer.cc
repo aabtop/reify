@@ -11,9 +11,9 @@ int main(int argc, char* argv[]) {
                    APP_NAME, "Visualizer for Hypo TypeScript-defined geometry.",
                    argc, argv));
 
+  HypoTypeScriptSymbolVisualizerStack hypo_visualizer_stack;
   auto maybe_error = reify::typescript_cpp_v8::RunVisualizerTool(
-      APP_NAME, [] { return std::make_unique<DomainVisualizerHypo>(); },
-      options);
+      APP_NAME, &hypo_visualizer_stack.visualizer, options);
 
   if (maybe_error) {
     std::cerr << "Error: " << maybe_error->msg << std::endl;

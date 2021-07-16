@@ -20,8 +20,7 @@ std::variant<int, VisualizerToolOptions> ParseVisualizerToolOptions(
 
 utils::MaybeError RunVisualizerTool(
     const std::string& window_title,
-    const std::function<std::unique_ptr<DomainVisualizer>()>&
-        create_domain_visualizer,
+    DomainVisualizer* domain_visualizer,
     const VisualizerToolOptions& options = VisualizerToolOptions());
 
 }  // namespace typescript_cpp_v8

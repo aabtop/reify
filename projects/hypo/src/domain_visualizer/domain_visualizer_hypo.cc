@@ -8,6 +8,8 @@
 #include "imgui.h"
 #include "imfilebrowser.h"
 // clang-format on
+#include <fmt/format.h>
+
 #include "cgal/construct_region2.h"
 #include "cgal/construct_region3.h"
 #include "cgal/export_to_stl.h"
@@ -15,6 +17,250 @@
 #include "reify/purecpp/hypo.h"
 #include "reify/typescript_cpp_v8/hypo.h"
 #include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
+
+namespace {
+std::unordered_map<std::string, TypeScriptSymbolVisualizer> ToTypeVisualizerMap(
+    const std::vector<TypeScriptSymbolVisualizer>& visualizers) {
+  std::unordered_map<std::string, TypeScriptSymbolVisualizer> result;
+  for (const auto& visualizer : visualizers) {
+    result.insert(std::make_pair(visualizer.typescript_type, visualizer));
+  }
+  return result;
+}
+}  // namespace
+
+TypeScriptSymbolVisualizerStack::TypeScriptSymbolVisualizerStack(
+    const std::vector<
+        reify::typescript_cpp_v8::CompilerEnvironment::InputModule>&
+        typescript_modules,
+    const std::vector<TypeScriptSymbolVisualizer>& visualizers)
+    : typescript_modules_(typescript_modules),
+      typescript_type_to_visualizer_(ToTypeVisualizerMap(visualizers)) {}
+
+const TypeScriptSymbolVisualizer*
+TypeScriptSymbolVisualizerStack::FindVisualizerForSymbol(
+    const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol)
+    const {
+  for (const auto& item : typescript_type_to_visualizer_) {
+    if (symbol.typescript_type_string == fmt::format("() => {}", item.first)) {
+      return &item.second;
+    }
+  }
+  return nullptr;
+}
+
+bool TypeScriptSymbolVisualizerStack::CanPreviewSymbol(
+    const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol) {
+  return FindVisualizerForSymbol(symbol);
+}
+
+reify::utils::Future<TypeScriptSymbolVisualizerStack::ErrorOr<std::any>>
+TypeScriptSymbolVisualizerStack::PrepareSymbolForPreview(
+    std::shared_ptr<reify::typescript_cpp_v8::CompiledModule> module,
+    const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol) {
+  return runtime_thread_.EnqueueWithResult<
+      ErrorOr<std::any>>([this, module,
+                          symbol = std::move(symbol)]() -> ErrorOr<std::any> {
+    // Setup a V8 runtime environment around the CompiledModule.  This will
+    // enable us to call exported functions and query exported values from
+    // the module.
+    auto runtime_env_or_error =
+        reify::typescript_cpp_v8::CreateRuntimeEnvironment(module);
+    if (auto error = std::get_if<0>(&runtime_env_or_error)) {
+      return Error{*error};
+    }
+
+    reify::typescript_cpp_v8::RuntimeEnvironment runtime_env(
+        std::move(std::get<1>(runtime_env_or_error)));
+
+    auto visualizer = FindVisualizerForSymbol(symbol);
+    if (!visualizer) {
+      return Error{"Hypo's visualizer does not support this symbol type."};
+    }
+
+    auto results =
+        visualizer
+            ->prepare_symbol_for_preview_function(&runtime_env, module, symbol)
+            .wait_and_get_results();
+
+    if (auto canceled_future = std::get_if<0>(&results)) {
+      return Error{"Cancelled."};
+    }
+    if (auto error = std::get_if<0>(&std::get<1>(results))) {
+      return *error;
+    }
+    return PreparedSymbol{std::get<std::any>(std::get<1>(results)), visualizer};
+  });
+}
+
+class TypeScriptSymbolVisualizerStack::Renderer
+    : public reify::window::Window::Renderer {
+ public:
+  Renderer(std::unordered_map<
+               std::string, std::unique_ptr<reify::window::Window::Renderer>>&&
+               renderers,
+           const std::function<void()>& on_destroy);
+  ~Renderer() { on_destroy_(); }
+
+  void SetCurrent(const std::optional<std::string>& current_renderer) {
+    if (current_renderer) {
+      auto found = renderers_.find(*current_renderer);
+      assert(found != renderers_.end());
+      current_renderer_ = found->second.get();
+    } else {
+      current_renderer_ = nullptr;
+    }
+  }
+
+  ErrorOr<FrameResources> RenderFrame(
+      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+      VkImage output_color_image,
+      const reify::window::Rect& viewport_region) override {
+    if (current_renderer_) {
+      return current_renderer_->RenderFrame(
+          command_buffer, framebuffer, output_color_image, viewport_region);
+    } else {
+      return FrameResources();
+    }
+  }
+
+ private:
+  const std::unordered_map<std::string,
+                           std::unique_ptr<reify::window::Window::Renderer>>
+      renderers_;
+  const std::function<void()> on_destroy_;
+
+  reify::window::Window::Renderer* current_renderer_ = nullptr;
+};
+
+void TypeScriptSymbolVisualizerStack::SetPreview(
+    const std::any& prepared_symbol) {
+  if (selected_symbol_) {
+    selected_symbol_->associated_visualizer->set_preview_function(std::nullopt);
+    if (renderer_) {
+      renderer_->SetCurrent(std::nullopt);
+    }
+  }
+  selected_symbol_ = std::any_cast<PreparedSymbol>(prepared_symbol);
+
+  if (last_viewport_resize_) {
+    selected_symbol_->associated_visualizer->window->OnViewportResize(
+        *last_viewport_resize_);
+  }
+
+  selected_symbol_->associated_visualizer->set_preview_function(
+      selected_symbol_->processed_data);
+  if (renderer_) {
+    renderer_->SetCurrent(
+        selected_symbol_->associated_visualizer->typescript_type);
+  }
+}
+
+void TypeScriptSymbolVisualizerStack::ClearPreview() {
+  if (selected_symbol_) {
+    selected_symbol_->associated_visualizer->set_preview_function(std::nullopt);
+  }
+  selected_symbol_ = std::nullopt;
+}
+
+bool TypeScriptSymbolVisualizerStack::OnInputEvent(
+    const InputEvent& input_event) {
+  if (selected_symbol_) {
+    return selected_symbol_->associated_visualizer->window->OnInputEvent(
+        input_event);
+  } else {
+    return false;
+  }
+}
+
+void TypeScriptSymbolVisualizerStack::OnViewportResize(
+    const std::array<int, 2>& size) {
+  last_viewport_resize_ = size;
+  if (selected_symbol_) {
+    selected_symbol_->associated_visualizer->window->OnViewportResize(size);
+  }
+}
+
+void TypeScriptSymbolVisualizerStack::AdvanceTime(
+    std::chrono::duration<float> seconds) {
+  if (selected_symbol_) {
+    selected_symbol_->associated_visualizer->window->AdvanceTime(seconds);
+  }
+}
+
+TypeScriptSymbolVisualizerStack::Renderer::Renderer(
+    std::unordered_map<std::string,
+                       std::unique_ptr<reify::window::Window::Renderer>>&&
+        renderers,
+    const std::function<void()>& on_destroy)
+    : renderers_(std::move(renderers)), on_destroy_(on_destroy) {}
+
+TypeScriptSymbolVisualizerStack::ErrorOr<
+    std::unique_ptr<reify::window::Window::Renderer>>
+TypeScriptSymbolVisualizerStack::CreateRenderer(
+    VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
+    VkFormat output_image_format) {
+  std::unordered_map<std::string,
+                     std::unique_ptr<reify::window::Window::Renderer>>
+      renderers;
+  for (const auto& item : typescript_type_to_visualizer_) {
+    auto error_or_renderer = item.second.window->CreateRenderer(
+        instance, physical_device, device, output_image_format);
+    if (auto error = std::get_if<0>(&error_or_renderer)) {
+      return *error;
+    }
+    renderers[item.first] = std::move(std::get<1>(error_or_renderer));
+  }
+
+  std::unique_ptr<Renderer> renderer(
+      new Renderer(std::move(renderers), [this]() { renderer_ = nullptr; }));
+  renderer_ = renderer.get();
+  if (selected_symbol_) {
+    renderer_->SetCurrent(
+        selected_symbol_->associated_visualizer->typescript_type);
+  }
+  return std::move(renderer);
+}
+
+bool TypeScriptSymbolVisualizerStack::HasImGuiWindow() const {
+  return selected_symbol_ &&
+         selected_symbol_->associated_visualizer->im_gui_visualizer;
+}
+
+std::string TypeScriptSymbolVisualizerStack::ImGuiWindowPanelTitle() const {
+  if (selected_symbol_) {
+    return selected_symbol_->associated_visualizer->im_gui_visualizer
+        ->ImGuiWindowPanelTitle();
+  } else {
+    assert(false);
+    return "nothing!";
+  }
+}
+
+void TypeScriptSymbolVisualizerStack::RenderImGuiWindow() {
+  if (selected_symbol_) {
+    selected_symbol_->associated_visualizer->im_gui_visualizer
+        ->RenderImGuiWindow();
+  }
+}
+
+ObjectVisualizerHypoRegion3::ObjectVisualizerHypoRegion3()
+    : free_camera_viewport_(0, 0) {}
+
+ObjectVisualizerHypoRegion3::~ObjectVisualizerHypoRegion3() {}
+
+reify::utils::Future<
+    reify::typescript_cpp_v8::DomainVisualizer::ErrorOr<std::any>>
+ObjectVisualizerHypoRegion3::PrepareDataForPreview(const hypo::Region3& data) {
+  return builder_thread_.EnqueueWithResult<
+      reify::typescript_cpp_v8::DomainVisualizer::ErrorOr<std::any>>(
+      [data]()
+          -> reify::typescript_cpp_v8::DomainVisualizer::ErrorOr<std::any> {
+        return std::shared_ptr<hypo::cgal::Nef_polyhedron_3>(
+            new hypo::cgal::Nef_polyhedron_3(
+                hypo::cgal::ConstructRegion3(data)));
+      });
+}
 
 namespace {
 TriangleSoup ConvertToTriangleSoup(
@@ -59,95 +305,34 @@ TriangleSoup ConvertToTriangleSoup(
 
   return TriangleSoup{std::move(vertices), std::move(triangles)};
 }
+
 }  // namespace
 
-DomainVisualizerHypo::DomainVisualizerHypo() : free_camera_viewport_(0, 0) {}
+void ObjectVisualizerHypoRegion3::SetPreview(
+    const std::optional<std::any>& prepared_symbol) {
+  if (!prepared_symbol) {
+    current_preview_ = nullptr;
 
-DomainVisualizerHypo::~DomainVisualizerHypo() {}
-
-std::vector<reify::typescript_cpp_v8::CompilerEnvironment::InputModule>
-DomainVisualizerHypo::GetTypeScriptModules() {
-  return reify::typescript_cpp_v8::hypo::typescript_declarations();
-}
-
-bool DomainVisualizerHypo::CanPreviewSymbol(
-    const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol) {
-  return (/*symbol.HasType<reify::typescript_cpp_v8::Function<hypo::Region2()>>()
-             ||*/
-          symbol
-              .HasType<reify::typescript_cpp_v8::Function<hypo::Region3()>>());
-}
-
-reify::utils::Future<
-    DomainVisualizerHypo::ErrorOr<DomainVisualizerHypo::PreparedSymbol>>
-DomainVisualizerHypo::PrepareSymbolForPreview(
-    std::shared_ptr<reify::typescript_cpp_v8::CompiledModule> module,
-    const reify::typescript_cpp_v8::CompiledModule::ExportedSymbol& symbol) {
-  return builder_thread_.EnqueueWithResult<
-      ErrorOr<PreparedSymbol>>([module, symbol = std::move(symbol)]()
-                                   -> ErrorOr<PreparedSymbol> {
-    // Setup a V8 runtime environment around the CompiledModule.  This will
-    // enable us to call exported functions and query exported values from
-    // the module.
-    auto runtime_env_or_error =
-        reify::typescript_cpp_v8::CreateRuntimeEnvironment(module);
-    if (auto error = std::get_if<0>(&runtime_env_or_error)) {
-      return Error{*error};
-    }
-
-    reify::typescript_cpp_v8::RuntimeEnvironment runtime_env(
-        std::move(std::get<1>(runtime_env_or_error)));
-
-    if (symbol.HasType<reify::typescript_cpp_v8::Function<hypo::Region3()>>()) {
-      auto entry_point_or_error =
-          runtime_env
-              .GetExport<reify::typescript_cpp_v8::Function<hypo::Region3()>>(
-                  symbol.name);
-      if (auto error = std::get_if<0>(&entry_point_or_error)) {
-        return Error{"Problem finding entrypoint function: " + *error};
-      }
-      auto entry_point = &std::get<1>(entry_point_or_error);
-
-      auto result_or_error = entry_point->Call();
-      if (auto error = std::get_if<0>(&result_or_error)) {
-        return Error{"Error running function: " + *error};
-      }
-
-      hypo::Region3 result = std::get<1>(result_or_error);
-
-      return std::shared_ptr<hypo::cgal::Nef_polyhedron_3>(
-          new hypo::cgal::Nef_polyhedron_3(
-              hypo::cgal::ConstructRegion3(result)));
+    if (mesh_renderer_) {
+      mesh_renderer_->SetTriangleSoup(nullptr);
     } else {
-      return Error{"Hypo's visualizer does not support this symbol type."};
+      pending_triangle_soup_ = nullptr;
     }
-  });
-}
-
-void DomainVisualizerHypo::SetPreview(const PreparedSymbol& prepared_symbol) {
-  current_preview_ =
-      std::any_cast<std::shared_ptr<hypo::cgal::Nef_polyhedron_3>>(
-          prepared_symbol);
-  auto triangle_soup =
-      std::make_shared<TriangleSoup>(ConvertToTriangleSoup(*current_preview_));
-  if (mesh_renderer_) {
-    mesh_renderer_->SetTriangleSoup(triangle_soup);
   } else {
-    pending_triangle_soup_ = triangle_soup;
+    current_preview_ =
+        std::any_cast<std::shared_ptr<hypo::cgal::Nef_polyhedron_3>>(
+            *prepared_symbol);
+    auto triangle_soup = std::make_shared<TriangleSoup>(
+        ConvertToTriangleSoup(*current_preview_));
+    if (mesh_renderer_) {
+      mesh_renderer_->SetTriangleSoup(triangle_soup);
+    } else {
+      pending_triangle_soup_ = triangle_soup;
+    }
   }
 }
 
-void DomainVisualizerHypo::ClearPreview() {
-  current_preview_ = nullptr;
-
-  if (mesh_renderer_) {
-    mesh_renderer_->SetTriangleSoup(nullptr);
-  } else {
-    pending_triangle_soup_ = nullptr;
-  }
-}
-
-bool DomainVisualizerHypo::OnInputEvent(const InputEvent& input_event) {
+bool ObjectVisualizerHypoRegion3::OnInputEvent(const InputEvent& input_event) {
   if (auto event = std::get_if<MouseMoveEvent>(&input_event)) {
     free_camera_viewport_.AccumulateMouseMove(event->x, event->y);
   } else if (auto event = std::get_if<MouseButtonEvent>(&input_event)) {
@@ -162,26 +347,27 @@ bool DomainVisualizerHypo::OnInputEvent(const InputEvent& input_event) {
   return false;
 }
 
-void DomainVisualizerHypo::OnViewportResize(const std::array<int, 2>& size) {
+void ObjectVisualizerHypoRegion3::OnViewportResize(
+    const std::array<int, 2>& size) {
   free_camera_viewport_.AccumulateViewportResize(size[0], size[1]);
 }
 
-void DomainVisualizerHypo::AdvanceTime(std::chrono::duration<float> seconds) {
+void ObjectVisualizerHypoRegion3::AdvanceTime(
+    std::chrono::duration<float> seconds) {
   free_camera_viewport_.AccumulateTimeDelta(seconds);
 }
 
 namespace {
 
-class RendererHypo
-    : public reify::typescript_cpp_v8::DomainVisualizer::Renderer {
+class RendererRegion3 : public reify::window::Window::Renderer {
  public:
-  RendererHypo(std::unique_ptr<MeshRenderer> mesh_renderer,
-               const std::function<glm::mat4()>& get_view_matrix,
-               const std::function<void()>& on_destroy)
+  RendererRegion3(std::unique_ptr<MeshRenderer> mesh_renderer,
+                  const std::function<glm::mat4()>& get_view_matrix,
+                  const std::function<void()>& on_destroy)
       : mesh_renderer_(std::move(mesh_renderer)),
         get_view_matrix_(get_view_matrix),
         on_destroy_(on_destroy) {}
-  ~RendererHypo() { on_destroy_(); }
+  ~RendererRegion3() { on_destroy_(); }
 
   ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
@@ -202,11 +388,12 @@ class RendererHypo
 
 }  // namespace
 
-DomainVisualizerHypo::ErrorOr<std::unique_ptr<DomainVisualizerHypo::Renderer>>
-DomainVisualizerHypo::CreateRenderer(VkInstance instance,
-                                     VkPhysicalDevice physical_device,
-                                     VkDevice device,
-                                     VkFormat output_image_format) {
+ObjectVisualizerHypoRegion3::ErrorOr<
+    std::unique_ptr<ObjectVisualizerHypoRegion3::Renderer>>
+ObjectVisualizerHypoRegion3::CreateRenderer(VkInstance instance,
+                                            VkPhysicalDevice physical_device,
+                                            VkDevice device,
+                                            VkFormat output_image_format) {
   auto renderer_or_error = MeshRenderer::Create(instance, physical_device,
                                                 device, output_image_format);
   if (auto error = std::get_if<0>(&renderer_or_error)) {
@@ -222,19 +409,17 @@ DomainVisualizerHypo::CreateRenderer(VkInstance instance,
     pending_triangle_soup_.reset();
   }
 
-  return std::make_unique<RendererHypo>(
+  return std::make_unique<RendererRegion3>(
       std::move(mesh_renderer),
       [this]() { return free_camera_viewport_.ViewMatrix(); },
       [this]() { mesh_renderer_ = nullptr; });
 }
 
-bool DomainVisualizerHypo::HasImGuiWindow() const { return true; }
-
-std::string DomainVisualizerHypo::ImGuiWindowPanelTitle() const {
+std::string ObjectVisualizerHypoRegion3::ImGuiWindowPanelTitle() const {
   return "Region3 Options";
 }
 
-void DomainVisualizerHypo::RenderImGuiWindow() {
+void ObjectVisualizerHypoRegion3::RenderImGuiWindow() {
   if (ImGui::Button("Reset Camera")) {
     free_camera_viewport_.Reset();
   }
@@ -266,3 +451,7 @@ void DomainVisualizerHypo::RenderImGuiWindow() {
     }
   }
 }
+
+HypoTypeScriptSymbolVisualizerStack::HypoTypeScriptSymbolVisualizerStack()
+    : visualizer(reify::typescript_cpp_v8::hypo::typescript_declarations(),
+                 {*MakeTypeScriptSymbolVisualizer(&region_3_visualizer)}) {}

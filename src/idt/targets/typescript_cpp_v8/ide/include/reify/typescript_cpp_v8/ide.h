@@ -12,7 +12,7 @@ namespace reify {
 namespace typescript_cpp_v8 {
 
 int StartIdeWindow(const std::string& window_title,
-                   std::unique_ptr<DomainVisualizer> domain_visualizer);
+                   DomainVisualizer* domain_visualizer);
 
 }  // namespace typescript_cpp_v8
 }  // namespace reify
