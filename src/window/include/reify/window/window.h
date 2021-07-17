@@ -13,6 +13,8 @@
 #include <variant>
 #include <vector>
 
+#include "reify/utils/error.h"
+
 namespace reify {
 namespace window {
 
@@ -48,12 +50,6 @@ struct Rect {
 // of a framework like Qt.
 class Window {
  public:
-  struct Error {
-    std::string msg;
-  };
-  template <typename T>
-  using ErrorOr = std::variant<Error, T>;
-
   struct MouseMoveEvent {
     int x;
     int y;
@@ -84,11 +80,9 @@ class Window {
 
   class Renderer {
    public:
-    template <typename T>
-    using ErrorOr = ErrorOr<T>;
     using FrameResources = std::any;
     virtual ~Renderer() {}
-    virtual ErrorOr<FrameResources> RenderFrame(
+    virtual utils::ErrorOr<FrameResources> RenderFrame(
         VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
         VkImage output_color_image, const Rect& viewport_region) = 0;
   };
@@ -101,7 +95,7 @@ class Window {
 
   virtual void AdvanceTime(std::chrono::duration<float> seconds) = 0;
 
-  virtual ErrorOr<std::unique_ptr<Renderer>> CreateRenderer(
+  virtual utils::ErrorOr<std::unique_ptr<Renderer>> CreateRenderer(
       VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
       VkFormat output_image_format) = 0;
 };

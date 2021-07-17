@@ -37,10 +37,9 @@ class RendererWindowStack : public Window::Renderer {
   RendererWindowStack(std::vector<std::unique_ptr<Renderer>>&& sub_renderers)
       : sub_renderers_(std::move(sub_renderers)) {}
 
-  ErrorOr<FrameResources> RenderFrame(VkCommandBuffer command_buffer,
-                                      VkFramebuffer framebuffer,
-                                      VkImage output_color_image,
-                                      const Rect& viewport_region) override {
+  utils::ErrorOr<FrameResources> RenderFrame(
+      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+      VkImage output_color_image, const Rect& viewport_region) override {
     vulkan_utils::SetImageLayout(
         command_buffer, output_color_image, VK_IMAGE_ASPECT_COLOR_BIT,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -68,7 +67,7 @@ class RendererWindowStack : public Window::Renderer {
 
 }  // namespace
 
-Window::ErrorOr<std::unique_ptr<Window::Renderer>> WindowStack::CreateRenderer(
+utils::ErrorOr<std::unique_ptr<Window::Renderer>> WindowStack::CreateRenderer(
     VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
     VkFormat output_image_format) {
   std::vector<std::unique_ptr<Window::Renderer>> sub_renderers;

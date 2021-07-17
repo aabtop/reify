@@ -1,12 +1,12 @@
-#ifndef _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_RUNTIME_LAYER_H
-#define _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_RUNTIME_LAYER_H
+#ifndef _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_IMGUI_RUNTIME_LAYER_H
+#define _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_IMGUI_RUNTIME_LAYER_H
 
 #include <map>
 #include <optional>
 
-#include "reify/typescript_cpp_v8/domain_visualizer.h"
 #include "reify/typescript_cpp_v8/imgui/docking_layer.h"
 #include "reify/typescript_cpp_v8/imgui/status_layer.h"
+#include "reify/typescript_cpp_v8/symbol_visualizer.h"
 #include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "reify/utils/error.h"
 #include "reify/utils/thread_with_work_queue.h"
@@ -20,11 +20,11 @@ class RuntimeLayer {
   RuntimeLayer(
       const std::function<void(std::function<void()>)>& enqueue_task_function,
       DockingLayer* docking_layer, StatusLayer* status_layer,
-      DomainVisualizer* domain_visualizer);
+      SymbolVisualizer* symbol_visualizer);
 
   void ExecuteImGuiCommands();
 
-  DomainVisualizer* domain_visualizer() const { return domain_visualizer_; }
+  SymbolVisualizer* symbol_visualizer() const { return symbol_visualizer_; }
 
   void SetCompileResults(
       const CompilerEnvironmentThreadSafe::MultiCompileResults&
@@ -57,11 +57,11 @@ class RuntimeLayer {
 
   DockingLayer* docking_layer_;
   StatusLayer* status_layer_;
-  DomainVisualizer* domain_visualizer_;
+  SymbolVisualizer* symbol_visualizer_;
   CompilerEnvironmentThreadSafe::MultiCompileResults compile_results_;
 
   std::optional<utils::Error> preview_error_;
-  // Is there a symbol currently being previewed in the domain visualizer?
+  // Is there a symbol currently being previewed in the symbol visualizer?
   bool preview_active = false;
 
   PreviewableSymbols previewable_symbols_;
@@ -73,7 +73,7 @@ class RuntimeLayer {
   // This needs to be last so that it is the first to be destructed.
   utils::ScopedWorkQueue self_work_queue_;
 
-  std::optional<utils::Future<DomainVisualizer::ErrorOr<std::any>>::Watch>
+  std::optional<utils::Future<utils::ErrorOr<std::any>>::Watch>
       pending_preview_results_;
 };
 
@@ -81,4 +81,4 @@ class RuntimeLayer {
 }  // namespace typescript_cpp_v8
 }  // namespace reify
 
-#endif  // _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_RUNTIME_LAYER_H
+#endif  // _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_IMGUI_RUNTIME_LAYER_H

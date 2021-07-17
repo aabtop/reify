@@ -1,15 +1,18 @@
 cc_library(
-    name = "interface",
-    hdrs = ["include/reify/typescript_cpp_v8/domain_visualizer.h"],
+    name = "symbol_visualizer",
+    srcs = ["symbol_visualizer.cc"],
+    hdrs = ["include/reify/typescript_cpp_v8/symbol_visualizer.h"],
     includes = [
         "include",
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//src/idt/targets/pure_cpp/object_visualizer:interface",
         "//src/idt/targets/typescript_cpp_v8:core",
         "@vulkan_sdk//:vulkan",
         "@reify//src/window",
         "//src/utils",
+        "@fmtlib",
     ],
 )
 
@@ -91,7 +94,7 @@ cc_library(
         "include",
     ],
     deps = [
-        ":interface",
+        ":symbol_visualizer",
         ":imgui_widgets",
         ":imgui_status_layer",
         ":imgui_docking_layer",
@@ -161,7 +164,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        ":interface",
+        ":symbol_visualizer",
         ":imgui_layer_stack",
         ":imgui_project_layer",
         ":imgui_runtime_layer",

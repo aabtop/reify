@@ -58,10 +58,9 @@ class RendererWindowViewport : public Window::Renderer {
       : sub_renderer_(std::move(sub_renderer)),
         window_viewport_(window_viewport) {}
 
-  ErrorOr<FrameResources> RenderFrame(VkCommandBuffer command_buffer,
-                                      VkFramebuffer framebuffer,
-                                      VkImage output_color_image,
-                                      const Rect& viewport_region) override {
+  utils::ErrorOr<FrameResources> RenderFrame(
+      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+      VkImage output_color_image, const Rect& viewport_region) override {
     if (!window_viewport_->viewport()) {
       return FrameResources();
     }
@@ -78,7 +77,7 @@ class RendererWindowViewport : public Window::Renderer {
 
 }  // namespace
 
-Window::ErrorOr<std::unique_ptr<Window::Renderer>>
+utils::ErrorOr<std::unique_ptr<Window::Renderer>>
 WindowViewport::CreateRenderer(VkInstance instance,
                                VkPhysicalDevice physical_device,
                                VkDevice device, VkFormat output_image_format) {

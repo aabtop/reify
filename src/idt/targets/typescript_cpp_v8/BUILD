@@ -98,7 +98,7 @@ cc_library(
     name = "visualizer_tool",
     visibility = ["//visibility:public"],
     deps = [
-        "//src/idt/targets/typescript_cpp_v8/domain_visualizer:visualizer_tool",
+        "//src/idt/targets/typescript_cpp_v8/symbol_visualizer:visualizer_tool",
     ],
 )
 

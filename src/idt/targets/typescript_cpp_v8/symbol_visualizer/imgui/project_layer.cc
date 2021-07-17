@@ -24,7 +24,7 @@ ProjectLayer::ProjectLayer(
     const std::optional<std::filesystem::path>& initial_project_path)
     : status_layer_(status_layer),
       runtime_layer_(runtime_layer),
-      domain_visualizer_(runtime_layer_->domain_visualizer()),
+      symbol_visualizer_(runtime_layer_->symbol_visualizer()),
       self_work_queue_(self_work_queue) {
   if (initial_project_path) {
     LoadProject(*initial_project_path);
@@ -72,7 +72,7 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
 
     // Load up a new project at the specified path.
     auto error_or_project = CreateProjectWithDefaultBuildFilesGetterFromPath(
-        project_path, domain_visualizer_->GetTypeScriptModules());
+        project_path, symbol_visualizer_->GetTypeScriptModules());
     if (auto error = std::get_if<0>(&error_or_project)) {
       compile_results_ = std::nullopt;
       std::cerr << "Error creating project: " << error->msg << std::endl;

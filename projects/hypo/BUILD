@@ -88,10 +88,10 @@ qt_cc_binary(
     "src/main_ide.cc",
   ],
   deps = [
-    "//src/domain_visualizer:domain_visualizer_hypo",
+    "//src/visualizer:typescript_symbol_visualizer",
     "@reify//src/idt/targets/typescript_cpp_v8:ide",
-    "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_layer_stack",
-    "@reify//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_runtime_layer",
+    "@reify//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_layer_stack",
+    "@reify//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_runtime_layer",
     "@reify//src/window:window",
     "@reify//src/window:window_utils",
   ],
@@ -104,6 +104,6 @@ cc_binary(
   ],
   deps = [
     "@reify//src/idt/targets/typescript_cpp_v8:visualizer_tool",
-    "//src/domain_visualizer:domain_visualizer_hypo",
+    "//src/visualizer:typescript_symbol_visualizer",
   ],
 )

@@ -27,7 +27,7 @@ utils::MaybeError RunPlatformWindowWrapper(
   // window.)
   reify::utils::ThreadSafeCircularQueue<utils::MaybeError, 1> quit_flag;
 
-  // We'll be running all domain visualizer commands on `wrapped_window_thread`.
+  // We'll be running all window commands on `wrapped_window_thread`.
 
   auto set_wrapped_window_size = [&](int32_t width, int32_t height) {
     wrapped_window_thread->Enqueue([wrapped_window, width, height] {
@@ -96,7 +96,7 @@ utils::MaybeError RunPlatformWindowWrapper(
   }
   platform_window::Window& window = *maybe_window;
 
-  // Set the domain visualizer initial width/height.
+  // Set the window initial width/height.
   PlatformWindowSize initial_size = window.GetSize();
   set_wrapped_window_size(initial_size.width, initial_size.height);
 

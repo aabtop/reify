@@ -2,7 +2,7 @@
 
 #include "reify/typescript_cpp_v8/visualizer_tool.h"
 #include "reify/utils/error.h"
-#include "src/domain_visualizer/domain_visualizer_hypo.h"
+#include "src/visualizer/typescript_symbol_visualizer.h"
 
 int main(int argc, char* argv[]) {
   std::string APP_NAME = "Hypo Visualizer";
@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
                    APP_NAME, "Visualizer for Hypo TypeScript-defined geometry.",
                    argc, argv));
 
-  HypoTypeScriptSymbolVisualizerStack hypo_visualizer_stack;
+  hypo::TypeScriptSymbolVisualizer hypo_visualizer_stack;
   auto maybe_error = reify::typescript_cpp_v8::RunVisualizerTool(
       APP_NAME, &hypo_visualizer_stack.visualizer, options);
 

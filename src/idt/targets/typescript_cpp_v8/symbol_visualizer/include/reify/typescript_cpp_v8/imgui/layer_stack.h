@@ -1,5 +1,5 @@
-#ifndef _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_LAYER_STACK_H
-#define _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_LAYER_STACK_H
+#ifndef _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_IMGUI_LAYER_STACK_H
+#define _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_IMGUI_LAYER_STACK_H
 
 #include "reify/window/window.h"
 
@@ -21,7 +21,7 @@ class LayerStack : public window::Window {
 
   void AdvanceTime(std::chrono::duration<float> seconds) override;
 
-  ErrorOr<std::unique_ptr<Renderer>> CreateRenderer(
+  utils::ErrorOr<std::unique_ptr<Renderer>> CreateRenderer(
       VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
       VkFormat output_image_format) override;
 
@@ -40,4 +40,4 @@ class LayerStack : public window::Window {
 }  // namespace typescript_cpp_v8
 }  // namespace reify
 
-#endif  // _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_LAYER_STACK_H
+#endif  // _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_IMGUI_LAYER_STACK_H

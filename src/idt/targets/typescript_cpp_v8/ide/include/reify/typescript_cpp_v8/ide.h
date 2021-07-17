@@ -6,13 +6,13 @@
 #include <memory>
 #include <vector>
 
-#include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/typescript_cpp_v8/symbol_visualizer.h"
 
 namespace reify {
 namespace typescript_cpp_v8 {
 
 int StartIdeWindow(const std::string& window_title,
-                   DomainVisualizer* domain_visualizer);
+                   SymbolVisualizer* symbol_visualizer);
 
 }  // namespace typescript_cpp_v8
 }  // namespace reify

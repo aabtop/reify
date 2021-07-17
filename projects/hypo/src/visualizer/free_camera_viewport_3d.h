@@ -7,11 +7,11 @@
 #include <optional>
 #include <unordered_set>
 
-#include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/window/window.h"
 
 class FreeCameraViewport3d {
  public:
-  using MouseButton = reify::typescript_cpp_v8::DomainVisualizer::MouseButton;
+  using MouseButton = reify::window::Window::MouseButton;
 
   FreeCameraViewport3d(int viewport_width_in_pixels,
                        int viewport_height_in_pixels);

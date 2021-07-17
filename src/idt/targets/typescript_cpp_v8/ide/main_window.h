@@ -7,11 +7,11 @@
 #include <string>
 #include <thread>
 
-#include "reify/typescript_cpp_v8/domain_visualizer.h"
 #include "reify/typescript_cpp_v8/imgui/docking_freespace_to_window_viewport_layer.h"
 #include "reify/typescript_cpp_v8/imgui/layer_stack.h"
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
 #include "reify/typescript_cpp_v8/imgui/status_layer.h"
+#include "reify/typescript_cpp_v8/symbol_visualizer.h"
 #include "reify/window/window_stack.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/compilation.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/monaco_interface.h"
@@ -31,7 +31,7 @@ class MainWindow : public QMainWindow {
 
  public:
   MainWindow(const std::string& window_title,
-             DomainVisualizer* domain_visualizer, QWidget* parent = nullptr);
+             SymbolVisualizer* symbol_visualizer, QWidget* parent = nullptr);
   ~MainWindow();
 
  protected:
@@ -92,7 +92,7 @@ class MainWindow : public QMainWindow {
   std::unique_ptr<Ui::MainWindow> ui_;
   QString default_title_;
 
-  DomainVisualizer* domain_visualizer_;
+  SymbolVisualizer* symbol_visualizer_;
   window::WindowViewport visualizer_window_viewport_;
 
   imgui::DockingLayer visualizer_imgui_docking_layer_;
@@ -103,7 +103,7 @@ class MainWindow : public QMainWindow {
   imgui::LayerStack visualizer_imgui_stack_;
   window::WindowStack visualizer_window_;
 
-  std::unique_ptr<QWidget> domain_visualizer_widget_;
+  std::unique_ptr<QWidget> symbol_visualizer_widget_;
   std::unique_ptr<MonacoInterface> monaco_interface_;
 
   std::unique_ptr<QProgressBar> progress_bar_;

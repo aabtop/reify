@@ -40,11 +40,11 @@ qt_cc_library(
     ":monaco_interface",
     ":about_dialog",
     ":reify_window_qt_widget",
-    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
-    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_layer_stack",
-    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_runtime_layer",
-    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_status_layer",
-    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:imgui_docking_freespace_to_window_viewport_layer",
+    "//src/idt/targets/typescript_cpp_v8/symbol_visualizer",
+    "//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_layer_stack",
+    "//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_runtime_layer",
+    "//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_status_layer",
+    "//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_docking_freespace_to_window_viewport_layer",
   ],
 )
 
@@ -68,7 +68,7 @@ qt_cc_library(
   ui_src = "about_dialog.ui",
 )
 
-# Embeds a DomainVisualizer into a Qt Widget for use in Qt applications.
+# Embeds a SymbolVisualizer into a Qt Widget for use in Qt applications.
 qt_cc_library(
     name = "reify_window_qt_widget",
     srcs = [
@@ -97,7 +97,7 @@ cc_library(
   ],
   deps = [
     ":main_window",
-    "//src/idt/targets/typescript_cpp_v8/domain_visualizer:interface",
+    "//src/idt/targets/typescript_cpp_v8/symbol_visualizer",
   ],
   visibility = ["//visibility:public"],
 )

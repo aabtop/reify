@@ -1,5 +1,5 @@
-#ifndef _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_PROJECT_LAYER_H
-#define _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_PROJECT_LAYER_H
+#ifndef _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_IMGUI_PROJECT_LAYER_H
+#define _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_IMGUI_PROJECT_LAYER_H
 
 #include <filesystem>
 #include <map>
@@ -36,7 +36,7 @@ class ProjectLayer {
 
   StatusLayer* status_layer_;
   RuntimeLayer* runtime_layer_;
-  DomainVisualizer* domain_visualizer_;
+  SymbolVisualizer* symbol_visualizer_;
 
   std::optional<StatusLayer::Window> status_window_;
 
@@ -55,4 +55,4 @@ class ProjectLayer {
 }  // namespace typescript_cpp_v8
 }  // namespace reify
 
-#endif  // _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_IMGUI_PROJECT_LAYER_H
+#endif  // _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_IMGUI_PROJECT_LAYER_H

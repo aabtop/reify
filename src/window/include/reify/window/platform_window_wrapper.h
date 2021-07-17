@@ -13,7 +13,7 @@ namespace reify {
 namespace window {
 
 utils::MaybeError RunPlatformWindowWrapper(
-    const std::string& window_title, Window* domain_visualizer,
+    const std::string& window_title, Window* wrapped_window,
     utils::ThreadWithWorkQueue* wrapped_window_thread);
 
 }  // namespace window

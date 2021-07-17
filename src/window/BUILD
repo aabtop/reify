@@ -10,6 +10,7 @@ cc_library(
     deps = [
         "@platform_window//:platform_window_key",
         "@vulkan_sdk//:vulkan",
+        "@reify//src/utils",
     ],
 )
 

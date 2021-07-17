@@ -189,7 +189,7 @@ class RendererImGui : public window::Window::Renderer {
         time_since_last_render_(time_since_last_render) {}
   ~RendererImGui() { ImGui_ImplVulkan_Shutdown(); }
 
-  ErrorOr<FrameResources> RenderFrame(
+  utils::ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
       VkImage output_color_image, const window::Rect& viewport_region) override;
 
@@ -204,7 +204,7 @@ class RendererImGui : public window::Window::Renderer {
   std::chrono::duration<float>* time_since_last_render_;
 };
 
-window::Window::ErrorOr<std::unique_ptr<window::Window::Renderer>>
+utils::ErrorOr<std::unique_ptr<window::Window::Renderer>>
 LayerStack::CreateRenderer(VkInstance instance,
                            VkPhysicalDevice physical_device, VkDevice device,
                            VkFormat output_image_format) {
@@ -212,7 +212,7 @@ LayerStack::CreateRenderer(VkInstance instance,
       RendererImGui::CreateVulkanConstructorData(instance, physical_device,
                                                  device, output_image_format);
   if (auto error = std::get_if<0>(&error_or_vulkan_constructor_data)) {
-    return Error{error->msg};
+    return utils::Error{error->msg};
   }
 
   return std::make_unique<RendererImGui>(
@@ -327,7 +327,7 @@ RendererImGui::CreateVulkanConstructorData(VkInstance instance,
   };
 }
 
-window::Window::ErrorOr<window::Window::Renderer::FrameResources>
+utils::ErrorOr<window::Window::Renderer::FrameResources>
 RendererImGui::RenderFrame(VkCommandBuffer command_buffer,
                            VkFramebuffer framebuffer,
                            VkImage output_color_image,

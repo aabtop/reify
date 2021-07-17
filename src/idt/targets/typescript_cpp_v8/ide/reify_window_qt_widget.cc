@@ -103,7 +103,7 @@ void ReifyWindowVulkanWindowRenderer::startNextFrame() {
   // Clean up previous frame's resources.
   frame_resources_[current_frame_index] = std::nullopt;
 
-  // Update the clock on the domain visualizer.
+  // Update the clock on the window.
   auto current_time = std::chrono::high_resolution_clock::now();
   if (last_render_time_) {
     reify_window_->AdvanceTime(current_time - *last_render_time_);
@@ -115,8 +115,7 @@ void ReifyWindowVulkanWindowRenderer::startNextFrame() {
       window_->currentCommandBuffer(), window_->currentFramebuffer(),
       window_->swapChainImage(window_->currentSwapChainImageIndex()),
       {0, 0, image_size.width(), image_size.height()});
-  if (auto error =
-          std::get_if<window::Window::Error>(&error_or_frame_resources)) {
+  if (auto error = std::get_if<utils::Error>(&error_or_frame_resources)) {
     qFatal("Vulkan error while rendering frame: %s", error->msg.c_str());
   }
 

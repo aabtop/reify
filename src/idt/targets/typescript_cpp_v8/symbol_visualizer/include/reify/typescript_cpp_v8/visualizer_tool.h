@@ -1,10 +1,10 @@
-#ifndef _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_VISUALIZER_TOOL_H
-#define _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_VISUALIZER_TOOL_H
+#ifndef _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_VISUALIZER_TOOL_H
+#define _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_VISUALIZER_TOOL_H
 
 #include <memory>
 #include <string>
 
-#include "reify/typescript_cpp_v8/domain_visualizer.h"
+#include "reify/typescript_cpp_v8/symbol_visualizer.h"
 #include "reify/utils/error.h"
 
 namespace reify {
@@ -19,11 +19,10 @@ std::variant<int, VisualizerToolOptions> ParseVisualizerToolOptions(
     char* argv[]);
 
 utils::MaybeError RunVisualizerTool(
-    const std::string& window_title,
-    DomainVisualizer* domain_visualizer,
+    const std::string& window_title, SymbolVisualizer* symbol_visualizer,
     const VisualizerToolOptions& options = VisualizerToolOptions());
 
 }  // namespace typescript_cpp_v8
 }  // namespace reify
 
-#endif  // _IDT_TARGETS_TYPESCRIPT_CPP_V8_DOMAIN_VISUALIZER_VISUALIZER_TOOL_H
+#endif  // _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_VISUALIZER_TOOL_H

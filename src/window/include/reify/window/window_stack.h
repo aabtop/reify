@@ -19,7 +19,7 @@ class WindowStack : public Window {
 
   void AdvanceTime(std::chrono::duration<float> seconds) override;
 
-  ErrorOr<std::unique_ptr<Renderer>> CreateRenderer(
+  utils::ErrorOr<std::unique_ptr<Renderer>> CreateRenderer(
       VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
       VkFormat output_image_format) override;
 

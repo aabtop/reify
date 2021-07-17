@@ -14,10 +14,10 @@ namespace imgui {
 RuntimeLayer::RuntimeLayer(
     const std::function<void(std::function<void()>)>& enqueue_task_function,
     DockingLayer* docking_layer, StatusLayer* status_layer,
-    DomainVisualizer* domain_visualizer)
+    SymbolVisualizer* symbol_visualizer)
     : docking_layer_(docking_layer),
       status_layer_(status_layer),
-      domain_visualizer_(domain_visualizer),
+      symbol_visualizer_(symbol_visualizer),
       self_work_queue_(enqueue_task_function) {}
 
 RuntimeLayer::PreviewableSymbols
@@ -59,7 +59,7 @@ void RuntimeLayer::SetCompileResults(
   compile_results_ = compile_results;
   previewable_symbols_ = ComputePreviewableSymbolsFromCompileResults(
       compile_results_,
-      [this](auto x) { return domain_visualizer_->CanPreviewSymbol(x); });
+      [this](auto x) { return symbol_visualizer_->CanPreviewSymbol(x); });
 
   if (previewable_symbols_.empty()) {
     selected_symbol_ = std::nullopt;
@@ -96,7 +96,7 @@ void RuntimeLayer::SetCompileResults(
 
   if (!selected_symbol_) {
     preview_active = false;
-    domain_visualizer_->ClearPreview();
+    symbol_visualizer_->ClearPreview();
   }
 
   // If there's only one symbol, and we don't have anything selected, then
@@ -235,9 +235,9 @@ void RuntimeLayer::ExecuteImGuiCommands() {
     status_window_ = std::nullopt;
   }
 
-  if (preview_active && domain_visualizer_->HasImGuiWindow()) {
+  if (preview_active && symbol_visualizer_->HasImGuiWindow()) {
     std::string visualizer_window_title =
-        domain_visualizer_->ImGuiWindowPanelTitle();
+        symbol_visualizer_->ImGuiWindowPanelTitle();
 
     if (!ImGui::FindWindowByName(visualizer_window_title.c_str())) {
       // If this is the first time we're seeing this window, default it into
@@ -246,7 +246,7 @@ void RuntimeLayer::ExecuteImGuiCommands() {
     }
 
     ImGui::Begin(visualizer_window_title.c_str());
-    domain_visualizer_->RenderImGuiWindow();
+    symbol_visualizer_->RenderImGuiWindow();
     ImGui::End();
   }
 }
@@ -330,7 +330,7 @@ void RuntimeLayer::RebuildSelectedSymbol() {
   }
 
   pending_preview_results_ =
-      domain_visualizer_
+      symbol_visualizer_
           ->PrepareSymbolForPreview(
               selected_symbol_->previewable_entry.module,
               selected_symbol_->previewable_entry
@@ -349,7 +349,7 @@ void RuntimeLayer::RebuildSelectedSymbol() {
               if (auto error = std::get_if<0>(&error_or)) {
                 preview_error_ = utils::Error{error->msg};
               } else {
-                domain_visualizer_->SetPreview(std::get<1>(error_or));
+                symbol_visualizer_->SetPreview(std::get<1>(error_or));
                 preview_active = true;
               }
             });

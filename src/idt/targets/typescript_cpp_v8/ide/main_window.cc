@@ -19,12 +19,12 @@ namespace typescript_cpp_v8 {
 namespace ide {
 
 MainWindow::MainWindow(const std::string& window_title,
-                       DomainVisualizer* domain_visualizer, QWidget* parent)
+                       SymbolVisualizer* symbol_visualizer, QWidget* parent)
     : QMainWindow(parent),
       ui_(new Ui::MainWindow),
       default_title_(QString(window_title.c_str())),
-      domain_visualizer_(domain_visualizer),
-      visualizer_window_viewport_(domain_visualizer_),
+      symbol_visualizer_(symbol_visualizer),
+      visualizer_window_viewport_(symbol_visualizer_),
       visualizer_imgui_docking_layer_(ImGuiDir_Left, 0.2f),
       visualizer_imgui_docking_freespace_to_window_viewport_layer_(
           &visualizer_window_viewport_, &visualizer_imgui_docking_layer_),
@@ -34,7 +34,7 @@ MainWindow::MainWindow(const std::string& window_title,
             QMetaObject::invokeMethod(this, x);
           },
           &visualizer_imgui_docking_layer_, &visualizer_imgui_status_layer_,
-          domain_visualizer_),
+          symbol_visualizer_),
       visualizer_imgui_stack_({
           [docking_layer = &visualizer_imgui_docking_layer_]() {
             docking_layer->ExecuteImGuiCommands();
@@ -57,11 +57,11 @@ MainWindow::MainWindow(const std::string& window_title,
   ui_->visualizer->setAutoFillBackground(false);
   ui_->visualizer->setStyleSheet("background-color:transparent;");
 
-  domain_visualizer_widget_ =
+  symbol_visualizer_widget_ =
       MakeReifyWindowWidget(&visualizer_window_, ui_->visualizer);
 
   monaco_interface_.reset(new MonacoInterface(
-      ui_->editor->page(), domain_visualizer_->GetTypeScriptModules(),
+      ui_->editor->page(), symbol_visualizer_->GetTypeScriptModules(),
       [this]() { UpdateUiState(); },
       [this](bool is_dirty) { FileDirtyStatusChange(is_dirty); }, this));
 
@@ -173,7 +173,7 @@ void MainWindow::on_actionOpen_triggered() {
     }
 
     file_project_ = std::make_shared<FileProject>(CreateFileProject(
-        filepath.toStdString(), domain_visualizer_->GetTypeScriptModules()));
+        filepath.toStdString(), symbol_visualizer_->GetTypeScriptModules()));
 
     current_file_is_dirty_ = false;
     UpdateUiState();
@@ -232,7 +232,7 @@ bool MainWindow::SaveAs(const SaveCompleteFunction& save_complete_callback) {
   }
 
   file_project_ = std::make_shared<FileProject>(CreateFileProject(
-      filepath.toStdString(), domain_visualizer_->GetTypeScriptModules()));
+      filepath.toStdString(), symbol_visualizer_->GetTypeScriptModules()));
   save_complete_callback_ = save_complete_callback;
 
   monaco_interface_->SaveAs(
@@ -307,7 +307,7 @@ bool MainWindow::Compile(
     project_operation_.emplace([this, content = content.toStdString(),
                                 compile_complete_callback]() {
       auto result = [typescript_modules =
-                         domain_visualizer_->GetTypeScriptModules(),
+                         symbol_visualizer_->GetTypeScriptModules(),
                      &content, file_project = file_project_]() {
         if (file_project) {
           return std::get<1>(file_project->project.RebuildProject()
@@ -374,7 +374,7 @@ bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
 
         bool previewable_symbols = false;
         for (const auto& symbol : compiled_module->exported_symbols()) {
-          if (domain_visualizer_->CanPreviewSymbol(symbol)) {
+          if (symbol_visualizer_->CanPreviewSymbol(symbol)) {
             previewable_symbols = true;
           }
         }
