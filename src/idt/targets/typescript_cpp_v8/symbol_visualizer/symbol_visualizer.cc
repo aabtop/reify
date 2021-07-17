@@ -102,6 +102,18 @@ class SymbolVisualizer::Renderer : public reify::window::Window::Renderer {
       return current_renderer_->RenderFrame(
           command_buffer, framebuffer, output_color_image, viewport_region);
     } else {
+      // Clear the viewport if no symbol is selected.
+      VkClearColorValue clear_color = {{0.11, 0.11, 0.11, 1}};
+
+      VkImageSubresourceRange image_range = {};
+      image_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      image_range.levelCount = 1;
+      image_range.layerCount = 1;
+
+      vkCmdClearColorImage(command_buffer, output_color_image,
+                           VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1,
+                           &image_range);
+
       return FrameResources();
     }
   }
