@@ -5,7 +5,7 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <unordered_map>
+#include <vector>
 
 #include "reify/pure_cpp/object_visualizer.h"
 #include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
@@ -16,6 +16,8 @@ namespace reify {
 namespace typescript_cpp_v8 {
 
 struct TypeScriptSymbolVisualizer {
+  using CanPreviewSymbolFunction =
+      std::function<bool(const CompiledModule::ExportedSymbol&)>;
   using PrepareSymbolForPreviewFunction =
       std::function<reify::utils::Future<utils::ErrorOr<std::any>>(
           RuntimeEnvironment*, const std::shared_ptr<CompiledModule>&,
@@ -28,16 +30,25 @@ struct TypeScriptSymbolVisualizer {
   reify::window::Window* window;
   pure_cpp::ImGuiVisualizer* im_gui_visualizer;
 
-  PrepareSymbolForPreviewFunction prepare_symbol_for_preview_function;
-  SetPreviewFunction set_preview_function;
+  CanPreviewSymbolFunction can_preview_symbol;
+  PrepareSymbolForPreviewFunction prepare_symbol_for_preview;
+  SetPreviewFunction set_preview;
 };
 
+// This function is the last point where we have templated type information on
+// the type we want to create a visualizer for. It wraps all type-specific
+// information into lambdas so that code using the returned object no longer
+// needs to know the specific type it's working with.
 template <typename T>
 std::optional<TypeScriptSymbolVisualizer> MakeTypeScriptSymbolVisualizer(
     pure_cpp::ObjectVisualizer<T>* object_visualizer) {
   return TypeScriptSymbolVisualizer{
       reify_v8::TypeScriptTypeString<T>::value(),
-      object_visualizer->GetWindow(), object_visualizer->GetImGuiVisualizer(),
+      object_visualizer->GetWindow(),
+      object_visualizer->GetImGuiVisualizer(),
+      [](const CompiledModule::ExportedSymbol& symbol) {
+        return symbol.HasType<reify::typescript_cpp_v8::Function<T()>>();
+      },
       [object_visualizer](RuntimeEnvironment* runtime_env,
                           const std::shared_ptr<CompiledModule>& module,
                           const CompiledModule::ExportedSymbol& symbol)
@@ -105,14 +116,14 @@ class SymbolVisualizer : public window::Window {
   struct PreparedSymbol {
     std::any processed_data;
     const TypeScriptSymbolVisualizer* associated_visualizer;
+    size_t associated_visualizer_index;
   };
 
-  const TypeScriptSymbolVisualizer* FindVisualizerForSymbol(
+  std::optional<size_t> FindVisualizerIndexForSymbol(
       const CompiledModule::ExportedSymbol& symbol) const;
 
   const std::vector<CompilerEnvironment::InputModule> typescript_modules_;
-  const std::unordered_map<std::string, TypeScriptSymbolVisualizer>
-      typescript_type_to_visualizer_;
+  const std::vector<TypeScriptSymbolVisualizer> visualizers_;
 
   reify::utils::ThreadWithWorkQueue runtime_thread_;
 

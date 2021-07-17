@@ -5,90 +5,76 @@
 namespace reify {
 namespace typescript_cpp_v8 {
 
-namespace {
-std::unordered_map<std::string, TypeScriptSymbolVisualizer> ToTypeVisualizerMap(
-    const std::vector<TypeScriptSymbolVisualizer>& visualizers) {
-  std::unordered_map<std::string, TypeScriptSymbolVisualizer> result;
-  for (const auto& visualizer : visualizers) {
-    result.insert(std::make_pair(visualizer.typescript_type, visualizer));
-  }
-  return result;
-}
-}  // namespace
-
 SymbolVisualizer::SymbolVisualizer(
     const std::vector<CompilerEnvironment::InputModule>& typescript_modules,
     const std::vector<TypeScriptSymbolVisualizer>& visualizers)
-    : typescript_modules_(typescript_modules),
-      typescript_type_to_visualizer_(ToTypeVisualizerMap(visualizers)) {}
+    : typescript_modules_(typescript_modules), visualizers_(visualizers) {}
 
-const TypeScriptSymbolVisualizer* SymbolVisualizer::FindVisualizerForSymbol(
+std::optional<size_t> SymbolVisualizer::FindVisualizerIndexForSymbol(
     const CompiledModule::ExportedSymbol& symbol) const {
-  for (const auto& item : typescript_type_to_visualizer_) {
-    if (symbol.typescript_type_string == fmt::format("() => {}", item.first)) {
-      return &item.second;
+  for (size_t i = 0; i < visualizers_.size(); ++i) {
+    if (visualizers_[i].can_preview_symbol(symbol)) {
+      return i;
     }
   }
-  return nullptr;
+  return std::nullopt;
 }
 
 bool SymbolVisualizer::CanPreviewSymbol(
     const CompiledModule::ExportedSymbol& symbol) {
-  return FindVisualizerForSymbol(symbol);
+  return FindVisualizerIndexForSymbol(symbol).has_value();
 }
 
 reify::utils::Future<utils::ErrorOr<std::any>>
 SymbolVisualizer::PrepareSymbolForPreview(
     std::shared_ptr<CompiledModule> module,
     const CompiledModule::ExportedSymbol& symbol) {
-  return runtime_thread_.EnqueueWithResult<
-      utils::ErrorOr<std::any>>([this, module, symbol = std::move(symbol)]()
-                                    -> utils::ErrorOr<std::any> {
-    // Setup a V8 runtime environment around the CompiledModule.  This will
-    // enable us to call exported functions and query exported values from
-    // the module.
-    auto runtime_env_or_error = CreateRuntimeEnvironment(module);
-    if (auto error = std::get_if<0>(&runtime_env_or_error)) {
-      return utils::Error{*error};
-    }
+  return runtime_thread_.EnqueueWithResult<utils::ErrorOr<std::any>>(
+      [this, module, symbol = std::move(symbol)]() -> utils::ErrorOr<std::any> {
+        // Setup a V8 runtime environment around the CompiledModule.  This will
+        // enable us to call exported functions and query exported values from
+        // the module.
+        auto runtime_env_or_error = CreateRuntimeEnvironment(module);
+        if (auto error = std::get_if<0>(&runtime_env_or_error)) {
+          return utils::Error{*error};
+        }
 
-    RuntimeEnvironment runtime_env(
-        std::move(std::get<1>(runtime_env_or_error)));
+        RuntimeEnvironment runtime_env(
+            std::move(std::get<1>(runtime_env_or_error)));
 
-    auto visualizer = FindVisualizerForSymbol(symbol);
-    if (!visualizer) {
-      return utils::Error{
-          "Hypo's visualizer does not support this symbol type."};
-    }
+        std::optional<size_t> maybe_visualizer_index =
+            FindVisualizerIndexForSymbol(symbol);
+        if (!maybe_visualizer_index) {
+          return utils::Error{
+              "Hypo's visualizer does not support this symbol type."};
+        }
 
-    auto results =
-        visualizer
-            ->prepare_symbol_for_preview_function(&runtime_env, module, symbol)
-            .wait_and_get_results();
+        auto visualizer = &visualizers_[*maybe_visualizer_index];
+        auto results =
+            visualizer->prepare_symbol_for_preview(&runtime_env, module, symbol)
+                .wait_and_get_results();
 
-    if (std::holds_alternative<utils::CancelledFuture>(results)) {
-      return utils::Error{"Cancelled."};
-    }
-    if (auto error = std::get_if<0>(&std::get<1>(results))) {
-      return *error;
-    }
-    return PreparedSymbol{std::get<std::any>(std::get<1>(results)), visualizer};
-  });
+        if (std::holds_alternative<utils::CancelledFuture>(results)) {
+          return utils::Error{"Cancelled."};
+        }
+        if (auto error = std::get_if<0>(&std::get<1>(results))) {
+          return *error;
+        }
+        return PreparedSymbol{std::get<std::any>(std::get<1>(results)),
+                              visualizer, *maybe_visualizer_index};
+      });
 }
 
 class SymbolVisualizer::Renderer : public reify::window::Window::Renderer {
  public:
-  Renderer(std::unordered_map<
-               std::string, std::unique_ptr<reify::window::Window::Renderer>>&&
-               renderers,
-           const std::function<void()>& on_destroy);
+  Renderer(
+      std::vector<std::unique_ptr<reify::window::Window::Renderer>>&& renderers,
+      const std::function<void()>& on_destroy);
   ~Renderer() { on_destroy_(); }
 
-  void SetCurrent(const std::optional<std::string>& current_renderer) {
-    if (current_renderer) {
-      auto found = renderers_.find(*current_renderer);
-      assert(found != renderers_.end());
-      current_renderer_ = found->second.get();
+  void SetCurrent(const std::optional<size_t>& current_renderer_index) {
+    if (current_renderer_index) {
+      current_renderer_ = renderers_[*current_renderer_index].get();
     } else {
       current_renderer_ = nullptr;
     }
@@ -119,8 +105,7 @@ class SymbolVisualizer::Renderer : public reify::window::Window::Renderer {
   }
 
  private:
-  const std::unordered_map<std::string,
-                           std::unique_ptr<reify::window::Window::Renderer>>
+  const std::vector<std::unique_ptr<reify::window::Window::Renderer>>
       renderers_;
   const std::function<void()> on_destroy_;
 
@@ -129,7 +114,7 @@ class SymbolVisualizer::Renderer : public reify::window::Window::Renderer {
 
 void SymbolVisualizer::SetPreview(const std::any& prepared_symbol) {
   if (selected_symbol_) {
-    selected_symbol_->associated_visualizer->set_preview_function(std::nullopt);
+    selected_symbol_->associated_visualizer->set_preview(std::nullopt);
     if (renderer_) {
       renderer_->SetCurrent(std::nullopt);
     }
@@ -141,17 +126,16 @@ void SymbolVisualizer::SetPreview(const std::any& prepared_symbol) {
         *last_viewport_resize_);
   }
 
-  selected_symbol_->associated_visualizer->set_preview_function(
+  selected_symbol_->associated_visualizer->set_preview(
       selected_symbol_->processed_data);
   if (renderer_) {
-    renderer_->SetCurrent(
-        selected_symbol_->associated_visualizer->typescript_type);
+    renderer_->SetCurrent(selected_symbol_->associated_visualizer_index);
   }
 }
 
 void SymbolVisualizer::ClearPreview() {
   if (selected_symbol_) {
-    selected_symbol_->associated_visualizer->set_preview_function(std::nullopt);
+    selected_symbol_->associated_visualizer->set_preview(std::nullopt);
   }
   selected_symbol_ = std::nullopt;
 }
@@ -179,9 +163,7 @@ void SymbolVisualizer::AdvanceTime(std::chrono::duration<float> seconds) {
 }
 
 SymbolVisualizer::Renderer::Renderer(
-    std::unordered_map<std::string,
-                       std::unique_ptr<reify::window::Window::Renderer>>&&
-        renderers,
+    std::vector<std::unique_ptr<reify::window::Window::Renderer>>&& renderers,
     const std::function<void()>& on_destroy)
     : renderers_(std::move(renderers)), on_destroy_(on_destroy) {}
 
@@ -190,24 +172,21 @@ SymbolVisualizer::CreateRenderer(VkInstance instance,
                                  VkPhysicalDevice physical_device,
                                  VkDevice device,
                                  VkFormat output_image_format) {
-  std::unordered_map<std::string,
-                     std::unique_ptr<reify::window::Window::Renderer>>
-      renderers;
-  for (const auto& item : typescript_type_to_visualizer_) {
-    auto error_or_renderer = item.second.window->CreateRenderer(
+  std::vector<std::unique_ptr<reify::window::Window::Renderer>> renderers;
+  for (const auto& visualizer : visualizers_) {
+    auto error_or_renderer = visualizer.window->CreateRenderer(
         instance, physical_device, device, output_image_format);
     if (auto error = std::get_if<0>(&error_or_renderer)) {
       return *error;
     }
-    renderers[item.first] = std::move(std::get<1>(error_or_renderer));
+    renderers.push_back(std::move(std::get<1>(error_or_renderer)));
   }
 
   std::unique_ptr<Renderer> renderer(
       new Renderer(std::move(renderers), [this]() { renderer_ = nullptr; }));
   renderer_ = renderer.get();
   if (selected_symbol_) {
-    renderer_->SetCurrent(
-        selected_symbol_->associated_visualizer->typescript_type);
+    renderer_->SetCurrent(selected_symbol_->associated_visualizer_index);
   }
   return std::move(renderer);
 }
