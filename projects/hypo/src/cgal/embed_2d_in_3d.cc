@@ -1,7 +1,6 @@
 #include "cgal/embed_2d_in_3d.h"
 
 #include <CGAL/Constrained_Delaunay_triangulation_2.h>
-#include <CGAL/Triangulation_face_base_with_info_2.h>
 
 #include "cgal/extrude.h"
 #include "cgal/types_nef_polyhedron_3.h"
@@ -12,25 +11,6 @@ namespace hypo {
 namespace cgal {
 
 namespace {
-struct FaceInfo2 {
-  int nesting_level;
-
-  bool in_domain() const { return nesting_level % 2 == 1; }
-};
-
-using Triangulation_vertex_base_2 = CGAL::Triangulation_vertex_base_2<Kernel>;
-using Triangulation_face_base_with_info_2 =
-    CGAL::Triangulation_face_base_with_info_2<FaceInfo2, Kernel>;
-using Constrained_triangulation_face_base_2 =
-    CGAL::Constrained_triangulation_face_base_2<
-        Kernel, Triangulation_face_base_with_info_2>;
-using Triangulation_data_structure_2 =
-    CGAL::Triangulation_data_structure_2<Triangulation_vertex_base_2,
-                                         Constrained_triangulation_face_base_2>;
-using Constrained_Delaunay_triangulation_2 =
-    CGAL::Constrained_Delaunay_triangulation_2<
-        Kernel, Triangulation_data_structure_2>;
-
 void AddPolygonWithHolesToTriangulation(
     const Polygon_with_holes_2& polygon_with_holes,
     Constrained_Delaunay_triangulation_2* cdt) {
@@ -107,23 +87,6 @@ void ComputeTriangleNestingLevels(Constrained_Delaunay_triangulation_2* cdt) {
   }
 }
 
-// Returns a triangulation of the polygon set with each triangle marked with
-// a nesting level.  Triangles with an odd nesting level are considered in the
-// set.
-Constrained_Delaunay_triangulation_2 TriangulatePolygonSet(
-    const Polygon_set_2& polygon_set) {
-  Constrained_Delaunay_triangulation_2 cdt;
-  std::vector<Polygon_with_holes_2> polygons_with_holes;
-  polygons_with_holes.reserve(polygon_set.number_of_polygons_with_holes());
-  polygon_set.polygons_with_holes(std::back_inserter(polygons_with_holes));
-  for (const auto& polygon_with_holes : polygons_with_holes) {
-    AddPolygonWithHolesToTriangulation(polygon_with_holes, &cdt);
-  }
-
-  ComputeTriangleNestingLevels(&cdt);
-  return cdt;
-}
-
 using Surface_mesh_vertex_descriptor =
     typename boost::graph_traits<Surface_mesh>::vertex_descriptor;
 
@@ -159,6 +122,23 @@ Surface_mesh ConvertTriangulationToSurfaceMesh(
 }
 
 }  // namespace
+
+// Returns a triangulation of the polygon set with each triangle marked with
+// a nesting level.  Triangles with an odd nesting level are considered in the
+// set.
+Constrained_Delaunay_triangulation_2 TriangulatePolygonSet(
+    const Polygon_set_2& polygon_set) {
+  Constrained_Delaunay_triangulation_2 cdt;
+  std::vector<Polygon_with_holes_2> polygons_with_holes;
+  polygons_with_holes.reserve(polygon_set.number_of_polygons_with_holes());
+  polygon_set.polygons_with_holes(std::back_inserter(polygons_with_holes));
+  for (const auto& polygon_with_holes : polygons_with_holes) {
+    AddPolygonWithHolesToTriangulation(polygon_with_holes, &cdt);
+  }
+
+  ComputeTriangleNestingLevels(&cdt);
+  return cdt;
+}
 
 Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
     const Polygon_set_2& polygon_set,

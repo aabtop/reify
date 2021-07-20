@@ -68,6 +68,8 @@ class Window {
   };
   struct MouseWheelEvent {
     float angle_in_degrees;
+    int x;
+    int y;
   };
   struct KeyboardEvent {
     // Key codes for key events, adopted from Windows virtual key codes:

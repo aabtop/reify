@@ -27,6 +27,8 @@ bool WindowViewport::OnInputEvent(const InputEvent& input_event) {
     } else {
       return false;
     }
+  } else if (auto event = std::get_if<MouseWheelEvent>(&input_event)) {
+    return sub_window_->OnInputEvent(viewport_modified_event(*event));
   } else {
     return sub_window_->OnInputEvent(input_event);
   }

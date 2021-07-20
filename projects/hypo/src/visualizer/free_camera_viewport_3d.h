@@ -1,5 +1,5 @@
-#ifndef _IDE_FREE_CAMERA_VIEWPORT_3D
-#define _IDE_FREE_CAMERA_VIEWPORT_3D
+#ifndef _HYPO_VISUALIZER_FREE_CAMERA_VIEWPORT_3D_H_
+#define _HYPO_VISUALIZER_FREE_CAMERA_VIEWPORT_3D_H_
 
 #include <chrono>
 #include <glm/glm.hpp>
@@ -8,6 +8,8 @@
 #include <unordered_set>
 
 #include "reify/window/window.h"
+
+namespace hypo {
 
 class FreeCameraViewport3d {
  public:
@@ -63,4 +65,6 @@ class FreeCameraViewport3d {
   glm::quat camera_orientation_;
 };
 
-#endif  // _IDE_FREE_CAMERA_VIEWPORT_3D
+}  // namespace hypo
+
+#endif  // _HYPO_VISUALIZER_FREE_CAMERA_VIEWPORT_3D_H_

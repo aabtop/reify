@@ -9,7 +9,6 @@
 #include "imfilebrowser.h"
 // clang-format on
 
-#include "cgal/construct_region2.h"
 #include "cgal/construct_region3.h"
 #include "cgal/export_to_stl.h"
 #include "cgal/types_nef_polyhedron_3.h"
@@ -142,11 +141,21 @@ class RendererRegion3 : public reify::window::Window::Renderer {
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
       VkImage output_color_image,
       const reify::window::Rect& viewport_region) override {
+    const glm::mat4 perspective_projection_matrix =
+        glm::perspective(45.0f,
+                         (viewport_region.right - viewport_region.left) /
+                             static_cast<float>(viewport_region.bottom -
+                                                viewport_region.top),
+                         0.0001f, 10000.0f)
+        // Flip the y and z axes so that positive y is up and positive z is
+        // away.
+        * glm::scale(glm::mat4(1), glm::vec3(1.0f, -1.0f, -1.0f));
+
     return mesh_renderer_->RenderFrame(
         command_buffer, framebuffer, output_color_image,
         {viewport_region.left, viewport_region.top, viewport_region.right,
          viewport_region.bottom},
-        get_view_matrix_());
+        get_view_matrix_(), perspective_projection_matrix);
   }
 
  private:

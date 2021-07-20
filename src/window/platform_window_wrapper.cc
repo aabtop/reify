@@ -79,6 +79,8 @@ utils::MaybeError RunPlatformWindowWrapper(
           case kPlatformWindowEventTypeMouseWheel: {
             send_wrapped_window_input_event(Window::MouseWheelEvent{
                 event.data.mouse_wheel.angle_in_degrees,
+                event.data.mouse_wheel.x,
+                event.data.mouse_wheel.y,
             });
           } break;
           case kPlatformWindowEventTypeKey: {

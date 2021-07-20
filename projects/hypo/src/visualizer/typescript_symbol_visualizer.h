@@ -3,6 +3,7 @@
 
 #include "reify/typescript_cpp_v8/hypo.h"
 #include "reify/typescript_cpp_v8/symbol_visualizer.h"
+#include "src/visualizer/object_visualizer_region2.h"
 #include "src/visualizer/object_visualizer_region3.h"
 
 namespace hypo {
@@ -10,10 +11,16 @@ namespace hypo {
 class TypeScriptSymbolVisualizer {
  public:
   TypeScriptSymbolVisualizer()
-      : visualizer(reify::typescript_cpp_v8::hypo::typescript_declarations(),
-                   {*reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
-                       &region_3_visualizer)}) {}
+      : visualizer(
+            reify::typescript_cpp_v8::hypo::typescript_declarations(),
+            {
+                *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
+                    &region_2_visualizer),
+                *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
+                    &region_3_visualizer),
+            }) {}
 
+  ObjectVisualizerRegion2 region_2_visualizer;
   ObjectVisualizerRegion3 region_3_visualizer;
   reify::typescript_cpp_v8::SymbolVisualizer visualizer;
 };

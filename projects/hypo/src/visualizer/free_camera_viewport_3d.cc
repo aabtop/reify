@@ -4,6 +4,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+namespace hypo {
+
 FreeCameraViewport3d::FreeCameraViewport3d(int viewport_width_in_pixels,
                                            int viewport_height_in_pixels)
     : viewport_width_in_pixels_(viewport_width_in_pixels),
@@ -204,3 +206,5 @@ glm::vec2 FreeCameraViewport3d::ToViewportPoint(int x, int y) const {
       (x / static_cast<float>(viewport_width_in_pixels_) - 0.5f) * 2.0f,
       (y / static_cast<float>(viewport_height_in_pixels_) - 0.5f) * -2.0f);
 }
+
+}  // namespace hypo

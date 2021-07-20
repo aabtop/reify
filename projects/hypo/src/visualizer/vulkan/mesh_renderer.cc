@@ -121,7 +121,8 @@ auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
                                VkFramebuffer framebuffer,
                                VkImage output_color_image,
                                const std::array<int, 4>& viewport_region,
-                               const glm::mat4& view_matrix)
+                               const glm::mat4& view_matrix,
+                               const glm::mat4& projection_matrix)
     -> ErrorOr<FrameResources> {
   VkViewport viewport;
   viewport.x = viewport_region[0];
@@ -139,14 +140,6 @@ auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
   scissor.extent.height = viewport_region[3] - viewport_region[1];
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-  glm::mat4 projection_matrix =
-      glm::perspective(
-          45.0f,
-          (viewport_region[2] - viewport_region[0]) /
-              static_cast<float>(viewport_region[3] - viewport_region[1]),
-          0.0001f, 10000.0f)
-      // Flip the y and z axes so that positive y is up and positive z is away.
-      * glm::scale(glm::mat4(1), glm::vec3(1.0f, -1.0f, -1.0f));
   glm::mat4 model_matrix = glm::mat4(1.0f);
   MvpUniform uniform_data{model_matrix, view_matrix, projection_matrix};
 

@@ -195,8 +195,11 @@ void ReifyWindowVulkanWindow::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void ReifyWindowVulkanWindow::wheelEvent(QWheelEvent* event) {
-  reify_window_->OnInputEvent(
-      window::Window::MouseWheelEvent{event->angleDelta().y() / 8.0f});
+  reify_window_->OnInputEvent(window::Window::MouseWheelEvent{
+      event->angleDelta().y() / 8.0f,
+      static_cast<int>(event->position().x()),
+      static_cast<int>(event->position().y()),
+  });
 }
 
 namespace {
