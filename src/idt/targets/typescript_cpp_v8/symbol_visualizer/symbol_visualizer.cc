@@ -24,6 +24,12 @@ bool SymbolVisualizer::CanPreviewSymbol(
     const CompiledModule::ExportedSymbol& symbol) {
   return FindVisualizerIndexForSymbol(symbol).has_value();
 }
+std::string SymbolVisualizer::VisualizerTypeScriptTypeForSymbol(
+    const CompiledModule::ExportedSymbol& symbol) {
+  auto visualizer_index = FindVisualizerIndexForSymbol(symbol);
+  assert(visualizer_index);
+  return visualizers_[*visualizer_index].typescript_type;
+}
 
 reify::utils::Future<utils::ErrorOr<std::any>>
 SymbolVisualizer::PrepareSymbolForPreview(

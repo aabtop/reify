@@ -90,6 +90,11 @@ class SymbolVisualizer : public window::Window {
 
   bool CanPreviewSymbol(const CompiledModule::ExportedSymbol& symbol);
 
+  // Returns the type associated with the visualizer that would get used to
+  // visualize the given symbol.
+  std::string VisualizerTypeScriptTypeForSymbol(
+      const CompiledModule::ExportedSymbol& symbol);
+
   reify::utils::Future<utils::ErrorOr<std::any>> PrepareSymbolForPreview(
       std::shared_ptr<CompiledModule> module,
       const CompiledModule::ExportedSymbol& symbol);

@@ -273,7 +273,10 @@ void RuntimeLayer::RenderSymbolTree(
       if (is_selected_module && i == selected_symbol_->symbol_preview_index) {
         flags |= ImGuiTreeNodeFlags_Selected;
       }
-      ImGui::TreeNodeEx(symbol.name.c_str(), flags, "%s", symbol.name.c_str());
+      std::string visualizer_type =
+          symbol_visualizer_->VisualizerTypeScriptTypeForSymbol(symbol);
+      ImGui::TreeNodeEx(symbol.name.c_str(), flags, "%s (%s)",
+                        symbol.name.c_str(), visualizer_type.c_str());
       if (ImGui::IsItemClicked()) {
         selected_symbol_ = SelectedSymbol{previewable_symbol_entry, i};
         RebuildSelectedSymbol();
