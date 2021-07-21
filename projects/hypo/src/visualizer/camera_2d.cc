@@ -1,7 +1,6 @@
 #include "camera_2d.h"
 
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace hypo {
 
