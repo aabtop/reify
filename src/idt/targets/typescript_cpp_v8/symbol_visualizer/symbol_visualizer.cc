@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+#include "vulkan_utils/vulkan_utils.h"
+
 namespace reify {
 namespace typescript_cpp_v8 {
 
@@ -75,7 +77,9 @@ class SymbolVisualizer::Renderer : public reify::window::Window::Renderer {
  public:
   Renderer(
       std::vector<std::unique_ptr<reify::window::Window::Renderer>>&& renderers,
-      const std::function<void()>& on_destroy);
+      const std::function<void()>& on_destroy,
+      const std::shared_ptr<vulkan_utils::WithDeleter<VkRenderPass>>&
+          clear_render_pass);
   ~Renderer() { on_destroy_(); }
 
   void SetCurrent(const std::optional<size_t>& current_renderer_index) {
@@ -89,31 +93,15 @@ class SymbolVisualizer::Renderer : public reify::window::Window::Renderer {
   utils::ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
       VkImage output_color_image,
-      const reify::window::Rect& viewport_region) override {
-    if (current_renderer_) {
-      return current_renderer_->RenderFrame(
-          command_buffer, framebuffer, output_color_image, viewport_region);
-    } else {
-      // Clear the viewport if no symbol is selected.
-      VkClearColorValue clear_color = {{0.11, 0.11, 0.11, 1}};
-
-      VkImageSubresourceRange image_range = {};
-      image_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      image_range.levelCount = 1;
-      image_range.layerCount = 1;
-
-      vkCmdClearColorImage(command_buffer, output_color_image,
-                           VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1,
-                           &image_range);
-
-      return FrameResources();
-    }
-  }
+      const reify::window::Rect& viewport_region) override;
 
  private:
   const std::vector<std::unique_ptr<reify::window::Window::Renderer>>
       renderers_;
   const std::function<void()> on_destroy_;
+
+  // Used for clearing the screen.
+  std::shared_ptr<vulkan_utils::WithDeleter<VkRenderPass>> clear_render_pass_;
 
   reify::window::Window::Renderer* current_renderer_ = nullptr;
 };
@@ -170,8 +158,45 @@ void SymbolVisualizer::AdvanceTime(std::chrono::duration<float> seconds) {
 
 SymbolVisualizer::Renderer::Renderer(
     std::vector<std::unique_ptr<reify::window::Window::Renderer>>&& renderers,
-    const std::function<void()>& on_destroy)
-    : renderers_(std::move(renderers)), on_destroy_(on_destroy) {}
+    const std::function<void()>& on_destroy,
+    const std::shared_ptr<vulkan_utils::WithDeleter<VkRenderPass>>&
+        clear_render_pass)
+    : renderers_(std::move(renderers)),
+      on_destroy_(on_destroy),
+      clear_render_pass_(clear_render_pass) {}
+
+utils::ErrorOr<window::Window::Renderer::FrameResources>
+SymbolVisualizer::Renderer::RenderFrame(
+    VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+    VkImage output_color_image, const reify::window::Rect& viewport_region) {
+  if (current_renderer_) {
+    return current_renderer_->RenderFrame(command_buffer, framebuffer,
+                                          output_color_image, viewport_region);
+  } else {
+    std::array<VkClearValue, 2> clear_values{};
+    memset(clear_values.data(), 0,
+           sizeof(clear_values[0]) * clear_values.size());
+    clear_values[0].color = {{0.11, 0.11, 0.11, 1}};
+    clear_values[1].depthStencil = {1, 0};
+
+    VkRenderPassBeginInfo rpb{};
+    rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    rpb.renderPass = clear_render_pass_->value();
+    rpb.framebuffer = framebuffer;
+    rpb.renderArea.offset.x = viewport_region.left;
+    rpb.renderArea.offset.y = viewport_region.top;
+    rpb.renderArea.extent.width = viewport_region.width();
+    rpb.renderArea.extent.height = viewport_region.height();
+    rpb.clearValueCount = clear_values.size();
+    rpb.pClearValues = clear_values.data();
+
+    // Begin and end a render pass just to clear the view.
+    vkCmdBeginRenderPass(command_buffer, &rpb, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdEndRenderPass(command_buffer);
+
+    return FrameResources(clear_render_pass_);
+  }
+}
 
 utils::ErrorOr<std::unique_ptr<reify::window::Window::Renderer>>
 SymbolVisualizer::CreateRenderer(VkInstance instance,
@@ -188,8 +213,40 @@ SymbolVisualizer::CreateRenderer(VkInstance instance,
     renderers.push_back(std::move(std::get<1>(error_or_renderer)));
   }
 
-  std::unique_ptr<Renderer> renderer(
-      new Renderer(std::move(renderers), [this]() { renderer_ = nullptr; }));
+  // Setup a render pass for when nothing is selected... It's possible we just
+  // use this to issue a clear.
+  auto error_or_render_pass = vulkan_utils::MakeRenderPass(
+      device,
+      {VkAttachmentDescription{
+          0,
+          output_image_format,
+          VK_SAMPLE_COUNT_1_BIT,
+          VK_ATTACHMENT_LOAD_OP_CLEAR,
+          VK_ATTACHMENT_STORE_OP_STORE,
+          VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+          VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      }},
+      VkAttachmentDescription{
+          0,
+          VK_FORMAT_D32_SFLOAT,
+          VK_SAMPLE_COUNT_1_BIT,
+          VK_ATTACHMENT_LOAD_OP_CLEAR,
+          VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+          VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          VK_IMAGE_LAYOUT_UNDEFINED,
+          VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+      });
+  if (auto error = std::get_if<0>(&error_or_render_pass)) {
+    return utils::Error{error->msg};
+  }
+
+  std::unique_ptr<Renderer> renderer(new Renderer(
+      std::move(renderers), [this]() { renderer_ = nullptr; },
+      std::make_shared<vulkan_utils::WithDeleter<VkRenderPass>>(
+          std::move(std::get<1>(error_or_render_pass)))));
   renderer_ = renderer.get();
   if (selected_symbol_) {
     renderer_->SetCurrent(selected_symbol_->associated_visualizer_index);

@@ -10,6 +10,7 @@ cc_library(
         "//src/idt/targets/pure_cpp/object_visualizer:interface",
         "//src/idt/targets/typescript_cpp_v8:core",
         "@vulkan_sdk//:vulkan",
+        "@reify//src/vulkan_utils",
         "@reify//src/window",
         "//src/utils",
         "@fmtlib",

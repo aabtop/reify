@@ -241,7 +241,6 @@ SwapChainRenderer::CreateSwapChainComponents(
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       render_pass,
-
       MakeRenderPass(device,
                      {VkAttachmentDescription{
                          0,
