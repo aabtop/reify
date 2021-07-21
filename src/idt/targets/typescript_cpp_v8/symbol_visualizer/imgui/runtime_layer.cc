@@ -147,6 +147,10 @@ void RuntimeLayer::ExecuteImGuiCommands() {
     ImGui::SetNextWindowDockID(docking_layer_->GetDockedContentNodeId());
   }
 
+  if (visualizer_window_newly_opened_) {
+    visualizer_window_newly_opened_ = false;
+    ImGui::SetNextWindowFocus();
+  }
   ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 250));
   ImGui::Begin(SELECT_SYMBOL_WINDOW_NAME);
 
@@ -161,6 +165,7 @@ void RuntimeLayer::ExecuteImGuiCommands() {
     RenderSymbolTree({}, VirtualPathSetToComponentTrie(module_path_set));
     ImGui::PopItemWidth();
   }
+
   ImGui::End();
   ImGui::PopStyleVar();
 
@@ -244,9 +249,12 @@ void RuntimeLayer::ExecuteImGuiCommands() {
       // the bottom dock slot.
       ImGui::SetNextWindowDockID(docking_layer_->GetDockedContentNodeId());
     }
-
     ImGui::Begin(visualizer_window_title.c_str());
     symbol_visualizer_->RenderImGuiWindow();
+
+    if (ImGui::IsWindowAppearing()) {
+      visualizer_window_newly_opened_ = true;
+    }
     ImGui::End();
   }
 }

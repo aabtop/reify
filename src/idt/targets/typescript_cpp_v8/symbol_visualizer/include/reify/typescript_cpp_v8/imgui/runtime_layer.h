@@ -75,6 +75,13 @@ class RuntimeLayer {
 
   std::optional<utils::Future<utils::ErrorOr<std::any>>::Watch>
       pending_preview_results_;
+
+  // Newly appearing windows will take focus in the dock tab stack, on the
+  // next frame after they are first introduced or re-introduced, but we
+  // don't want that for the visualizer windows.  Instead, keep track of if
+  // we're about to bring a window up, and if so, we'll explicitly keep the
+  // focus on the symbol select tab on the next frame.
+  bool visualizer_window_newly_opened_ = false;
 };
 
 }  // namespace imgui
