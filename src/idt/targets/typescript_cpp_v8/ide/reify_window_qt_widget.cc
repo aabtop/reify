@@ -203,19 +203,67 @@ void ReifyWindowVulkanWindow::wheelEvent(QWheelEvent* event) {
 }
 
 namespace {
-int ConvertKeyFromQt(int key) {
-  // Since the keycode accepted by window::Window is defined by the Qt
-  // key mapping, the conversion is the identity.
-  return key;
+std::optional<int> ConvertKeyFromQt(int key) {
+  // Convert from Qt to window::Window key codes (which are really just
+  // Windows virtual key codes).
+  // Qt key codes are defined here: https://doc.qt.io/qt-5/qt.html#Key-enum
+  // Windows virtual key codes are defined here:
+  // https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes?redirectedfrom=MSDN
+
+  // Number's and letters are the same.
+  if (key >= Qt::Key_0 && key <= Qt::Key_9) {
+    return key;
+  }
+  if (key >= Qt::Key_A && key <= Qt::Key_Z) {
+    return key;
+  }
+
+  switch (key) {
+    case Qt::Key_Control:
+      return 0x11;
+    case Qt::Key_Shift:
+      return 0x10;
+    case Qt::Key_Alt:
+      return 0x12;
+    case Qt::Key_Super_L:
+      return 0x5B;
+    case Qt::Key_Super_R:
+      return 0x5C;
+    case Qt::Key_Minus:
+      return 0xBD;
+    case Qt::Key_Period:
+      return 0xBE;
+    case Qt::Key_Comma:
+      return 0xBC;
+    case Qt::Key_Space:
+      return 0x20;
+    case Qt::Key_Backspace:
+      return 0x08;
+    case Qt::Key_Delete:
+      return 0x2E;
+    case Qt::Key_Return:
+    case Qt::Key_Enter:
+      return 0x0D;
+    case Qt::Key_Slash:
+      return 0x6F;
+    case Qt::Key_Backslash:
+      return 0xE2;
+  }
+  return std::nullopt;
 }
 }  // namespace
+
 void ReifyWindowVulkanWindow::keyPressEvent(QKeyEvent* event) {
-  reify_window_->OnInputEvent(
-      window::Window::KeyboardEvent{ConvertKeyFromQt(event->key()), true});
+  if (auto converted_key = ConvertKeyFromQt(event->key())) {
+    reify_window_->OnInputEvent(
+        window::Window::KeyboardEvent{*converted_key, true});
+  }
 }
 void ReifyWindowVulkanWindow::keyReleaseEvent(QKeyEvent* event) {
-  reify_window_->OnInputEvent(
-      window::Window::KeyboardEvent{ConvertKeyFromQt(event->key()), false});
+  if (auto converted_key = ConvertKeyFromQt(event->key())) {
+    reify_window_->OnInputEvent(
+        window::Window::KeyboardEvent{*converted_key, false});
+  }
 }
 
 std::unique_ptr<QWidget> MakeReifyWindowWidget(window::Window* reify_window,
