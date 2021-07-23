@@ -50,7 +50,7 @@ utils::MaybeError RunVisualizerTool(const std::string& window_title,
 
   window::WindowViewport symbol_visualizer_viewport(symbol_visualizer);
 
-  imgui::DockingLayer docking_layer(ImGuiDir_Left, 0.2f);
+  imgui::DockingLayer docking_layer(ImGuiDir_Right, 0.2f);
   imgui::DockingFreespaceToWindowViewportLayer
       docking_freespace_to_window_viewport_layer(&symbol_visualizer_viewport,
                                                  &docking_layer);

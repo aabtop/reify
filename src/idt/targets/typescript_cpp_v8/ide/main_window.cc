@@ -25,7 +25,7 @@ MainWindow::MainWindow(const std::string& window_title,
       default_title_(QString(window_title.c_str())),
       symbol_visualizer_(symbol_visualizer),
       visualizer_window_viewport_(symbol_visualizer_),
-      visualizer_imgui_docking_layer_(ImGuiDir_Left, 0.2f),
+      visualizer_imgui_docking_layer_(ImGuiDir_Right, 0.2f),
       visualizer_imgui_docking_freespace_to_window_viewport_layer_(
           &visualizer_window_viewport_, &visualizer_imgui_docking_layer_),
       visualizer_imgui_status_layer_(&visualizer_imgui_docking_layer_),
