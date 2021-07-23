@@ -27,7 +27,8 @@ void Camera2d::AccumulateMouseMove(int x, int y) {
 
   glm::vec2 new_viewport_point = ToViewportPoint(x, y);
 
-  if (mouse_button_pressed_[static_cast<int>(MouseButton::Right)]) {
+  if (mouse_button_pressed_[static_cast<int>(MouseButton::Right)] ||
+      mouse_button_pressed_[static_cast<int>(MouseButton::Left)]) {
     glm::vec2 viewport_diff = new_viewport_point - *previous_viewport_point_;
     viewport_diff.y = -viewport_diff.y;
     const auto virtual_viewport =
