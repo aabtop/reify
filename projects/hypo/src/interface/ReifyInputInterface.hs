@@ -138,6 +138,21 @@ idt =
             , Reference minkowskiSum2
             ]
 
+    boundary2 =
+      NamedType
+          "Boundary2"
+          "Returns an object representing the 1D polygonal boundary of a 2D polygonal region. This will be a closed polygon."
+        $ Struct
+            [ ( "region"
+              , "The 2D region to find the boundary of."
+              , Concrete region2)]
+    closedPolylines2 =
+      NamedType
+          "ClosedPolylines2"
+          "An oriented set of closed polylines embedded in R2."
+        $ TaggedUnion
+            [ Reference boundary2 ]
+
     triangleList n =
       NamedType ("TriangleList" ++ show n)
                 ("A list of " ++ show n ++ "-dimensional triangles.")
@@ -307,7 +322,7 @@ idt =
             , Reference subdivideSphere
             ]
   in
-    [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3]
+    [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3, closedPolylines2]
 
 -- The directory containing typescript files which defines the interface.
 -- Within these files one may import reify_generated_interface to access the

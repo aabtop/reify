@@ -11,6 +11,8 @@ namespace cgal {
 
 Polygon_set_2 ConstructRegion2(const hypo::Region2& x);
 
+Polygon_set_2 ConstructClosedPolylines2(const hypo::ClosedPolylines2& x);
+
 }  // namespace cgal
 }  // namespace hypo
 

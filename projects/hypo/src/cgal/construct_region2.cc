@@ -190,5 +190,21 @@ Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
   return Polygon_set_2();
 }
 
+namespace {
+Polygon_set_2 ConstructClosedPolylines2(const hypo::Boundary2& x) {
+  return ConstructRegion2(x.region);
+}
+}  // namespace
+
+Polygon_set_2 ConstructClosedPolylines2(const hypo::ClosedPolylines2& x) {
+  if (auto obj_ptr = std::get_if<std::shared_ptr<const hypo::Boundary2>>(&x)) {
+    return ConstructClosedPolylines2(**obj_ptr);
+  }
+
+  std::cerr << "Unhandled ClosedPolylines2 type." << std::endl;
+  assert(false);
+  return Polygon_set_2();
+}
+
 }  // namespace cgal
 }  // namespace hypo
