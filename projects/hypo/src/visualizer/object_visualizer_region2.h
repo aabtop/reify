@@ -8,14 +8,10 @@
 #include <string>
 
 #include "cgal/types_polygons.h"
-#include "reify/pure_cpp/object_visualizer.h"
+#include "reify/pure_cpp/scene_visualizer.h"
 #include "reify/purecpp/hypo.h"
-#include "reify/utils/future.h"
-#include "reify/utils/thread_with_work_queue.h"
-#include "reify/window/window.h"
 #include "src/visualizer/vulkan/mesh_renderer.h"
 #include "src/visualizer/vulkan/triangle_soup.h"
-#include "src/visualizer/camera_2d.h"
 
 namespace ImGui {
 // We forward declare this class to avoid including `imfilebrowser.h`, which
@@ -25,51 +21,53 @@ class FileBrowser;
 
 namespace hypo {
 
-class ObjectVisualizerRegion2
-    : public reify::pure_cpp::ObjectVisualizer<hypo::Region2>,
-      public reify::window::Window,
+reify::utils::ErrorOr<std::shared_ptr<
+    reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat4>::SceneObject>>
+CreateSceneObjectRegion2(const hypo::Region2& data);
+
+class SceneObjectRegion2
+    : public reify::pure_cpp::SceneVisualizer<hypo::Region2,
+                                              glm::mat4>::SceneObject,
       public reify::pure_cpp::ImGuiVisualizer {
  public:
-  ObjectVisualizerRegion2();
-  ~ObjectVisualizerRegion2();
+  SceneObjectRegion2(hypo::cgal::Polygon_set_2&& polygon_set,
+                     const std::shared_ptr<const TriangleSoup>& triangle_soup);
+  ~SceneObjectRegion2();
 
-  reify::utils::Future<reify::utils::ErrorOr<std::any>> PrepareDataForPreview(
-      const hypo::Region2& data) override;
-  void SetPreview(const std::optional<std::any>& prepared_symbol) override;
+  reify::utils::ErrorOr<std::unique_ptr<reify::pure_cpp::SceneVisualizer<
+      hypo::Region2, glm::mat4>::SceneObjectRenderable>>
+  CreateSceneObjectRenderable(VkInstance instance,
+                              VkPhysicalDevice physical_device, VkDevice device,
+                              VkFormat output_image_format) override;
 
-  reify::window::Window* GetWindow() const override {
-    return const_cast<ObjectVisualizerRegion2*>(this);
-  }
   reify::pure_cpp::ImGuiVisualizer* GetImGuiVisualizer() const override {
-    return const_cast<ObjectVisualizerRegion2*>(this);
+    return const_cast<SceneObjectRegion2*>(this);
   }
-
-  bool OnInputEvent(const InputEvent& input_event) override;
-
-  void OnViewportResize(const std::array<int, 2>& size) override;
-
-  void AdvanceTime(std::chrono::duration<float> seconds) override;
-
-  reify::utils::ErrorOr<std::unique_ptr<Renderer>> CreateRenderer(
-      VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
-      VkFormat output_image_format) override;
 
   std::string ImGuiWindowPanelTitle() const override;
   void RenderImGuiWindow() override;
 
  private:
-  glm::vec2 ToViewportPoint(int x, int y) const;
-
-  reify::utils::ThreadWithWorkQueue builder_thread_;
-
-  std::shared_ptr<TriangleSoup> pending_triangle_soup_;
-  Camera2d camera_;
-  bool mouse_button_pressed_[static_cast<int>(MouseButton::Count)];
-  MeshRenderer* mesh_renderer_ = nullptr;
-
-  std::shared_ptr<hypo::cgal::Polygon_set_2> current_preview_;
+  const hypo::cgal::Polygon_set_2 polygon_set_;
+  const std::shared_ptr<const TriangleSoup> triangle_soup_;
 
   std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
+};
+
+class SceneObjectRenderableRegion2
+    : public reify::pure_cpp::SceneVisualizer<
+          hypo::Region2, glm::mat4>::SceneObjectRenderable {
+ public:
+  SceneObjectRenderableRegion2(std::unique_ptr<MeshRenderer>&& mesh_renderer)
+      : mesh_renderer_(std::move(mesh_renderer)) {}
+
+  reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
+      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+      VkImage output_color_image, const reify::window::Rect& viewport_region,
+      const glm::mat4& view_projection_matrix) override;
+
+ private:
+  std::unique_ptr<MeshRenderer> mesh_renderer_;
 };
 
 }  // namespace hypo

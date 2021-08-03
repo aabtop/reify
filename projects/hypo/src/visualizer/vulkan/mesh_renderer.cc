@@ -12,8 +12,7 @@ namespace {
 
 struct MvpUniform {
   alignas(16) glm::mat4 model;
-  alignas(16) glm::mat4 view;
-  alignas(16) glm::mat4 projection;
+  alignas(16) glm::mat4 projection_view_matrix;
 };
 
 }  // namespace
@@ -121,8 +120,7 @@ auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
                                VkFramebuffer framebuffer,
                                VkImage output_color_image,
                                const std::array<int, 4>& viewport_region,
-                               const glm::mat4& view_matrix,
-                               const glm::mat4& projection_matrix)
+                               const glm::mat4& projection_view_matrix)
     -> ErrorOr<FrameResources> {
   VkViewport viewport;
   viewport.x = viewport_region[0];
@@ -141,7 +139,7 @@ auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
   glm::mat4 model_matrix = glm::mat4(1.0f);
-  MvpUniform uniform_data{model_matrix, view_matrix, projection_matrix};
+  MvpUniform uniform_data{model_matrix, projection_view_matrix};
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       uniform_buffer,

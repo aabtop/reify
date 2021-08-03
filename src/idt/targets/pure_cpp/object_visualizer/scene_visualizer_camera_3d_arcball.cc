@@ -1,13 +1,14 @@
-#include "free_camera_viewport_3d.h"
+#include "reify/pure_cpp/scene_visualizer_camera_3d_arcball.h"
 
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-namespace hypo {
+namespace reify {
+namespace pure_cpp {
 
-FreeCameraViewport3d::FreeCameraViewport3d(int viewport_width_in_pixels,
-                                           int viewport_height_in_pixels)
+SceneVisualizerCamera3dArcball::SceneVisualizerCamera3dArcball(
+    int viewport_width_in_pixels, int viewport_height_in_pixels)
     : viewport_width_in_pixels_(viewport_width_in_pixels),
       viewport_height_in_pixels_(viewport_height_in_pixels) {
   for (int i = 0; i < static_cast<int>(MouseButton::Count); ++i) {
@@ -16,13 +17,13 @@ FreeCameraViewport3d::FreeCameraViewport3d(int viewport_width_in_pixels,
   Reset();
 }
 
-void FreeCameraViewport3d::Reset() {
+void SceneVisualizerCamera3dArcball::Reset() {
   focus_position_ = glm::vec3(0.0f, 0.0f, 0.0f);
   camera_distance_from_focus_ = 8.0;
   camera_orientation_ = glm::quat(0, 0, 0, 1.0);
 }
 
-void FreeCameraViewport3d::AccumulateViewportResize(
+void SceneVisualizerCamera3dArcball::AccumulateViewportResize(
     int viewport_width_in_pixels, int viewport_height_in_pixels) {
   if (viewport_width_in_pixels_ != viewport_width_in_pixels ||
       viewport_height_in_pixels_ != viewport_height_in_pixels) {
@@ -64,7 +65,7 @@ glm::vec3 FocusPositionTranslationFromMousePan(
 }
 }  // namespace
 
-void FreeCameraViewport3d::AccumulateMouseMove(int x, int y) {
+void SceneVisualizerCamera3dArcball::AccumulateMouseMove(int x, int y) {
   // Only adjust the view if the mouse button is pressed.
   if (!previous_viewport_point_) {
     return;
@@ -88,9 +89,8 @@ void FreeCameraViewport3d::AccumulateMouseMove(int x, int y) {
   previous_viewport_point_ = new_viewport_point;
 }
 
-void FreeCameraViewport3d::AccumulateMouseButtonEvent(MouseButton button,
-                                                      bool pressed, int x,
-                                                      int y) {
+void SceneVisualizerCamera3dArcball::AccumulateMouseButtonEvent(
+    MouseButton button, bool pressed, int x, int y) {
   if (button == MouseButton::Unknown) {
     return;
   }
@@ -115,7 +115,8 @@ void FreeCameraViewport3d::AccumulateMouseButtonEvent(MouseButton button,
   }
 }
 
-void FreeCameraViewport3d::AccumulateMouseWheelEvent(float angle_in_degrees) {
+void SceneVisualizerCamera3dArcball::AccumulateMouseWheelEvent(
+    float angle_in_degrees, int x, int y) {
   constexpr float MIN_CAMERA_DISTANCE = 0.001f;
   constexpr float MAX_CAMERA_DISTANCE = 1000.0f;
   camera_distance_from_focus_ = glm::clamp(
@@ -123,7 +124,8 @@ void FreeCameraViewport3d::AccumulateMouseWheelEvent(float angle_in_degrees) {
       MIN_CAMERA_DISTANCE, MAX_CAMERA_DISTANCE);
 }
 
-void FreeCameraViewport3d::AccumulateKeyboardEvent(int key, bool pressed) {
+void SceneVisualizerCamera3dArcball::AccumulateKeyboardEvent(int key,
+                                                             bool pressed) {
   if (pressed) {
     keys_pressed_.insert(key);
   } else {
@@ -131,12 +133,23 @@ void FreeCameraViewport3d::AccumulateKeyboardEvent(int key, bool pressed) {
   }
 }
 
-glm::mat4 FreeCameraViewport3d::ViewMatrix() const {
-  return glm::translate(
-      glm::translate(glm::mat4(1.0f),
-                     glm::vec3(0.0f, 0.0f, camera_distance_from_focus_)) *
-          glm::mat4_cast(camera_orientation_),
-      -focus_position_);
+glm::mat4 SceneVisualizerCamera3dArcball::ProjectionViewMatrix(
+    int viewport_width_in_pixels, int viewport_height_in_pixels) const {
+  const glm::mat4 perspective_projection_matrix =
+      glm::perspective(45.0f,
+                       (viewport_width_in_pixels) /
+                           static_cast<float>(viewport_height_in_pixels),
+                       0.0001f, 10000.0f)
+      // Flip the y and z axes so that positive y is up and positive z is
+      // away.
+      * glm::scale(glm::mat4(1), glm::vec3(1.0f, -1.0f, -1.0f));
+
+  return perspective_projection_matrix *
+         glm::translate(glm::translate(glm::mat4(1.0f),
+                                       glm::vec3(0.0f, 0.0f,
+                                                 camera_distance_from_focus_)) *
+                            glm::mat4_cast(camera_orientation_),
+                        -focus_position_);
 }
 
 namespace {
@@ -177,14 +190,14 @@ glm::vec3 PositionDeltaFromPressedKeys(
 }
 }  // namespace
 
-void FreeCameraViewport3d::AccumulateTimeDelta(
+void SceneVisualizerCamera3dArcball::AccumulateTimeDelta(
     std::chrono::duration<float> time_delta) {
   focus_position_ +=
       PositionDeltaFromPressedKeys(keys_pressed_, camera_orientation_,
                                    camera_distance_from_focus_, time_delta);
 }
 
-glm::vec3 FreeCameraViewport3d::ToArcballPoint(
+glm::vec3 SceneVisualizerCamera3dArcball::ToArcballPoint(
     const glm::vec2& viewport_point) const {
   float length = glm::length(viewport_point);
 
@@ -201,10 +214,11 @@ glm::vec3 FreeCameraViewport3d::ToArcballPoint(
                               viewport_point.y * viewport_point.y));
 }
 
-glm::vec2 FreeCameraViewport3d::ToViewportPoint(int x, int y) const {
+glm::vec2 SceneVisualizerCamera3dArcball::ToViewportPoint(int x, int y) const {
   return glm::vec2(
       (x / static_cast<float>(viewport_width_in_pixels_) - 0.5f) * 2.0f,
       (y / static_cast<float>(viewport_height_in_pixels_) - 0.5f) * -2.0f);
 }
 
-}  // namespace hypo
+}  // namespace pure_cpp
+}  // namespace reify

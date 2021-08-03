@@ -9,6 +9,8 @@
 #include "imfilebrowser.h"
 // clang-format on
 
+#include <glm/glm.hpp>
+
 #include "cgal/construct_region2.h"
 #include "cgal/embed_2d_in_3d.h"
 #include "cgal/export_to_svg.h"
@@ -16,19 +18,6 @@
 #include "reify/purecpp/hypo.h"
 
 namespace hypo {
-
-ObjectVisualizerRegion2::ObjectVisualizerRegion2() : camera_(0, 0) {}
-
-ObjectVisualizerRegion2::~ObjectVisualizerRegion2() {}
-
-reify::utils::Future<reify::utils::ErrorOr<std::any>>
-ObjectVisualizerRegion2::PrepareDataForPreview(const hypo::Region2& data) {
-  return builder_thread_.EnqueueWithResult<reify::utils::ErrorOr<std::any>>(
-      [data]() -> reify::utils::ErrorOr<std::any> {
-        return std::shared_ptr<hypo::cgal::Polygon_set_2>(
-            new hypo::cgal::Polygon_set_2(hypo::cgal::ConstructRegion2(data)));
-      });
-}
 
 namespace {
 TriangleSoup ConvertToTriangleSoup(
@@ -64,124 +53,31 @@ TriangleSoup ConvertToTriangleSoup(
 
   return TriangleSoup{std::move(vertices), std::move(triangles)};
 }
-
 }  // namespace
 
-void ObjectVisualizerRegion2::SetPreview(
-    const std::optional<std::any>& prepared_symbol) {
-  if (!prepared_symbol) {
-    current_preview_ = nullptr;
+reify::utils::ErrorOr<std::shared_ptr<
+    reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat4>::SceneObject>>
+CreateSceneObjectRegion2(const hypo::Region2& data) {
+  hypo::cgal::Polygon_set_2 polygon_set = hypo::cgal::ConstructRegion2(data);
+  const std::shared_ptr<const TriangleSoup> triangle_soup(
+      new TriangleSoup(ConvertToTriangleSoup(polygon_set)));
 
-    if (mesh_renderer_) {
-      mesh_renderer_->SetTriangleSoup(nullptr);
-    } else {
-      pending_triangle_soup_ = nullptr;
-    }
-  } else {
-    current_preview_ =
-        std::any_cast<std::shared_ptr<hypo::cgal::Polygon_set_2>>(
-            *prepared_symbol);
-    auto triangle_soup = std::make_shared<TriangleSoup>(
-        ConvertToTriangleSoup(*current_preview_));
-    if (mesh_renderer_) {
-      mesh_renderer_->SetTriangleSoup(triangle_soup);
-    } else {
-      pending_triangle_soup_ = triangle_soup;
-    }
-  }
+  return std::shared_ptr<
+      reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat4>::SceneObject>(
+      new SceneObjectRegion2(std::move(polygon_set), triangle_soup));
 }
 
-bool ObjectVisualizerRegion2::OnInputEvent(const InputEvent& input_event) {
-  if (auto event = std::get_if<MouseMoveEvent>(&input_event)) {
-    camera_.AccumulateMouseMove(event->x, event->y);
-  } else if (auto event = std::get_if<MouseButtonEvent>(&input_event)) {
-    camera_.AccumulateMouseButtonEvent(event->button, event->pressed, event->x,
-                                       event->y);
-  } else if (auto event = std::get_if<MouseWheelEvent>(&input_event)) {
-    camera_.AccumulateMouseWheelEvent(event->angle_in_degrees, event->x,
-                                      event->y);
-  } else if (auto event = std::get_if<KeyboardEvent>(&input_event)) {
-  }
+SceneObjectRegion2::SceneObjectRegion2(
+    hypo::cgal::Polygon_set_2&& polygon_set,
+    const std::shared_ptr<const TriangleSoup>& triangle_soup)
+    : polygon_set_(std::move(polygon_set)), triangle_soup_(triangle_soup) {}
 
-  return false;
+SceneObjectRegion2::~SceneObjectRegion2() {}
+
+std::string SceneObjectRegion2::ImGuiWindowPanelTitle() const {
+  return "Region2";
 }
-
-void ObjectVisualizerRegion2::OnViewportResize(const std::array<int, 2>& size) {
-  camera_.AccumulateViewportResize(size[0], size[1]);
-}
-
-void ObjectVisualizerRegion2::AdvanceTime(
-    std::chrono::duration<float> seconds) {}
-
-namespace {
-
-class RendererRegion2 : public reify::window::Window::Renderer {
- public:
-  RendererRegion2(
-      std::unique_ptr<MeshRenderer> mesh_renderer,
-      const std::function<glm::mat4(int, int)>& get_projection_view_matrix,
-      const std::function<void()>& on_destroy)
-      : mesh_renderer_(std::move(mesh_renderer)),
-        get_projection_view_matrix_(get_projection_view_matrix),
-        on_destroy_(on_destroy) {}
-  ~RendererRegion2() { on_destroy_(); }
-
-  reify::utils::ErrorOr<FrameResources> RenderFrame(
-      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      VkImage output_color_image,
-      const reify::window::Rect& viewport_region) override {
-    return mesh_renderer_->RenderFrame(
-        command_buffer, framebuffer, output_color_image,
-        {viewport_region.left, viewport_region.top, viewport_region.right,
-         viewport_region.bottom},
-        glm::mat4(1.0f),
-        get_projection_view_matrix_(viewport_region.width(),
-                                    viewport_region.height()));
-  }
-
- private:
-  std::unique_ptr<MeshRenderer> mesh_renderer_;
-  std::function<glm::mat4(int, int)> get_projection_view_matrix_;
-  std::function<void()> on_destroy_;
-};
-}  // namespace
-
-reify::utils::ErrorOr<std::unique_ptr<ObjectVisualizerRegion2::Renderer>>
-ObjectVisualizerRegion2::CreateRenderer(VkInstance instance,
-                                        VkPhysicalDevice physical_device,
-                                        VkDevice device,
-                                        VkFormat output_image_format) {
-  auto renderer_or_error = MeshRenderer::Create(instance, physical_device,
-                                                device, output_image_format);
-  if (auto error = std::get_if<0>(&renderer_or_error)) {
-    return reify::utils::Error{error->msg};
-  }
-
-  auto mesh_renderer = std::unique_ptr<MeshRenderer>(
-      new MeshRenderer(std::move(std::get<1>(renderer_or_error))));
-  mesh_renderer_ = mesh_renderer.get();
-
-  if (pending_triangle_soup_) {
-    mesh_renderer_->SetTriangleSoup(pending_triangle_soup_);
-    pending_triangle_soup_.reset();
-  }
-
-  return std::make_unique<RendererRegion2>(
-      std::move(mesh_renderer),
-      [this](int width, int height) {
-        return camera_.ProjectionViewMatrix(width, height);
-      },
-      [this]() { mesh_renderer_ = nullptr; });
-}
-
-std::string ObjectVisualizerRegion2::ImGuiWindowPanelTitle() const {
-  return "Region2 Options";
-}
-
-void ObjectVisualizerRegion2::RenderImGuiWindow() {
-  if (ImGui::Button("Reset Camera")) {
-    camera_.Reset();
-  }
+void SceneObjectRegion2::RenderImGuiWindow() {
   if (ImGui::Button("Export to SVG")) {
     export_file_selector_.reset(
         new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc |
@@ -201,7 +97,7 @@ void ObjectVisualizerRegion2::RenderImGuiWindow() {
         selected_path.replace_extension("svg");
       }
 
-      hypo::cgal::ExportToSVG(*current_preview_,
+      hypo::cgal::ExportToSVG(polygon_set_,
                               std::filesystem::absolute(selected_path));
       export_file_selector_->Close();
     }
@@ -209,6 +105,39 @@ void ObjectVisualizerRegion2::RenderImGuiWindow() {
       export_file_selector_.reset();
     }
   }
+}
+
+reify::utils::ErrorOr<std::unique_ptr<reify::pure_cpp::SceneVisualizer<
+    hypo::Region2, glm::mat4>::SceneObjectRenderable>>
+SceneObjectRegion2::CreateSceneObjectRenderable(
+    VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
+    VkFormat output_image_format) {
+  auto renderer_or_error = MeshRenderer::Create(instance, physical_device,
+                                                device, output_image_format);
+  if (auto error = std::get_if<0>(&renderer_or_error)) {
+    return reify::utils::Error{error->msg};
+  }
+
+  auto mesh_renderer = std::unique_ptr<MeshRenderer>(
+      new MeshRenderer(std::move(std::get<1>(renderer_or_error))));
+  mesh_renderer->SetTriangleSoup(triangle_soup_);
+
+  return std::unique_ptr<reify::pure_cpp::SceneVisualizer<
+      hypo::Region2, glm::mat4>::SceneObjectRenderable>(
+      new SceneObjectRenderableRegion2(std::move(mesh_renderer)));
+}
+
+reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources>
+SceneObjectRenderableRegion2::Render(VkCommandBuffer command_buffer,
+                                     VkFramebuffer framebuffer,
+                                     VkImage output_color_image,
+                                     const reify::window::Rect& viewport_region,
+                                     const glm::mat4& view_projection_matrix) {
+  return mesh_renderer_->RenderFrame(
+      command_buffer, framebuffer, output_color_image,
+      {viewport_region.left, viewport_region.top, viewport_region.right,
+       viewport_region.bottom},
+      view_projection_matrix);
 }
 
 }  // namespace hypo

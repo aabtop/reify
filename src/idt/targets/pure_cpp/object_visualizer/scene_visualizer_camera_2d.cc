@@ -1,17 +1,19 @@
-#include "camera_2d.h"
+#include "reify/pure_cpp/scene_visualizer_camera_2d.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace hypo {
+namespace reify {
+namespace pure_cpp {
 
-Camera2d::Camera2d(int viewport_width_in_pixels, int viewport_height_in_pixels)
+SceneVisualizerCamera2d::SceneVisualizerCamera2d(int viewport_width_in_pixels,
+                                                 int viewport_height_in_pixels)
     : viewport_width_in_pixels_(viewport_width_in_pixels),
       viewport_height_in_pixels_(viewport_height_in_pixels) {
   Reset();
 }
 
-void Camera2d::AccumulateViewportResize(int viewport_width_in_pixels,
-                                        int viewport_height_in_pixels) {
+void SceneVisualizerCamera2d::AccumulateViewportResize(
+    int viewport_width_in_pixels, int viewport_height_in_pixels) {
   if (viewport_width_in_pixels_ != viewport_width_in_pixels ||
       viewport_height_in_pixels_ != viewport_height_in_pixels) {
     viewport_width_in_pixels_ = viewport_width_in_pixels;
@@ -19,7 +21,7 @@ void Camera2d::AccumulateViewportResize(int viewport_width_in_pixels,
     previous_viewport_point_ = std::nullopt;
   }
 }
-void Camera2d::AccumulateMouseMove(int x, int y) {
+void SceneVisualizerCamera2d::AccumulateMouseMove(int x, int y) {
   // Only adjust the view if the mouse button is pressed.
   if (!previous_viewport_point_) {
     return;
@@ -40,8 +42,9 @@ void Camera2d::AccumulateMouseMove(int x, int y) {
   previous_viewport_point_ = new_viewport_point;
 }
 
-void Camera2d::AccumulateMouseButtonEvent(MouseButton button, bool pressed,
-                                          int x, int y) {
+void SceneVisualizerCamera2d::AccumulateMouseButtonEvent(MouseButton button,
+                                                         bool pressed, int x,
+                                                         int y) {
   if (button == MouseButton::Unknown) {
     return;
   }
@@ -66,7 +69,8 @@ void Camera2d::AccumulateMouseButtonEvent(MouseButton button, bool pressed,
   }
 }
 
-void Camera2d::AccumulateMouseWheelEvent(float angle_in_degrees, int x, int y) {
+void SceneVisualizerCamera2d::AccumulateMouseWheelEvent(float angle_in_degrees,
+                                                        int x, int y) {
   // Make it so that as we zoom in, the mouse cursor stays in the same virtual
   // position. We do this by finding the difference in virtual position before
   // and after the zoom.
@@ -84,7 +88,8 @@ void Camera2d::AccumulateMouseWheelEvent(float angle_in_degrees, int x, int y) {
   center_ -= post_scale_virtual_point - pre_scale_virtual_point;
 }
 
-Camera2d::Rect Camera2d::VirtualViewport(int width, int height) const {
+SceneVisualizerCamera2d::Rect SceneVisualizerCamera2d::VirtualViewport(
+    int width, int height) const {
   const float aspect_ratio = static_cast<float>(height) / width;
   return Rect{
       -scale_ + center_.x,
@@ -94,8 +99,8 @@ Camera2d::Rect Camera2d::VirtualViewport(int width, int height) const {
   };
 }
 
-glm::vec2 Camera2d::ViewportToVirtualPoint(const glm::vec2& viewport_point,
-                                           int width, int height) const {
+glm::vec2 SceneVisualizerCamera2d::ViewportToVirtualPoint(
+    const glm::vec2& viewport_point, int width, int height) const {
   const auto virtual_viewport = VirtualViewport(width, height);
   return glm::vec2(
       virtual_viewport.left + virtual_viewport.width() * viewport_point.x,
@@ -103,8 +108,8 @@ glm::vec2 Camera2d::ViewportToVirtualPoint(const glm::vec2& viewport_point,
           virtual_viewport.height() * (1.0f - viewport_point.y));
 }
 
-glm::mat4 Camera2d::ProjectionViewMatrix(int viewport_width_in_pixels,
-                                         int viewport_height_in_pixels) const {
+glm::mat4 SceneVisualizerCamera2d::ProjectionViewMatrix(
+    int viewport_width_in_pixels, int viewport_height_in_pixels) const {
   const auto virtual_viewport =
       VirtualViewport(viewport_width_in_pixels, viewport_height_in_pixels);
   return
@@ -116,14 +121,15 @@ glm::mat4 Camera2d::ProjectionViewMatrix(int viewport_width_in_pixels,
 }
 
 // Reset all view parameters (e.g. camera orientation, position, etc..)
-void Camera2d::Reset() {
+void SceneVisualizerCamera2d::Reset() {
   center_ = glm::vec2(0, 0);
   scale_ = 100.0f;
 }
 
-glm::vec2 Camera2d::ToViewportPoint(int x, int y) const {
+glm::vec2 SceneVisualizerCamera2d::ToViewportPoint(int x, int y) const {
   return glm::vec2(static_cast<float>(x) / viewport_width_in_pixels_,
                    static_cast<float>(y) / viewport_height_in_pixels_);
 }
 
-}  // namespace hypo
+}  // namespace pure_cpp
+}  // namespace reify

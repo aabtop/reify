@@ -7,8 +7,7 @@ layout(location = 0) out vec3 v_color;
 
 layout(std140, binding = 0) uniform buf {
     mat4 model;
-    mat4 view;
-    mat4 projection;
+    mat4 projection_view_matrix;
 } mvp_uniform;
 
 out gl_PerVertex { vec4 gl_Position; };
@@ -22,6 +21,6 @@ void main()
     float cosLightAngle = dot(transformed_normal, LIGHT_DIRECTION);
     v_color = vec3(cosLightAngle);
 
-    mat4 mvp =  mvp_uniform.projection * mvp_uniform.view * mvp_uniform.model;
+    mat4 mvp =  mvp_uniform.projection_view_matrix * mvp_uniform.model;
     gl_Position = mvp * position;
 }

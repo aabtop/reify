@@ -8,10 +8,10 @@
 
 #include "cgal/types_nef_polyhedron_3.h"
 #include "reify/pure_cpp/object_visualizer.h"
+#include "reify/pure_cpp/scene_visualizer_camera_3d_arcball.h"
 #include "reify/purecpp/hypo.h"
 #include "reify/utils/future.h"
 #include "reify/utils/thread_with_work_queue.h"
-#include "src/visualizer/free_camera_viewport_3d.h"
 #include "src/visualizer/vulkan/mesh_renderer.h"
 #include "src/visualizer/vulkan/triangle_soup.h"
 
@@ -59,7 +59,7 @@ class ObjectVisualizerRegion3
   reify::utils::ThreadWithWorkQueue builder_thread_;
 
   std::shared_ptr<TriangleSoup> pending_triangle_soup_;
-  FreeCameraViewport3d free_camera_viewport_;
+  reify::pure_cpp::SceneVisualizerCamera3dArcball free_camera_viewport_;
   MeshRenderer* mesh_renderer_ = nullptr;
 
   std::shared_ptr<hypo::cgal::Nef_polyhedron_3> current_preview_;

@@ -28,7 +28,7 @@ struct TypeScriptSymbolVisualizer {
   std::string typescript_type;
 
   reify::window::Window* window;
-  pure_cpp::ImGuiVisualizer* im_gui_visualizer;
+  std::function<pure_cpp::ImGuiVisualizer*()> get_im_gui_visualizer;
 
   CanPreviewSymbolFunction can_preview_symbol;
   PrepareSymbolForPreviewFunction prepare_symbol_for_preview;
@@ -45,7 +45,7 @@ std::optional<TypeScriptSymbolVisualizer> MakeTypeScriptSymbolVisualizer(
   return TypeScriptSymbolVisualizer{
       reify_v8::TypeScriptTypeString<T>::value(),
       object_visualizer->GetWindow(),
-      object_visualizer->GetImGuiVisualizer(),
+      [object_visualizer] { return object_visualizer->GetImGuiVisualizer(); },
       [](const CompiledModule::ExportedSymbol& symbol) {
         return symbol.HasType<reify::typescript_cpp_v8::Function<T()>>();
       },

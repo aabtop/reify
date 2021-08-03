@@ -21,9 +21,8 @@ class ImGuiVisualizer {
 template <typename T>
 class ObjectVisualizer {
  public:
-  virtual utils::Future<
-      utils::ErrorOr<std::any>>
-  PrepareDataForPreview(const T& data) = 0;
+  virtual utils::Future<utils::ErrorOr<std::any>> PrepareDataForPreview(
+      const T& data) = 0;
   virtual void SetPreview(const std::optional<std::any>& prepared_symbol) = 0;
 
   virtual window::Window* GetWindow() const = 0;

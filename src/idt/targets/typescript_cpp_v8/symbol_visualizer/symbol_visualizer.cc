@@ -256,12 +256,12 @@ SymbolVisualizer::CreateRenderer(VkInstance instance,
 
 bool SymbolVisualizer::HasImGuiWindow() const {
   return selected_symbol_ &&
-         selected_symbol_->associated_visualizer->im_gui_visualizer;
+         selected_symbol_->associated_visualizer->get_im_gui_visualizer();
 }
 
 std::string SymbolVisualizer::ImGuiWindowPanelTitle() const {
   if (selected_symbol_) {
-    return selected_symbol_->associated_visualizer->im_gui_visualizer
+    return selected_symbol_->associated_visualizer->get_im_gui_visualizer()
         ->ImGuiWindowPanelTitle();
   } else {
     assert(false);
@@ -271,7 +271,7 @@ std::string SymbolVisualizer::ImGuiWindowPanelTitle() const {
 
 void SymbolVisualizer::RenderImGuiWindow() {
   if (selected_symbol_) {
-    selected_symbol_->associated_visualizer->im_gui_visualizer
+    selected_symbol_->associated_visualizer->get_im_gui_visualizer()
         ->RenderImGuiWindow();
   }
 }

@@ -108,7 +108,8 @@ bool ObjectVisualizerRegion3::OnInputEvent(const InputEvent& input_event) {
     free_camera_viewport_.AccumulateMouseButtonEvent(
         event->button, event->pressed, event->x, event->y);
   } else if (auto event = std::get_if<MouseWheelEvent>(&input_event)) {
-    free_camera_viewport_.AccumulateMouseWheelEvent(event->angle_in_degrees);
+    free_camera_viewport_.AccumulateMouseWheelEvent(event->angle_in_degrees,
+                                                    event->x, event->y);
   } else if (auto event = std::get_if<KeyboardEvent>(&input_event)) {
     free_camera_viewport_.AccumulateKeyboardEvent(event->key, event->pressed);
   }
@@ -130,7 +131,7 @@ namespace {
 class RendererRegion3 : public reify::window::Window::Renderer {
  public:
   RendererRegion3(std::unique_ptr<MeshRenderer> mesh_renderer,
-                  const std::function<glm::mat4()>& get_view_matrix,
+                  const std::function<glm::mat4(int, int)>& get_view_matrix,
                   const std::function<void()>& on_destroy)
       : mesh_renderer_(std::move(mesh_renderer)),
         get_view_matrix_(get_view_matrix),
@@ -141,26 +142,16 @@ class RendererRegion3 : public reify::window::Window::Renderer {
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
       VkImage output_color_image,
       const reify::window::Rect& viewport_region) override {
-    const glm::mat4 perspective_projection_matrix =
-        glm::perspective(45.0f,
-                         (viewport_region.right - viewport_region.left) /
-                             static_cast<float>(viewport_region.bottom -
-                                                viewport_region.top),
-                         0.0001f, 10000.0f)
-        // Flip the y and z axes so that positive y is up and positive z is
-        // away.
-        * glm::scale(glm::mat4(1), glm::vec3(1.0f, -1.0f, -1.0f));
-
     return mesh_renderer_->RenderFrame(
         command_buffer, framebuffer, output_color_image,
         {viewport_region.left, viewport_region.top, viewport_region.right,
          viewport_region.bottom},
-        get_view_matrix_(), perspective_projection_matrix);
+        get_view_matrix_(viewport_region.width(), viewport_region.height()));
   }
 
  private:
   std::unique_ptr<MeshRenderer> mesh_renderer_;
-  std::function<glm::mat4()> get_view_matrix_;
+  std::function<glm::mat4(int, int)> get_view_matrix_;
   std::function<void()> on_destroy_;
 };
 
@@ -188,7 +179,9 @@ ObjectVisualizerRegion3::CreateRenderer(VkInstance instance,
 
   return std::make_unique<RendererRegion3>(
       std::move(mesh_renderer),
-      [this]() { return free_camera_viewport_.ViewMatrix(); },
+      [this](int width, int height) {
+        return free_camera_viewport_.ProjectionViewMatrix(width, height);
+      },
       [this]() { mesh_renderer_ = nullptr; });
 }
 

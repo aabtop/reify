@@ -1,5 +1,5 @@
-#ifndef _HYPO_VISUALIZER_FREE_CAMERA_VIEWPORT_3D_H_
-#define _HYPO_VISUALIZER_FREE_CAMERA_VIEWPORT_3D_H_
+#ifndef _REIFY_PURE_CPP_SCENE_VISUALIZER_CAMERA_3D_ARCBALL_H_
+#define _REIFY_PURE_CPP_SCENE_VISUALIZER_CAMERA_3D_ARCBALL_H_
 
 #include <chrono>
 #include <glm/glm.hpp>
@@ -7,34 +7,35 @@
 #include <optional>
 #include <unordered_set>
 
+#include "reify/pure_cpp/scene_visualizer_camera.h"
 #include "reify/window/window.h"
 
-namespace hypo {
+namespace reify {
+namespace pure_cpp {
 
-class FreeCameraViewport3d {
+class SceneVisualizerCamera3dArcball : public SceneVisualizerCamera<glm::mat4> {
  public:
-  using MouseButton = reify::window::Window::MouseButton;
-
-  FreeCameraViewport3d(int viewport_width_in_pixels,
-                       int viewport_height_in_pixels);
+  SceneVisualizerCamera3dArcball(int viewport_width_in_pixels,
+                                 int viewport_height_in_pixels);
 
   void AccumulateViewportResize(int viewport_width_in_pixels,
-                                int viewport_height_in_pixels);
-  void AccumulateMouseMove(int x, int y);
+                                int viewport_height_in_pixels) override;
+  void AccumulateMouseMove(int x, int y) override;
   void AccumulateMouseButtonEvent(MouseButton button, bool pressed, int x,
-                                  int y);
+                                  int y) override;
   // Keycode is defined by Qt's key mapping:
   // https://doc.qt.io/qt-5/qt.html#Key-enum
-  void AccumulateKeyboardEvent(int key, bool pressed);
+  void AccumulateKeyboardEvent(int key, bool pressed) override;
 
-  void AccumulateMouseWheelEvent(float angle_in_degrees);
+  void AccumulateMouseWheelEvent(float angle_in_degrees, int x, int y) override;
 
-  void AccumulateTimeDelta(std::chrono::duration<float> seconds);
+  void AccumulateTimeDelta(std::chrono::duration<float> seconds) override;
 
-  glm::mat4 ViewMatrix() const;
+  glm::mat4 ProjectionViewMatrix(int viewport_width_in_pixels,
+                                 int viewport_height_in_pixels) const override;
 
   // Reset all view parameters (e.g. camera orientation, position, etc..)
-  void Reset();
+  void Reset() override;
 
  private:
   glm::vec3 ToArcballPoint(const glm::vec2& viewport_point) const;
@@ -65,6 +66,7 @@ class FreeCameraViewport3d {
   glm::quat camera_orientation_;
 };
 
-}  // namespace hypo
+}  // namespace pure_cpp
+}  // namespace reify
 
-#endif  // _HYPO_VISUALIZER_FREE_CAMERA_VIEWPORT_3D_H_
+#endif  // _REIFY_PURE_CPP_SCENE_VISUALIZER_CAMERA_3D_ARCBALL_H_

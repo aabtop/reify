@@ -1,14 +1,10 @@
 cc_library(
     name = "object_visualizers",
     srcs = [
-        "camera_2d.cc",
-        "free_camera_viewport_3d.cc",
         "object_visualizer_region2.cc",
         "object_visualizer_region3.cc",
     ],
     hdrs = [
-        "camera_2d.h",
-        "free_camera_viewport_3d.h",
         "object_visualizer_region2.h",
         "object_visualizer_region3.h",
     ],

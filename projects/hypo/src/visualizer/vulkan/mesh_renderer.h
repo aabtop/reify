@@ -39,8 +39,7 @@ class MeshRenderer {
                                       VkFramebuffer framebuffer,
                                       VkImage output_color_image,
                                       const std::array<int, 4>& viewport_region,
-                                      const glm::mat4& view_matrix,
-                                      const glm::mat4& projection_matrix);
+                                      const glm::mat4& projection_view_matrix);
 
  private:
   struct MeshRendererConstructorData {

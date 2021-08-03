@@ -1,32 +1,36 @@
-#ifndef _HYPO_VISUALIZER_CAMERA_2D_H_
-#define _HYPO_VISUALIZER_CAMERA_2D_H_
+#ifndef _REIFY_PURE_CPP_SCENE_VISUALIZER_CAMERA_2D_H_
+#define _REIFY_PURE_CPP_SCENE_VISUALIZER_CAMERA_2D_H_
 
 #include <glm/glm.hpp>
 #include <optional>
 
+#include "reify/pure_cpp/scene_visualizer_camera.h"
 #include "reify/window/window.h"
 
-namespace hypo {
+namespace reify {
+namespace pure_cpp {
 
-class Camera2d {
+class SceneVisualizerCamera2d : public SceneVisualizerCamera<glm::mat4> {
  public:
-  using MouseButton = reify::window::Window::MouseButton;
-
-  Camera2d(int viewport_width_in_pixels, int viewport_height_in_pixels);
+  SceneVisualizerCamera2d(int viewport_width_in_pixels,
+                          int viewport_height_in_pixels);
 
   void AccumulateViewportResize(int viewport_width_in_pixels,
-                                int viewport_height_in_pixels);
-  void AccumulateMouseMove(int x, int y);
+                                int viewport_height_in_pixels) override;
+  void AccumulateMouseMove(int x, int y) override;
   void AccumulateMouseButtonEvent(MouseButton button, bool pressed, int x,
-                                  int y);
+                                  int y) override;
 
-  void AccumulateMouseWheelEvent(float angle_in_degrees, int x, int y);
+  void AccumulateMouseWheelEvent(float angle_in_degrees, int x, int y) override;
+  void AccumulateKeyboardEvent(int key, bool pressed) override {}
 
-  glm::mat4 ProjectionViewMatrix(int viewport_width_in_pixels,
-                                 int viewport_height_in_pixels) const;
+  void AccumulateTimeDelta(std::chrono::duration<float> seconds) override {}
 
   // Reset all view parameters (e.g. camera orientation, position, etc..)
-  void Reset();
+  void Reset() override;
+
+  glm::mat4 ProjectionViewMatrix(int viewport_width_in_pixels,
+                                 int viewport_height_in_pixels) const override;
 
  private:
   struct Rect {
@@ -58,6 +62,7 @@ class Camera2d {
   float scale_;
 };
 
-}  // namespace hypo
+}  // namespace pure_cpp
+}  // namespace reify
 
-#endif  // _HYPO_VISUALIZER_CAMERA_2D_H_
+#endif  // _REIFY_PURE_CPP_SCENE_VISUALIZER_CAMERA_2D_H_
