@@ -21,21 +21,18 @@ class FileBrowser;
 
 namespace hypo {
 
-reify::utils::ErrorOr<std::shared_ptr<
-    reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat4>::SceneObject>>
+reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
 CreateSceneObjectRegion2(const hypo::Region2& data);
 
 class SceneObjectRegion2
-    : public reify::pure_cpp::SceneVisualizer<hypo::Region2,
-                                              glm::mat4>::SceneObject,
+    : public reify::pure_cpp::SceneObject<glm::mat4>,
       public reify::pure_cpp::ImGuiVisualizer {
  public:
   SceneObjectRegion2(hypo::cgal::Polygon_set_2&& polygon_set,
                      const std::shared_ptr<const TriangleSoup>& triangle_soup);
   ~SceneObjectRegion2();
 
-  reify::utils::ErrorOr<std::unique_ptr<reify::pure_cpp::SceneVisualizer<
-      hypo::Region2, glm::mat4>::SceneObjectRenderable>>
+  reify::utils::ErrorOr<std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>>
   CreateSceneObjectRenderable(VkInstance instance,
                               VkPhysicalDevice physical_device, VkDevice device,
                               VkFormat output_image_format) override;
@@ -55,8 +52,7 @@ class SceneObjectRegion2
 };
 
 class SceneObjectRenderableRegion2
-    : public reify::pure_cpp::SceneVisualizer<
-          hypo::Region2, glm::mat4>::SceneObjectRenderable {
+    : public reify::pure_cpp::SceneObjectRenderable<glm::mat4> {
  public:
   SceneObjectRenderableRegion2(std::unique_ptr<MeshRenderer>&& mesh_renderer)
       : mesh_renderer_(std::move(mesh_renderer)) {}

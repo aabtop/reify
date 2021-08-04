@@ -55,15 +55,13 @@ TriangleSoup ConvertToTriangleSoup(
 }
 }  // namespace
 
-reify::utils::ErrorOr<std::shared_ptr<
-    reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat4>::SceneObject>>
+reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
 CreateSceneObjectRegion2(const hypo::Region2& data) {
   hypo::cgal::Polygon_set_2 polygon_set = hypo::cgal::ConstructRegion2(data);
   const std::shared_ptr<const TriangleSoup> triangle_soup(
       new TriangleSoup(ConvertToTriangleSoup(polygon_set)));
 
-  return std::shared_ptr<
-      reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat4>::SceneObject>(
+  return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>(
       new SceneObjectRegion2(std::move(polygon_set), triangle_soup));
 }
 
@@ -107,8 +105,8 @@ void SceneObjectRegion2::RenderImGuiWindow() {
   }
 }
 
-reify::utils::ErrorOr<std::unique_ptr<reify::pure_cpp::SceneVisualizer<
-    hypo::Region2, glm::mat4>::SceneObjectRenderable>>
+reify::utils::ErrorOr<
+    std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>>
 SceneObjectRegion2::CreateSceneObjectRenderable(
     VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
     VkFormat output_image_format) {
@@ -122,8 +120,7 @@ SceneObjectRegion2::CreateSceneObjectRenderable(
       new MeshRenderer(std::move(std::get<1>(renderer_or_error))));
   mesh_renderer->SetTriangleSoup(triangle_soup_);
 
-  return std::unique_ptr<reify::pure_cpp::SceneVisualizer<
-      hypo::Region2, glm::mat4>::SceneObjectRenderable>(
+  return std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>(
       new SceneObjectRenderableRegion2(std::move(mesh_renderer)));
 }
 

@@ -9,33 +9,34 @@
 namespace reify {
 namespace pure_cpp {
 
+template <typename ViewMatrix>
+class SceneObjectRenderable {
+ public:
+  virtual ~SceneObjectRenderable() {}
+  virtual utils::ErrorOr<window::Window::Renderer::FrameResources> Render(
+      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+      VkImage output_color_image, const window::Rect& viewport_region,
+      const ViewMatrix& view_projection_matrix) = 0;
+};
+
+template <typename ViewMatrix>
+class SceneObject {
+ public:
+  virtual ~SceneObject() {}
+  virtual utils::ErrorOr<std::unique_ptr<SceneObjectRenderable<ViewMatrix>>>
+  CreateSceneObjectRenderable(VkInstance instance,
+                              VkPhysicalDevice physical_device, VkDevice device,
+                              VkFormat output_image_format) = 0;
+  virtual reify::pure_cpp::ImGuiVisualizer* GetImGuiVisualizer() const = 0;
+};
+
 template <typename T, typename ViewMatrix>
 class SceneVisualizer : public ObjectVisualizer<T>,
                         reify::window::Window,
                         reify::pure_cpp::ImGuiVisualizer {
  public:
-  class SceneObjectRenderable {
-   public:
-    virtual ~SceneObjectRenderable() {}
-    virtual utils::ErrorOr<window::Window::Renderer::FrameResources> Render(
-        VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-        VkImage output_color_image, const window::Rect& viewport_region,
-        const ViewMatrix& view_projection_matrix) = 0;
-  };
-  class SceneObject {
-   public:
-    virtual ~SceneObject() {}
-    virtual utils::ErrorOr<std::unique_ptr<SceneObjectRenderable>>
-    CreateSceneObjectRenderable(VkInstance instance,
-                                VkPhysicalDevice physical_device,
-                                VkDevice device,
-                                VkFormat output_image_format) = 0;
-    virtual reify::pure_cpp::ImGuiVisualizer* GetImGuiVisualizer() const = 0;
-  };
-
-  using CreateSceneObject =
-      std::function<reify::utils::ErrorOr<std::shared_ptr<SceneObject>>(
-          const T& data)>;
+  using CreateSceneObject = std::function<reify::utils::ErrorOr<
+      std::shared_ptr<SceneObject<ViewMatrix>>>(const T& data)>;
 
   SceneVisualizer(SceneVisualizerCamera<ViewMatrix>* camera,
                   const CreateSceneObject& create_prepared_object)
@@ -101,8 +102,9 @@ class SceneVisualizer : public ObjectVisualizer<T>,
 
   reify::utils::ThreadWithWorkQueue builder_thread_;
 
-  std::shared_ptr<SceneObject> current_prepared_object_;
-  std::unique_ptr<SceneObjectRenderable> current_renderable_prepared_object_;
+  std::shared_ptr<SceneObject<ViewMatrix>> current_prepared_object_;
+  std::unique_ptr<SceneObjectRenderable<ViewMatrix>>
+      current_renderable_prepared_object_;
 
   Renderer* renderer_ = nullptr;
 };
@@ -117,7 +119,8 @@ SceneVisualizer<T, ViewMatrix>::PrepareDataForPreview(const T& data) {
         if (auto error = std::get_if<0>(&error_or_scene_object)) {
           return *error;
         } else {
-          return std::get<std::shared_ptr<SceneObject>>(error_or_scene_object);
+          return std::get<std::shared_ptr<SceneObject<ViewMatrix>>>(
+              error_or_scene_object);
         }
       });
 }
@@ -130,7 +133,8 @@ void SceneVisualizer<T, ViewMatrix>::SetPreview(
     current_prepared_object_ = nullptr;
   } else {
     current_prepared_object_ =
-        std::any_cast<std::shared_ptr<SceneObject>>(*prepared_symbol);
+        std::any_cast<std::shared_ptr<SceneObject<ViewMatrix>>>(
+            *prepared_symbol);
   }
 }
 

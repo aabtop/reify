@@ -62,15 +62,14 @@ TriangleSoup ConvertToTriangleSoup(
 
 }  // namespace
 
-reify::utils::ErrorOr<std::shared_ptr<
-    reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>::SceneObject>>
+reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
 CreateSceneObjectRegion3(const hypo::Region3& data) {
   hypo::cgal::Nef_polyhedron_3 polyhedron3 = hypo::cgal::ConstructRegion3(data);
   const std::shared_ptr<const TriangleSoup> triangle_soup(
       new TriangleSoup(ConvertToTriangleSoup(polyhedron3)));
 
-        return std::shared_ptr<reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>::SceneObject>(
-            new SceneObjectRegion3(std::move(polyhedron3), triangle_soup));
+  return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>(
+      new SceneObjectRegion3(std::move(polyhedron3), triangle_soup));
 }
 
 SceneObjectRegion3::SceneObjectRegion3(
@@ -113,8 +112,8 @@ void SceneObjectRegion3::RenderImGuiWindow() {
   }
 }
 
-reify::utils::ErrorOr<std::unique_ptr<reify::pure_cpp::SceneVisualizer<
-    hypo::Region3, glm::mat4>::SceneObjectRenderable>>
+reify::utils::ErrorOr<
+    std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>>
 SceneObjectRegion3::CreateSceneObjectRenderable(
     VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
     VkFormat output_image_format) {
@@ -128,8 +127,7 @@ SceneObjectRegion3::CreateSceneObjectRenderable(
       new MeshRenderer(std::move(std::get<1>(renderer_or_error))));
   mesh_renderer->SetTriangleSoup(triangle_soup_);
 
-  return std::unique_ptr<reify::pure_cpp::SceneVisualizer<
-      hypo::Region3, glm::mat4>::SceneObjectRenderable>(
+  return std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>(
       new SceneObjectRenderableRegion3(std::move(mesh_renderer)));
 }
 
