@@ -16,21 +16,6 @@
 
 namespace hypo {
 
-ObjectVisualizerRegion3::ObjectVisualizerRegion3()
-    : free_camera_viewport_(0, 0) {}
-
-ObjectVisualizerRegion3::~ObjectVisualizerRegion3() {}
-
-reify::utils::Future<reify::utils::ErrorOr<std::any>>
-ObjectVisualizerRegion3::PrepareDataForPreview(const hypo::Region3& data) {
-  return builder_thread_.EnqueueWithResult<reify::utils::ErrorOr<std::any>>(
-      [data]() -> reify::utils::ErrorOr<std::any> {
-        return std::shared_ptr<hypo::cgal::Nef_polyhedron_3>(
-            new hypo::cgal::Nef_polyhedron_3(
-                hypo::cgal::ConstructRegion3(data)));
-      });
-}
-
 namespace {
 TriangleSoup ConvertToTriangleSoup(
     const hypo::cgal::Nef_polyhedron_3& polyhedron) {
@@ -77,122 +62,28 @@ TriangleSoup ConvertToTriangleSoup(
 
 }  // namespace
 
-void ObjectVisualizerRegion3::SetPreview(
-    const std::optional<std::any>& prepared_symbol) {
-  if (!prepared_symbol) {
-    current_preview_ = nullptr;
+reify::utils::ErrorOr<std::shared_ptr<
+    reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>::SceneObject>>
+CreateSceneObjectRegion3(const hypo::Region3& data) {
+  hypo::cgal::Nef_polyhedron_3 polyhedron3 = hypo::cgal::ConstructRegion3(data);
+  const std::shared_ptr<const TriangleSoup> triangle_soup(
+      new TriangleSoup(ConvertToTriangleSoup(polyhedron3)));
 
-    if (mesh_renderer_) {
-      mesh_renderer_->SetTriangleSoup(nullptr);
-    } else {
-      pending_triangle_soup_ = nullptr;
-    }
-  } else {
-    current_preview_ =
-        std::any_cast<std::shared_ptr<hypo::cgal::Nef_polyhedron_3>>(
-            *prepared_symbol);
-    auto triangle_soup = std::make_shared<TriangleSoup>(
-        ConvertToTriangleSoup(*current_preview_));
-    if (mesh_renderer_) {
-      mesh_renderer_->SetTriangleSoup(triangle_soup);
-    } else {
-      pending_triangle_soup_ = triangle_soup;
-    }
-  }
+        return std::shared_ptr<reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>::SceneObject>(
+            new SceneObjectRegion3(std::move(polyhedron3), triangle_soup));
 }
 
-bool ObjectVisualizerRegion3::OnInputEvent(const InputEvent& input_event) {
-  if (auto event = std::get_if<MouseMoveEvent>(&input_event)) {
-    free_camera_viewport_.AccumulateMouseMove(event->x, event->y);
-  } else if (auto event = std::get_if<MouseButtonEvent>(&input_event)) {
-    free_camera_viewport_.AccumulateMouseButtonEvent(
-        event->button, event->pressed, event->x, event->y);
-  } else if (auto event = std::get_if<MouseWheelEvent>(&input_event)) {
-    free_camera_viewport_.AccumulateMouseWheelEvent(event->angle_in_degrees,
-                                                    event->x, event->y);
-  } else if (auto event = std::get_if<KeyboardEvent>(&input_event)) {
-    free_camera_viewport_.AccumulateKeyboardEvent(event->key, event->pressed);
-  }
+SceneObjectRegion3::SceneObjectRegion3(
+    hypo::cgal::Nef_polyhedron_3&& polyhedron3,
+    const std::shared_ptr<const TriangleSoup>& triangle_soup)
+    : polyhedron3_(std::move(polyhedron3)), triangle_soup_(triangle_soup) {}
 
-  return false;
+SceneObjectRegion3::~SceneObjectRegion3() {}
+
+std::string SceneObjectRegion3::ImGuiWindowPanelTitle() const {
+  return "Region3";
 }
-
-void ObjectVisualizerRegion3::OnViewportResize(const std::array<int, 2>& size) {
-  free_camera_viewport_.AccumulateViewportResize(size[0], size[1]);
-}
-
-void ObjectVisualizerRegion3::AdvanceTime(
-    std::chrono::duration<float> seconds) {
-  free_camera_viewport_.AccumulateTimeDelta(seconds);
-}
-
-namespace {
-
-class RendererRegion3 : public reify::window::Window::Renderer {
- public:
-  RendererRegion3(std::unique_ptr<MeshRenderer> mesh_renderer,
-                  const std::function<glm::mat4(int, int)>& get_view_matrix,
-                  const std::function<void()>& on_destroy)
-      : mesh_renderer_(std::move(mesh_renderer)),
-        get_view_matrix_(get_view_matrix),
-        on_destroy_(on_destroy) {}
-  ~RendererRegion3() { on_destroy_(); }
-
-  reify::utils::ErrorOr<FrameResources> RenderFrame(
-      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      VkImage output_color_image,
-      const reify::window::Rect& viewport_region) override {
-    return mesh_renderer_->RenderFrame(
-        command_buffer, framebuffer, output_color_image,
-        {viewport_region.left, viewport_region.top, viewport_region.right,
-         viewport_region.bottom},
-        get_view_matrix_(viewport_region.width(), viewport_region.height()));
-  }
-
- private:
-  std::unique_ptr<MeshRenderer> mesh_renderer_;
-  std::function<glm::mat4(int, int)> get_view_matrix_;
-  std::function<void()> on_destroy_;
-};
-
-}  // namespace
-
-reify::utils::ErrorOr<std::unique_ptr<ObjectVisualizerRegion3::Renderer>>
-ObjectVisualizerRegion3::CreateRenderer(VkInstance instance,
-                                        VkPhysicalDevice physical_device,
-                                        VkDevice device,
-                                        VkFormat output_image_format) {
-  auto renderer_or_error = MeshRenderer::Create(instance, physical_device,
-                                                device, output_image_format);
-  if (auto error = std::get_if<0>(&renderer_or_error)) {
-    return reify::utils::Error{error->msg};
-  }
-
-  auto mesh_renderer = std::unique_ptr<MeshRenderer>(
-      new MeshRenderer(std::move(std::get<1>(renderer_or_error))));
-  mesh_renderer_ = mesh_renderer.get();
-
-  if (pending_triangle_soup_) {
-    mesh_renderer_->SetTriangleSoup(pending_triangle_soup_);
-    pending_triangle_soup_.reset();
-  }
-
-  return std::make_unique<RendererRegion3>(
-      std::move(mesh_renderer),
-      [this](int width, int height) {
-        return free_camera_viewport_.ProjectionViewMatrix(width, height);
-      },
-      [this]() { mesh_renderer_ = nullptr; });
-}
-
-std::string ObjectVisualizerRegion3::ImGuiWindowPanelTitle() const {
-  return "Region3 Options";
-}
-
-void ObjectVisualizerRegion3::RenderImGuiWindow() {
-  if (ImGui::Button("Reset Camera")) {
-    free_camera_viewport_.Reset();
-  }
+void SceneObjectRegion3::RenderImGuiWindow() {
   if (ImGui::Button("Export to STL")) {
     export_file_selector_.reset(
         new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc |
@@ -212,7 +103,7 @@ void ObjectVisualizerRegion3::RenderImGuiWindow() {
         selected_path.replace_extension("stl");
       }
 
-      hypo::cgal::ExportToSTL(*current_preview_,
+      hypo::cgal::ExportToSTL(polyhedron3_,
                               std::filesystem::absolute(selected_path));
       export_file_selector_->Close();
     }
@@ -220,6 +111,39 @@ void ObjectVisualizerRegion3::RenderImGuiWindow() {
       export_file_selector_.reset();
     }
   }
+}
+
+reify::utils::ErrorOr<std::unique_ptr<reify::pure_cpp::SceneVisualizer<
+    hypo::Region3, glm::mat4>::SceneObjectRenderable>>
+SceneObjectRegion3::CreateSceneObjectRenderable(
+    VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
+    VkFormat output_image_format) {
+  auto renderer_or_error = MeshRenderer::Create(instance, physical_device,
+                                                device, output_image_format);
+  if (auto error = std::get_if<0>(&renderer_or_error)) {
+    return reify::utils::Error{error->msg};
+  }
+
+  auto mesh_renderer = std::unique_ptr<MeshRenderer>(
+      new MeshRenderer(std::move(std::get<1>(renderer_or_error))));
+  mesh_renderer->SetTriangleSoup(triangle_soup_);
+
+  return std::unique_ptr<reify::pure_cpp::SceneVisualizer<
+      hypo::Region3, glm::mat4>::SceneObjectRenderable>(
+      new SceneObjectRenderableRegion3(std::move(mesh_renderer)));
+}
+
+reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources>
+SceneObjectRenderableRegion3::Render(VkCommandBuffer command_buffer,
+                                     VkFramebuffer framebuffer,
+                                     VkImage output_color_image,
+                                     const reify::window::Rect& viewport_region,
+                                     const glm::mat4& view_projection_matrix) {
+  return mesh_renderer_->RenderFrame(
+      command_buffer, framebuffer, output_color_image,
+      {viewport_region.left, viewport_region.top, viewport_region.right,
+       viewport_region.bottom},
+      view_projection_matrix);
 }
 
 }  // namespace hypo

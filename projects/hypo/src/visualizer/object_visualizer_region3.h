@@ -7,11 +7,9 @@
 #include <string>
 
 #include "cgal/types_nef_polyhedron_3.h"
-#include "reify/pure_cpp/object_visualizer.h"
+#include "reify/pure_cpp/scene_visualizer.h"
 #include "reify/pure_cpp/scene_visualizer_camera_3d_arcball.h"
 #include "reify/purecpp/hypo.h"
-#include "reify/utils/future.h"
-#include "reify/utils/thread_with_work_queue.h"
 #include "src/visualizer/vulkan/mesh_renderer.h"
 #include "src/visualizer/vulkan/triangle_soup.h"
 
@@ -23,48 +21,53 @@ class FileBrowser;
 
 namespace hypo {
 
-class ObjectVisualizerRegion3
-    : public reify::pure_cpp::ObjectVisualizer<hypo::Region3>,
-      public reify::window::Window,
+reify::utils::ErrorOr<std::shared_ptr<
+    reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>::SceneObject>>
+CreateSceneObjectRegion3(const hypo::Region3& data);
+
+class SceneObjectRegion3
+    : public reify::pure_cpp::SceneVisualizer<hypo::Region3,
+                                              glm::mat4>::SceneObject,
       public reify::pure_cpp::ImGuiVisualizer {
  public:
-  ObjectVisualizerRegion3();
-  ~ObjectVisualizerRegion3();
+  SceneObjectRegion3(hypo::cgal::Nef_polyhedron_3&& polyhedron3,
+                     const std::shared_ptr<const TriangleSoup>& triangle_soup);
+  ~SceneObjectRegion3();
 
-  reify::utils::Future<reify::utils::ErrorOr<std::any>> PrepareDataForPreview(
-      const hypo::Region3& data) override;
-  void SetPreview(const std::optional<std::any>& prepared_symbol) override;
+  reify::utils::ErrorOr<std::unique_ptr<reify::pure_cpp::SceneVisualizer<
+      hypo::Region3, glm::mat4>::SceneObjectRenderable>>
+  CreateSceneObjectRenderable(VkInstance instance,
+                              VkPhysicalDevice physical_device, VkDevice device,
+                              VkFormat output_image_format) override;
 
-  reify::window::Window* GetWindow() const override {
-    return const_cast<ObjectVisualizerRegion3*>(this);
-  }
   reify::pure_cpp::ImGuiVisualizer* GetImGuiVisualizer() const override {
-    return const_cast<ObjectVisualizerRegion3*>(this);
+    return const_cast<SceneObjectRegion3*>(this);
   }
-
-  bool OnInputEvent(const InputEvent& input_event) override;
-
-  void OnViewportResize(const std::array<int, 2>& size) override;
-
-  void AdvanceTime(std::chrono::duration<float> seconds) override;
-
-  reify::utils::ErrorOr<std::unique_ptr<Renderer>> CreateRenderer(
-      VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
-      VkFormat output_image_format) override;
 
   std::string ImGuiWindowPanelTitle() const override;
   void RenderImGuiWindow() override;
 
  private:
-  reify::utils::ThreadWithWorkQueue builder_thread_;
-
-  std::shared_ptr<TriangleSoup> pending_triangle_soup_;
-  reify::pure_cpp::SceneVisualizerCamera3dArcball free_camera_viewport_;
-  MeshRenderer* mesh_renderer_ = nullptr;
-
-  std::shared_ptr<hypo::cgal::Nef_polyhedron_3> current_preview_;
+  const hypo::cgal::Nef_polyhedron_3 polyhedron3_;
+  const std::shared_ptr<const TriangleSoup> triangle_soup_;
 
   std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
+};
+
+class SceneObjectRenderableRegion3
+    : public reify::pure_cpp::SceneVisualizer<
+          hypo::Region3, glm::mat4>::SceneObjectRenderable {
+ public:
+  SceneObjectRenderableRegion3(std::unique_ptr<MeshRenderer>&& mesh_renderer)
+      : mesh_renderer_(std::move(mesh_renderer)) {}
+
+  reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
+      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
+      VkImage output_color_image, const reify::window::Rect& viewport_region,
+      const glm::mat4& view_projection_matrix) override;
+
+ private:
+  std::unique_ptr<MeshRenderer> mesh_renderer_;
 };
 
 }  // namespace hypo

@@ -16,6 +16,7 @@ class TypeScriptSymbolVisualizer {
       : camera_2d(0, 0),
         camera_3d(0, 0),
         region_2_visualizer(&camera_2d, &CreateSceneObjectRegion2),
+        region_3_visualizer(&camera_3d, &CreateSceneObjectRegion3),
         // region_3_visualizer(&camera_3d, &scene_object_class_region_3),
         visualizer(
             reify::typescript_cpp_v8::hypo::typescript_declarations(),
@@ -31,8 +32,9 @@ class TypeScriptSymbolVisualizer {
 
   reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat4>
       region_2_visualizer;
-  // SceneVisualizer<hypo::Region3, glm::mat4> region_3_visualizer;
-  ObjectVisualizerRegion3 region_3_visualizer;
+  reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>
+      region_3_visualizer;
+  // ObjectVisualizerRegion3 region_3_visualizer;
 
   reify::typescript_cpp_v8::SymbolVisualizer visualizer;
 };
