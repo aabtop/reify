@@ -1,4 +1,4 @@
-#include "src/visualizer/object_visualizer_region3.h"
+#include "src/visualizer/scene_object_region3.h"
 
 #include <CGAL/boost/graph/convert_nef_polyhedron_to_polygon_mesh.h>
 

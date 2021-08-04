@@ -5,8 +5,8 @@
 #include "reify/pure_cpp/scene_visualizer_camera_3d_arcball.h"
 #include "reify/typescript_cpp_v8/hypo.h"
 #include "reify/typescript_cpp_v8/symbol_visualizer.h"
-#include "src/visualizer/object_visualizer_region2.h"
-#include "src/visualizer/object_visualizer_region3.h"
+#include "src/visualizer/scene_object_region2.h"
+#include "src/visualizer/scene_object_region3.h"
 
 namespace hypo {
 

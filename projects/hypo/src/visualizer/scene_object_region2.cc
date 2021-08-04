@@ -1,4 +1,4 @@
-#include "src/visualizer/object_visualizer_region2.h"
+#include "src/visualizer/scene_object_region2.h"
 
 #include <CGAL/Polygon_mesh_processing/polygon_mesh_to_polygon_soup.h>
 

@@ -1,12 +1,12 @@
 cc_library(
     name = "object_visualizers",
     srcs = [
-        "object_visualizer_region2.cc",
-        "object_visualizer_region3.cc",
+        "scene_object_region2.cc",
+        "scene_object_region3.cc",
     ],
     hdrs = [
-        "object_visualizer_region2.h",
-        "object_visualizer_region3.h",
+        "scene_object_region2.h",
+        "scene_object_region3.h",
     ],
     deps = [
         "//:hypo-purecpp",
