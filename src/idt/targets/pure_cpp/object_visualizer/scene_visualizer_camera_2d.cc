@@ -9,6 +9,9 @@ SceneVisualizerCamera2d::SceneVisualizerCamera2d(int viewport_width_in_pixels,
                                                  int viewport_height_in_pixels)
     : viewport_width_in_pixels_(viewport_width_in_pixels),
       viewport_height_in_pixels_(viewport_height_in_pixels) {
+  for (int i = 0; i < static_cast<int>(MouseButton::Count); ++i) {
+    mouse_button_pressed_[i] = false;
+  }
   Reset();
 }
 
