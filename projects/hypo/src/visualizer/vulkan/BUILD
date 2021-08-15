@@ -15,14 +15,22 @@ convert_to_header("color_frag_as_header", ":color_frag", "color_frag.h")
 
 cc_library(
   name = "mesh_renderer",
-  srcs = ["mesh_renderer.cc"],
-  hdrs = ["mesh_renderer.h", "triangle_soup.h"],
+  srcs = [
+    "mesh_renderer.cc",
+    "simple_render_pass_renderer.cc",
+  ],
+  hdrs = [
+    "mesh_renderer.h",
+    "simple_render_pass_renderer.h",
+    "triangle_soup.h",
+  ],
   deps = [
     "@vulkan_sdk//:vulkan",
     ":color_vert_as_header",
     ":color_frag_as_header",
     "@glm",
     "@reify//src/vulkan_utils",
+    "@reify//src/window",
   ],
   visibility = ["//visibility:public"],
 )

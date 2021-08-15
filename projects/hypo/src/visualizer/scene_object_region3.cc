@@ -15,6 +15,7 @@
 #include "reify/purecpp/hypo.h"
 
 namespace hypo {
+namespace visualizer {
 
 namespace {
 TriangleSoup ConvertToTriangleSoup(
@@ -117,8 +118,16 @@ reify::utils::ErrorOr<
 SceneObjectRegion3::CreateSceneObjectRenderable(
     VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
     VkFormat output_image_format) {
-  auto renderer_or_error = MeshRenderer::Create(instance, physical_device,
-                                                device, output_image_format);
+  auto render_pass_renderer_or_error = vulkan::SimpleRenderPassRenderer::Create(
+      instance, physical_device, device, output_image_format);
+  if (auto error = std::get_if<0>(&render_pass_renderer_or_error)) {
+    return reify::utils::Error{error->msg};
+  }
+  auto& render_pass_renderer = std::get<1>(render_pass_renderer_or_error);
+
+  auto renderer_or_error = MeshRenderer::Create(
+      instance, physical_device, device, output_image_format,
+      render_pass_renderer.render_pass());
   if (auto error = std::get_if<0>(&renderer_or_error)) {
     return reify::utils::Error{error->msg};
   }
@@ -128,7 +137,8 @@ SceneObjectRegion3::CreateSceneObjectRenderable(
   mesh_renderer->SetTriangleSoup(triangle_soup_);
 
   return std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>(
-      new SceneObjectRenderableRegion3(std::move(mesh_renderer)));
+      new SceneObjectRenderableRegion3(std::move(render_pass_renderer),
+                                       std::move(mesh_renderer)));
 }
 
 reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources>
@@ -137,11 +147,15 @@ SceneObjectRenderableRegion3::Render(VkCommandBuffer command_buffer,
                                      VkImage output_color_image,
                                      const reify::window::Rect& viewport_region,
                                      const glm::mat4& view_projection_matrix) {
-  return mesh_renderer_->RenderFrame(
+  return render_pass_renderer_.Render(
       command_buffer, framebuffer, output_color_image,
       {viewport_region.left, viewport_region.top, viewport_region.right,
        viewport_region.bottom},
-      view_projection_matrix);
+      [&](VkCommandBuffer command_buffer) {
+        return mesh_renderer_->RenderFrame(command_buffer,
+                                           view_projection_matrix);
+      });
 }
 
+}  // namespace visualizer
 }  // namespace hypo

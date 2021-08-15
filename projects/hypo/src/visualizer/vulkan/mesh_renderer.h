@@ -27,7 +27,8 @@ class MeshRenderer {
   static ErrorOr<MeshRenderer> Create(VkInstance instance,
                                       VkPhysicalDevice physical_device,
                                       VkDevice device,
-                                      VkFormat output_image_format);
+                                      VkFormat output_image_format,
+                                      VkRenderPass render_pass);
 
   MeshRenderer(MeshRenderer&& other) = default;
   ~MeshRenderer();
@@ -36,9 +37,6 @@ class MeshRenderer {
       std::shared_ptr<const TriangleSoup> triangle_soup);
 
   ErrorOr<FrameResources> RenderFrame(VkCommandBuffer command_buffer,
-                                      VkFramebuffer framebuffer,
-                                      VkImage output_color_image,
-                                      const std::array<int, 4>& viewport_region,
                                       const glm::mat4& projection_view_matrix);
 
  private:
@@ -52,10 +50,6 @@ class MeshRenderer {
     WithDeleter<VkPipelineCache> pipeline_cache;
     WithDeleter<VkPipelineLayout> pipeline_layout;
 
-    // We'll continually use the same pipeline, but we set it up as a
-    // shared_ptr because it needs to also out-live any rendering draw calls
-    // that reference it.
-    std::shared_ptr<WithDeleter<VkRenderPass>> render_pass;
     std::shared_ptr<WithDeleter<VkPipeline>> pipeline;
   };
 

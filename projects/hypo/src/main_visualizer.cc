@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
                    APP_NAME, "Visualizer for Hypo TypeScript-defined geometry.",
                    argc, argv));
 
-  hypo::TypeScriptSymbolVisualizer hypo_visualizer_stack;
+  hypo::visualizer::TypeScriptSymbolVisualizer hypo_visualizer_stack;
   auto maybe_error = reify::typescript_cpp_v8::RunVisualizerTool(
       APP_NAME, &hypo_visualizer_stack.visualizer, options);
 

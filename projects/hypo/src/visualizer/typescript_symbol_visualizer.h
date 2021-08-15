@@ -9,6 +9,7 @@
 #include "src/visualizer/scene_object_region3.h"
 
 namespace hypo {
+namespace visualizer {
 
 class TypeScriptSymbolVisualizer {
  public:
@@ -39,6 +40,7 @@ class TypeScriptSymbolVisualizer {
   reify::typescript_cpp_v8::SymbolVisualizer visualizer;
 };
 
+}  // namespace visualizer
 }  // namespace hypo
 
 #endif  // _HYPO_VISUALIZER_VISUALIZER_H
