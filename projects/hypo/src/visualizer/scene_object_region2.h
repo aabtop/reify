@@ -10,9 +10,8 @@
 #include "cgal/types_polygons.h"
 #include "reify/pure_cpp/scene_visualizer.h"
 #include "reify/purecpp/hypo.h"
-#include "src/visualizer/vulkan/mesh_renderer.h"
+#include "src/visualizer/vulkan/polygon_region_renderer.h"
 #include "src/visualizer/vulkan/simple_render_pass_renderer.h"
-#include "src/visualizer/vulkan/triangle_soup.h"
 
 namespace ImGui {
 // We forward declare this class to avoid including `imfilebrowser.h`, which
@@ -29,8 +28,10 @@ CreateSceneObjectRegion2(const hypo::Region2& data);
 class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat4>,
                            public reify::pure_cpp::ImGuiVisualizer {
  public:
-  SceneObjectRegion2(hypo::cgal::Polygon_set_2&& polygon_set,
-                     const std::shared_ptr<const TriangleSoup>& triangle_soup);
+  SceneObjectRegion2(
+      hypo::cgal::Polygon_set_2&& polygon_set,
+      const std::shared_ptr<const PolygonRegionRenderer::TriangleSoup>&
+          triangle_soup);
   ~SceneObjectRegion2();
 
   reify::utils::ErrorOr<
@@ -48,7 +49,8 @@ class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat4>,
 
  private:
   const hypo::cgal::Polygon_set_2 polygon_set_;
-  const std::shared_ptr<const TriangleSoup> triangle_soup_;
+  const std::shared_ptr<const PolygonRegionRenderer::TriangleSoup>
+      triangle_soup_;
 
   std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
 };
@@ -58,9 +60,9 @@ class SceneObjectRenderableRegion2
  public:
   SceneObjectRenderableRegion2(
       vulkan::SimpleRenderPassRenderer&& render_pass_renderer,
-      std::unique_ptr<MeshRenderer>&& mesh_renderer)
+      std::unique_ptr<PolygonRegionRenderer>&& polygon_region_renderer)
       : render_pass_renderer_(std::move(render_pass_renderer)),
-        mesh_renderer_(std::move(mesh_renderer)) {}
+        polygon_region_renderer_(std::move(polygon_region_renderer)) {}
 
   reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
@@ -69,7 +71,7 @@ class SceneObjectRenderableRegion2
 
  private:
   vulkan::SimpleRenderPassRenderer render_pass_renderer_;
-  std::unique_ptr<MeshRenderer> mesh_renderer_;
+  std::unique_ptr<PolygonRegionRenderer> polygon_region_renderer_;
 };
 
 }  // namespace visualizer

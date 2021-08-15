@@ -1,4 +1,4 @@
-#include "mesh_renderer.h"
+#include "polygon_region_renderer.h"
 
 #include <cstring>
 #include <glm/glm.hpp>
@@ -8,17 +8,17 @@
 namespace {
 
 #include "src_gen/color_frag.h"
-#include "src_gen/region3_flat_shaded_vert.h"
+#include "src_gen/region2_solid_fill_vert.h"
 
 struct MvpUniform {
   alignas(16) glm::mat4 model;
-  alignas(16) glm::mat4 projection_view_matrix;
+  alignas(16) glm::mat4 view_matrix;
 };
 
 }  // namespace
 
 // static
-vulkan_utils::ErrorOr<MeshRenderer> MeshRenderer::Create(
+vulkan_utils::ErrorOr<PolygonRegionRenderer> PolygonRegionRenderer::Create(
     VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
     VkFormat output_image_format, VkRenderPass render_pass) {
   VULKAN_UTILS_ASSIGN_OR_RETURN(
@@ -40,8 +40,8 @@ vulkan_utils::ErrorOr<MeshRenderer> MeshRenderer::Create(
   // Shaders
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       vertex_shader_module,
-      vulkan_utils::CreateShader(device, region3_flat_shaded_vert_spv,
-                                 region3_flat_shaded_vert_spv_len));
+      vulkan_utils::CreateShader(device, region2_solid_fill_vert_spv,
+                                 region2_solid_fill_vert_spv_len));
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       fragment_shader_module,
       vulkan_utils::CreateShader(device, color_frag_spv, color_frag_spv_len));
@@ -54,7 +54,7 @@ vulkan_utils::ErrorOr<MeshRenderer> MeshRenderer::Create(
                                            {
                                                {
                                                    0,  // binding
-                                                   6 * sizeof(float),
+                                                   2 * sizeof(float),
                                                    VK_VERTEX_INPUT_RATE_VERTEX,
                                                },
                                            },
@@ -63,20 +63,13 @@ vulkan_utils::ErrorOr<MeshRenderer> MeshRenderer::Create(
                                                    // position
                                                    0,  // location
                                                    0,  // binding
-                                                   VK_FORMAT_R32G32B32_SFLOAT,
+                                                   VK_FORMAT_R32G32_SFLOAT,
                                                    0,
-                                               },
-                                               {
-                                                   // normal
-                                                   1,  // location
-                                                   0,  // binding
-                                                   VK_FORMAT_R32G32B32_SFLOAT,
-                                                   3 * sizeof(float),
                                                },
                                            },
                                            fragment_shader_module.value()));
 
-  return MeshRenderer(MeshRendererConstructorData{
+  return PolygonRegionRenderer(PolygonRegionRendererConstructorData{
       instance,
       physical_device,
       device,
@@ -87,10 +80,10 @@ vulkan_utils::ErrorOr<MeshRenderer> MeshRenderer::Create(
   });
 }
 
-MeshRenderer::~MeshRenderer() {}
+PolygonRegionRenderer::~PolygonRegionRenderer() {}
 
-auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
-                               const glm::mat4& projection_view_matrix)
+auto PolygonRegionRenderer::RenderFrame(VkCommandBuffer command_buffer,
+                                        const glm::mat4& projection_view_matrix)
     -> vulkan_utils::ErrorOr<vulkan_utils::FrameResources> {
   glm::mat4 model_matrix = glm::mat4(1.0f);
   MvpUniform uniform_data{model_matrix, projection_view_matrix};
@@ -150,7 +143,7 @@ auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
       std::make_shared<decltype(resources)>(std::move(resources)));
 }
 
-std::optional<vulkan_utils::Error> MeshRenderer::SetTriangleSoup(
+std::optional<vulkan_utils::Error> PolygonRegionRenderer::SetTriangleSoup(
     std::shared_ptr<const TriangleSoup> triangle_soup) {
   triangle_soup_ = triangle_soup;
   if (!triangle_soup_) {

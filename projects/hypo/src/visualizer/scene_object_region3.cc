@@ -18,17 +18,18 @@ namespace hypo {
 namespace visualizer {
 
 namespace {
-TriangleSoup ConvertToTriangleSoup(
+MeshRenderer::TriangleSoup ConvertToTriangleSoup(
     const hypo::cgal::Nef_polyhedron_3& polyhedron) {
   std::vector<hypo::cgal::Point_3> cgal_vertices;
   std::vector<std::vector<size_t>> cgal_faces;
   CGAL::convert_nef_polyhedron_to_polygon_soup(polyhedron, cgal_vertices,
                                                cgal_faces, true);
 
-  std::vector<TriangleSoup::Triangle> triangles;
+  std::vector<MeshRenderer::TriangleSoup::Triangle> triangles;
   triangles.reserve(cgal_faces.size());
-  std::vector<TriangleSoup::Vertex> vertices;
-  vertices.reserve(triangles.size() * 3 * sizeof(TriangleSoup::Vertex));
+  std::vector<MeshRenderer::TriangleSoup::Vertex> vertices;
+  vertices.reserve(triangles.size() * 3 *
+                   sizeof(MeshRenderer::TriangleSoup::Vertex));
 
   for (const auto& cgal_face : cgal_faces) {
     assert(cgal_face.size() == 3);
@@ -38,13 +39,13 @@ TriangleSoup ConvertToTriangleSoup(
     hypo::cgal::Vector_3 cgal_normal =
         CGAL::normal(points[0], points[1], points[2]);
 
-    TriangleSoup::Vector3 normal = {
+    MeshRenderer::TriangleSoup::Vector3 normal = {
         static_cast<float>(CGAL::to_double(cgal_normal.x())),
         static_cast<float>(CGAL::to_double(cgal_normal.y())),
         static_cast<float>(CGAL::to_double(cgal_normal.z()))};
 
     for (const auto& point : points) {
-      vertices.push_back(TriangleSoup::Vertex{
+      vertices.push_back(MeshRenderer::TriangleSoup::Vertex{
           {static_cast<float>(CGAL::to_double(point.x())),
            static_cast<float>(CGAL::to_double(point.y())),
            static_cast<float>(CGAL::to_double(point.z()))},
@@ -52,13 +53,13 @@ TriangleSoup ConvertToTriangleSoup(
       });
     }
 
-    triangles.push_back(
-        TriangleSoup::Triangle{static_cast<uint32_t>(vertices.size() - 3),
-                               static_cast<uint32_t>(vertices.size() - 2),
-                               static_cast<uint32_t>(vertices.size() - 1)});
+    triangles.push_back(MeshRenderer::TriangleSoup::Triangle{
+        static_cast<uint32_t>(vertices.size() - 3),
+        static_cast<uint32_t>(vertices.size() - 2),
+        static_cast<uint32_t>(vertices.size() - 1)});
   }
 
-  return TriangleSoup{std::move(vertices), std::move(triangles)};
+  return MeshRenderer::TriangleSoup{std::move(vertices), std::move(triangles)};
 }
 
 }  // namespace
@@ -66,8 +67,8 @@ TriangleSoup ConvertToTriangleSoup(
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
 CreateSceneObjectRegion3(const hypo::Region3& data) {
   hypo::cgal::Nef_polyhedron_3 polyhedron3 = hypo::cgal::ConstructRegion3(data);
-  const std::shared_ptr<const TriangleSoup> triangle_soup(
-      new TriangleSoup(ConvertToTriangleSoup(polyhedron3)));
+  const std::shared_ptr<const MeshRenderer::TriangleSoup> triangle_soup(
+      new MeshRenderer::TriangleSoup(ConvertToTriangleSoup(polyhedron3)));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>(
       new SceneObjectRegion3(std::move(polyhedron3), triangle_soup));
@@ -75,7 +76,7 @@ CreateSceneObjectRegion3(const hypo::Region3& data) {
 
 SceneObjectRegion3::SceneObjectRegion3(
     hypo::cgal::Nef_polyhedron_3&& polyhedron3,
-    const std::shared_ptr<const TriangleSoup>& triangle_soup)
+    const std::shared_ptr<const MeshRenderer::TriangleSoup>& triangle_soup)
     : polyhedron3_(std::move(polyhedron3)), triangle_soup_(triangle_soup) {}
 
 SceneObjectRegion3::~SceneObjectRegion3() {}

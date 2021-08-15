@@ -12,7 +12,6 @@
 #include "reify/purecpp/hypo.h"
 #include "src/visualizer/vulkan/mesh_renderer.h"
 #include "src/visualizer/vulkan/simple_render_pass_renderer.h"
-#include "src/visualizer/vulkan/triangle_soup.h"
 
 namespace ImGui {
 // We forward declare this class to avoid including `imfilebrowser.h`, which
@@ -29,8 +28,9 @@ CreateSceneObjectRegion3(const hypo::Region3& data);
 class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
                            public reify::pure_cpp::ImGuiVisualizer {
  public:
-  SceneObjectRegion3(hypo::cgal::Nef_polyhedron_3&& polyhedron3,
-                     const std::shared_ptr<const TriangleSoup>& triangle_soup);
+  SceneObjectRegion3(
+      hypo::cgal::Nef_polyhedron_3&& polyhedron3,
+      const std::shared_ptr<const MeshRenderer::TriangleSoup>& triangle_soup);
   ~SceneObjectRegion3();
 
   reify::utils::ErrorOr<
@@ -48,7 +48,7 @@ class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
 
  private:
   const hypo::cgal::Nef_polyhedron_3 polyhedron3_;
-  const std::shared_ptr<const TriangleSoup> triangle_soup_;
+  const std::shared_ptr<const MeshRenderer::TriangleSoup> triangle_soup_;
 
   std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
 };
