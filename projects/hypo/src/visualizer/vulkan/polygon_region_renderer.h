@@ -41,7 +41,7 @@ class PolygonRegionRenderer {
       std::shared_ptr<const TriangleSoup> triangle_soup);
 
   vulkan_utils::ErrorOr<vulkan_utils::FrameResources> RenderFrame(
-      VkCommandBuffer command_buffer, const glm::mat4& projection_view_matrix);
+      VkCommandBuffer command_buffer, const glm::mat3& projection_view_matrix);
 
  private:
   struct PolygonRegionRendererConstructorData {

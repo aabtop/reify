@@ -111,16 +111,17 @@ glm::vec2 SceneVisualizerCamera2d::ViewportToVirtualPoint(
           virtual_viewport.height() * (1.0f - viewport_point.y));
 }
 
-glm::mat4 SceneVisualizerCamera2d::ProjectionViewMatrix(
+glm::mat3 SceneVisualizerCamera2d::ProjectionViewMatrix(
     int viewport_width_in_pixels, int viewport_height_in_pixels) const {
   const auto virtual_viewport =
       VirtualViewport(viewport_width_in_pixels, viewport_height_in_pixels);
-  return
-      // Flip the y axis so that positive is up.
-      glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, -1.0f, 1.0f)) *
-      // Use an orthographic projection.
-      glm::ortho(virtual_viewport.left, virtual_viewport.right,
-                 virtual_viewport.bottom, virtual_viewport.top);
+  auto x_scale = 2.0f / (virtual_viewport.right - virtual_viewport.left);
+  auto x_translate = (virtual_viewport.right + virtual_viewport.left) /
+                     (virtual_viewport.right - virtual_viewport.left);
+  auto y_scale = 2.0f / (virtual_viewport.bottom - virtual_viewport.top);
+  auto y_translate = (virtual_viewport.top + virtual_viewport.bottom) /
+                     (virtual_viewport.bottom - virtual_viewport.top);
+  return glm::mat3(x_scale, 0, 0, 0, y_scale, 0, -x_translate, -y_translate, 1);
 }
 
 // Reset all view parameters (e.g. camera orientation, position, etc..)

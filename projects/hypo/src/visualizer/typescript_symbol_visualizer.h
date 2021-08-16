@@ -31,7 +31,7 @@ class TypeScriptSymbolVisualizer {
   reify::pure_cpp::SceneVisualizerCamera2d camera_2d;
   reify::pure_cpp::SceneVisualizerCamera3dArcball camera_3d;
 
-  reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat4>
+  reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat3>
       region_2_visualizer;
   reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>
       region_3_visualizer;

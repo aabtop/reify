@@ -11,6 +11,8 @@ namespace {
 #include "src_gen/region2_solid_fill_vert.h"
 
 struct MvpUniform {
+  // We set the type as a mat4 to make alignment requirements happy, but we're
+  // actually just stuffing mat3s in here.
   alignas(16) glm::mat4 model;
   alignas(16) glm::mat4 view_matrix;
 };
@@ -83,10 +85,10 @@ vulkan_utils::ErrorOr<PolygonRegionRenderer> PolygonRegionRenderer::Create(
 PolygonRegionRenderer::~PolygonRegionRenderer() {}
 
 auto PolygonRegionRenderer::RenderFrame(VkCommandBuffer command_buffer,
-                                        const glm::mat4& projection_view_matrix)
+                                        const glm::mat3& projection_view_matrix)
     -> vulkan_utils::ErrorOr<vulkan_utils::FrameResources> {
   glm::mat4 model_matrix = glm::mat4(1.0f);
-  MvpUniform uniform_data{model_matrix, projection_view_matrix};
+  MvpUniform uniform_data{model_matrix, glm::mat4(projection_view_matrix)};
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       uniform_buffer,

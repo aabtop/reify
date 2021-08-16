@@ -22,10 +22,10 @@ class FileBrowser;
 namespace hypo {
 namespace visualizer {
 
-reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
+reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
 CreateSceneObjectRegion2(const hypo::Region2& data);
 
-class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat4>,
+class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat3>,
                            public reify::pure_cpp::ImGuiVisualizer {
  public:
   SceneObjectRegion2(
@@ -35,7 +35,7 @@ class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat4>,
   ~SceneObjectRegion2();
 
   reify::utils::ErrorOr<
-      std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>>
+      std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>>
   CreateSceneObjectRenderable(VkInstance instance,
                               VkPhysicalDevice physical_device, VkDevice device,
                               VkFormat output_image_format) override;
@@ -56,7 +56,7 @@ class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat4>,
 };
 
 class SceneObjectRenderableRegion2
-    : public reify::pure_cpp::SceneObjectRenderable<glm::mat4> {
+    : public reify::pure_cpp::SceneObjectRenderable<glm::mat3> {
  public:
   SceneObjectRenderableRegion2(
       vulkan::SimpleRenderPassRenderer&& render_pass_renderer,
@@ -67,7 +67,7 @@ class SceneObjectRenderableRegion2
   reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
       VkImage output_color_image, const reify::window::Rect& viewport_region,
-      const glm::mat4& view_projection_matrix) override;
+      const glm::mat3& view_projection_matrix) override;
 
  private:
   vulkan::SimpleRenderPassRenderer render_pass_renderer_;

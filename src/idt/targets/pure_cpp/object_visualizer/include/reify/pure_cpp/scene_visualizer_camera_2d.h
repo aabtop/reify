@@ -10,7 +10,7 @@
 namespace reify {
 namespace pure_cpp {
 
-class SceneVisualizerCamera2d : public SceneVisualizerCamera<glm::mat4> {
+class SceneVisualizerCamera2d : public SceneVisualizerCamera<glm::mat3> {
  public:
   SceneVisualizerCamera2d(int viewport_width_in_pixels,
                           int viewport_height_in_pixels);
@@ -29,7 +29,7 @@ class SceneVisualizerCamera2d : public SceneVisualizerCamera<glm::mat4> {
   // Reset all view parameters (e.g. camera orientation, position, etc..)
   void Reset() override;
 
-  glm::mat4 ProjectionViewMatrix(int viewport_width_in_pixels,
+  glm::mat3 ProjectionViewMatrix(int viewport_width_in_pixels,
                                  int viewport_height_in_pixels) const override;
 
  private:
