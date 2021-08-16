@@ -1,5 +1,7 @@
 #include "simple_render_pass_renderer.h"
 
+#include <cstring>
+
 #include "vulkan_utils/vulkan_utils.h"
 
 namespace hypo {
@@ -66,7 +68,8 @@ SimpleRenderPassRenderer::Render(
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
   std::array<VkClearValue, 2> clear_values{};
-  memset(clear_values.data(), 0, sizeof(clear_values[0]) * clear_values.size());
+  std::memset(clear_values.data(), 0,
+              sizeof(clear_values[0]) * clear_values.size());
   clear_values[0].color = {{0.11, 0.11, 0.11, 1}};
   clear_values[1].depthStencil = {1, 0};
 
@@ -91,8 +94,10 @@ SimpleRenderPassRenderer::Render(
   vkCmdEndRenderPass(command_buffer);
 
   // std::any doesn't support move only types, so we wrap it in a shared_ptr.
+  auto result =
+      std::make_tuple(std::get<1>(error_or_resources), data_.render_pass);
   return reify::window::Window::Renderer::FrameResources(
-      std::make_tuple(std::get<1>(error_or_resources), data_.render_pass));
+      std::make_shared<decltype(result)>(std::move(result)));
 }
 
 }  // namespace vulkan
