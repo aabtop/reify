@@ -1,4 +1,4 @@
-#include "polygon_region_renderer.h"
+#include "flat_triangle_renderer2.h"
 
 #include <cstring>
 #include <glm/glm.hpp>
@@ -20,7 +20,7 @@ struct MvpUniform {
 }  // namespace
 
 // static
-vulkan_utils::ErrorOr<PolygonRegionRenderer> PolygonRegionRenderer::Create(
+vulkan_utils::ErrorOr<FlatTriangleRenderer2> FlatTriangleRenderer2::Create(
     VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
     VkFormat output_image_format, VkRenderPass render_pass) {
   VULKAN_UTILS_ASSIGN_OR_RETURN(
@@ -71,7 +71,7 @@ vulkan_utils::ErrorOr<PolygonRegionRenderer> PolygonRegionRenderer::Create(
                                            },
                                            fragment_shader_module.value()));
 
-  return PolygonRegionRenderer(PolygonRegionRendererConstructorData{
+  return FlatTriangleRenderer2(FlatTriangleRenderer2ConstructorData{
       instance,
       physical_device,
       device,
@@ -82,9 +82,9 @@ vulkan_utils::ErrorOr<PolygonRegionRenderer> PolygonRegionRenderer::Create(
   });
 }
 
-PolygonRegionRenderer::~PolygonRegionRenderer() {}
+FlatTriangleRenderer2::~FlatTriangleRenderer2() {}
 
-auto PolygonRegionRenderer::RenderFrame(VkCommandBuffer command_buffer,
+auto FlatTriangleRenderer2::RenderFrame(VkCommandBuffer command_buffer,
                                         const glm::mat3& projection_view_matrix)
     -> vulkan_utils::ErrorOr<vulkan_utils::FrameResources> {
   glm::mat4 model_matrix = glm::mat4(1.0f);
@@ -145,7 +145,7 @@ auto PolygonRegionRenderer::RenderFrame(VkCommandBuffer command_buffer,
       std::make_shared<decltype(resources)>(std::move(resources)));
 }
 
-std::optional<vulkan_utils::Error> PolygonRegionRenderer::SetTriangleSoup(
+std::optional<vulkan_utils::Error> FlatTriangleRenderer2::SetTriangleSoup(
     std::shared_ptr<const TriangleSoup> triangle_soup) {
   triangle_soup_ = triangle_soup;
   if (!triangle_soup_) {

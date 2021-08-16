@@ -21,14 +21,14 @@ namespace hypo {
 namespace visualizer {
 
 namespace {
-PolygonRegionRenderer::TriangleSoup ConvertToTriangleSoup(
+FlatTriangleRenderer2::TriangleSoup ConvertToTriangleSoup(
     const hypo::cgal::Polygon_set_2& polygon_set) {
   cgal::Constrained_Delaunay_triangulation_2 cdt =
       cgal::TriangulatePolygonSet(polygon_set);
 
-  std::vector<PolygonRegionRenderer::TriangleSoup::Triangle> triangles;
+  std::vector<FlatTriangleRenderer2::TriangleSoup::Triangle> triangles;
   triangles.reserve(cdt.number_of_faces());
-  std::vector<PolygonRegionRenderer::TriangleSoup::Vertex> vertices;
+  std::vector<FlatTriangleRenderer2::TriangleSoup::Vertex> vertices;
   vertices.reserve(cdt.number_of_vertices());
 
   for (auto iter = cdt.finite_faces_begin(); iter != cdt.finite_faces_end();
@@ -39,17 +39,17 @@ PolygonRegionRenderer::TriangleSoup ConvertToTriangleSoup(
     for (int i = 0; i < 3; ++i) {
       const cgal::Point_2& pt = face->vertex(i)->point();
 
-      vertices.push_back(PolygonRegionRenderer::TriangleSoup::Vertex{
+      vertices.push_back(FlatTriangleRenderer2::TriangleSoup::Vertex{
           {static_cast<float>(CGAL::to_double(pt.x())),
            static_cast<float>(CGAL::to_double(pt.y()))}});
     }
-    triangles.push_back(PolygonRegionRenderer::TriangleSoup::Triangle{
+    triangles.push_back(FlatTriangleRenderer2::TriangleSoup::Triangle{
         static_cast<uint32_t>(vertices.size() - 1),
         static_cast<uint32_t>(vertices.size() - 2),
         static_cast<uint32_t>(vertices.size() - 3)});
   }
 
-  return PolygonRegionRenderer::TriangleSoup{std::move(vertices),
+  return FlatTriangleRenderer2::TriangleSoup{std::move(vertices),
                                              std::move(triangles)};
 }
 }  // namespace
@@ -57,8 +57,8 @@ PolygonRegionRenderer::TriangleSoup ConvertToTriangleSoup(
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
 CreateSceneObjectRegion2(const hypo::Region2& data) {
   hypo::cgal::Polygon_set_2 polygon_set = hypo::cgal::ConstructRegion2(data);
-  const std::shared_ptr<const PolygonRegionRenderer::TriangleSoup>
-      triangle_soup(new PolygonRegionRenderer::TriangleSoup(
+  const std::shared_ptr<const FlatTriangleRenderer2::TriangleSoup>
+      triangle_soup(new FlatTriangleRenderer2::TriangleSoup(
           ConvertToTriangleSoup(polygon_set)));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>(
@@ -67,7 +67,7 @@ CreateSceneObjectRegion2(const hypo::Region2& data) {
 
 SceneObjectRegion2::SceneObjectRegion2(
     hypo::cgal::Polygon_set_2&& polygon_set,
-    const std::shared_ptr<const PolygonRegionRenderer::TriangleSoup>&
+    const std::shared_ptr<const FlatTriangleRenderer2::TriangleSoup>&
         triangle_soup)
     : polygon_set_(std::move(polygon_set)), triangle_soup_(triangle_soup) {}
 
@@ -118,20 +118,20 @@ SceneObjectRegion2::CreateSceneObjectRenderable(
   }
   auto& render_pass_renderer = std::get<1>(render_pass_renderer_or_error);
 
-  auto renderer_or_error = PolygonRegionRenderer::Create(
+  auto renderer_or_error = FlatTriangleRenderer2::Create(
       instance, physical_device, device, output_image_format,
       render_pass_renderer.render_pass());
   if (auto error = std::get_if<0>(&renderer_or_error)) {
     return reify::utils::Error{error->msg};
   }
 
-  auto mesh_renderer = std::unique_ptr<PolygonRegionRenderer>(
-      new PolygonRegionRenderer(std::move(std::get<1>(renderer_or_error))));
-  mesh_renderer->SetTriangleSoup(triangle_soup_);
+  auto flag_triangle_renderer = std::unique_ptr<FlatTriangleRenderer2>(
+      new FlatTriangleRenderer2(std::move(std::get<1>(renderer_or_error))));
+  flag_triangle_renderer->SetTriangleSoup(triangle_soup_);
 
   return std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>(
       new SceneObjectRenderableRegion2(std::move(render_pass_renderer),
-                                       std::move(mesh_renderer)));
+                                       std::move(flag_triangle_renderer)));
 }
 
 reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources>
@@ -145,7 +145,7 @@ SceneObjectRenderableRegion2::Render(VkCommandBuffer command_buffer,
       {viewport_region.left, viewport_region.top, viewport_region.right,
        viewport_region.bottom},
       [&](VkCommandBuffer command_buffer) {
-        return polygon_region_renderer_->RenderFrame(command_buffer,
+        return flat_triangle_renderer2_->RenderFrame(command_buffer,
                                                      view_projection_matrix);
       });
 }

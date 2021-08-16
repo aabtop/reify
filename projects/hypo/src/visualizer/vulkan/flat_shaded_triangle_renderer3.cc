@@ -1,4 +1,4 @@
-#include "mesh_renderer.h"
+#include "flat_shaded_triangle_renderer3.h"
 
 #include <cstring>
 #include <glm/glm.hpp>
@@ -18,9 +18,12 @@ struct MvpUniform {
 }  // namespace
 
 // static
-vulkan_utils::ErrorOr<MeshRenderer> MeshRenderer::Create(
-    VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
-    VkFormat output_image_format, VkRenderPass render_pass) {
+vulkan_utils::ErrorOr<FlatShadedTriangleRenderer3>
+FlatShadedTriangleRenderer3::Create(VkInstance instance,
+                                    VkPhysicalDevice physical_device,
+                                    VkDevice device,
+                                    VkFormat output_image_format,
+                                    VkRenderPass render_pass) {
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       descriptor_set_layout,
       vulkan_utils::MakeDescriptorSetLayout(
@@ -76,7 +79,7 @@ vulkan_utils::ErrorOr<MeshRenderer> MeshRenderer::Create(
                                            },
                                            fragment_shader_module.value()));
 
-  return MeshRenderer(MeshRendererConstructorData{
+  return FlatShadedTriangleRenderer3(FlatShadedTriangleRenderer3ConstructorData{
       instance,
       physical_device,
       device,
@@ -87,10 +90,10 @@ vulkan_utils::ErrorOr<MeshRenderer> MeshRenderer::Create(
   });
 }
 
-MeshRenderer::~MeshRenderer() {}
+FlatShadedTriangleRenderer3::~FlatShadedTriangleRenderer3() {}
 
-auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
-                               const glm::mat4& projection_view_matrix)
+auto FlatShadedTriangleRenderer3::RenderFrame(
+    VkCommandBuffer command_buffer, const glm::mat4& projection_view_matrix)
     -> vulkan_utils::ErrorOr<vulkan_utils::FrameResources> {
   glm::mat4 model_matrix = glm::mat4(1.0f);
   MvpUniform uniform_data{model_matrix, projection_view_matrix};
@@ -150,7 +153,7 @@ auto MeshRenderer::RenderFrame(VkCommandBuffer command_buffer,
       std::make_shared<decltype(resources)>(std::move(resources)));
 }
 
-std::optional<vulkan_utils::Error> MeshRenderer::SetTriangleSoup(
+std::optional<vulkan_utils::Error> FlatShadedTriangleRenderer3::SetTriangleSoup(
     std::shared_ptr<const TriangleSoup> triangle_soup) {
   triangle_soup_ = triangle_soup;
   if (!triangle_soup_) {

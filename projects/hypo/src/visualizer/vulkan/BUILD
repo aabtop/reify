@@ -19,15 +19,15 @@ convert_to_header("region2_solid_fill_vert_as_header", ":region2_solid_fill_vert
 convert_to_header("color_frag_as_header", ":color_frag", "color_frag.h")
 
 cc_library(
-  name = "mesh_renderer",
+  name = "renderers",
   srcs = [
-    "mesh_renderer.cc",
-    "polygon_region_renderer.cc",
+    "flat_shaded_triangle_renderer3.cc",
+    "flat_triangle_renderer2.cc",
     "simple_render_pass_renderer.cc",
   ],
   hdrs = [
-    "mesh_renderer.h",
-    "polygon_region_renderer.h",
+    "flat_shaded_triangle_renderer3.h",
+    "flat_triangle_renderer2.h",
     "simple_render_pass_renderer.h",
   ],
   deps = [

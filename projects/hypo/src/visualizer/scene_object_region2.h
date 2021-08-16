@@ -10,7 +10,7 @@
 #include "cgal/types_polygons.h"
 #include "reify/pure_cpp/scene_visualizer.h"
 #include "reify/purecpp/hypo.h"
-#include "src/visualizer/vulkan/polygon_region_renderer.h"
+#include "src/visualizer/vulkan/flat_triangle_renderer2.h"
 #include "src/visualizer/vulkan/simple_render_pass_renderer.h"
 
 namespace ImGui {
@@ -30,7 +30,7 @@ class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat3>,
  public:
   SceneObjectRegion2(
       hypo::cgal::Polygon_set_2&& polygon_set,
-      const std::shared_ptr<const PolygonRegionRenderer::TriangleSoup>&
+      const std::shared_ptr<const FlatTriangleRenderer2::TriangleSoup>&
           triangle_soup);
   ~SceneObjectRegion2();
 
@@ -49,7 +49,7 @@ class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat3>,
 
  private:
   const hypo::cgal::Polygon_set_2 polygon_set_;
-  const std::shared_ptr<const PolygonRegionRenderer::TriangleSoup>
+  const std::shared_ptr<const FlatTriangleRenderer2::TriangleSoup>
       triangle_soup_;
 
   std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
@@ -60,9 +60,9 @@ class SceneObjectRenderableRegion2
  public:
   SceneObjectRenderableRegion2(
       vulkan::SimpleRenderPassRenderer&& render_pass_renderer,
-      std::unique_ptr<PolygonRegionRenderer>&& polygon_region_renderer)
+      std::unique_ptr<FlatTriangleRenderer2>&& flat_triangle_renderer2)
       : render_pass_renderer_(std::move(render_pass_renderer)),
-        polygon_region_renderer_(std::move(polygon_region_renderer)) {}
+        flat_triangle_renderer2_(std::move(flat_triangle_renderer2)) {}
 
   reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
@@ -71,7 +71,7 @@ class SceneObjectRenderableRegion2
 
  private:
   vulkan::SimpleRenderPassRenderer render_pass_renderer_;
-  std::unique_ptr<PolygonRegionRenderer> polygon_region_renderer_;
+  std::unique_ptr<FlatTriangleRenderer2> flat_triangle_renderer2_;
 };
 
 }  // namespace visualizer

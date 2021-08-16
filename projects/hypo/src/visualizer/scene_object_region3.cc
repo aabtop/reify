@@ -18,18 +18,18 @@ namespace hypo {
 namespace visualizer {
 
 namespace {
-MeshRenderer::TriangleSoup ConvertToTriangleSoup(
+FlatShadedTriangleRenderer3::TriangleSoup ConvertToTriangleSoup(
     const hypo::cgal::Nef_polyhedron_3& polyhedron) {
   std::vector<hypo::cgal::Point_3> cgal_vertices;
   std::vector<std::vector<size_t>> cgal_faces;
   CGAL::convert_nef_polyhedron_to_polygon_soup(polyhedron, cgal_vertices,
                                                cgal_faces, true);
 
-  std::vector<MeshRenderer::TriangleSoup::Triangle> triangles;
+  std::vector<FlatShadedTriangleRenderer3::TriangleSoup::Triangle> triangles;
   triangles.reserve(cgal_faces.size());
-  std::vector<MeshRenderer::TriangleSoup::Vertex> vertices;
+  std::vector<FlatShadedTriangleRenderer3::TriangleSoup::Vertex> vertices;
   vertices.reserve(triangles.size() * 3 *
-                   sizeof(MeshRenderer::TriangleSoup::Vertex));
+                   sizeof(FlatShadedTriangleRenderer3::TriangleSoup::Vertex));
 
   for (const auto& cgal_face : cgal_faces) {
     assert(cgal_face.size() == 3);
@@ -39,13 +39,13 @@ MeshRenderer::TriangleSoup ConvertToTriangleSoup(
     hypo::cgal::Vector_3 cgal_normal =
         CGAL::normal(points[0], points[1], points[2]);
 
-    MeshRenderer::TriangleSoup::Vector3 normal = {
+    FlatShadedTriangleRenderer3::TriangleSoup::Vector3 normal = {
         static_cast<float>(CGAL::to_double(cgal_normal.x())),
         static_cast<float>(CGAL::to_double(cgal_normal.y())),
         static_cast<float>(CGAL::to_double(cgal_normal.z()))};
 
     for (const auto& point : points) {
-      vertices.push_back(MeshRenderer::TriangleSoup::Vertex{
+      vertices.push_back(FlatShadedTriangleRenderer3::TriangleSoup::Vertex{
           {static_cast<float>(CGAL::to_double(point.x())),
            static_cast<float>(CGAL::to_double(point.y())),
            static_cast<float>(CGAL::to_double(point.z()))},
@@ -53,13 +53,14 @@ MeshRenderer::TriangleSoup ConvertToTriangleSoup(
       });
     }
 
-    triangles.push_back(MeshRenderer::TriangleSoup::Triangle{
+    triangles.push_back(FlatShadedTriangleRenderer3::TriangleSoup::Triangle{
         static_cast<uint32_t>(vertices.size() - 3),
         static_cast<uint32_t>(vertices.size() - 2),
         static_cast<uint32_t>(vertices.size() - 1)});
   }
 
-  return MeshRenderer::TriangleSoup{std::move(vertices), std::move(triangles)};
+  return FlatShadedTriangleRenderer3::TriangleSoup{std::move(vertices),
+                                                   std::move(triangles)};
 }
 
 }  // namespace
@@ -67,8 +68,9 @@ MeshRenderer::TriangleSoup ConvertToTriangleSoup(
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
 CreateSceneObjectRegion3(const hypo::Region3& data) {
   hypo::cgal::Nef_polyhedron_3 polyhedron3 = hypo::cgal::ConstructRegion3(data);
-  const std::shared_ptr<const MeshRenderer::TriangleSoup> triangle_soup(
-      new MeshRenderer::TriangleSoup(ConvertToTriangleSoup(polyhedron3)));
+  const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>
+      triangle_soup(new FlatShadedTriangleRenderer3::TriangleSoup(
+          ConvertToTriangleSoup(polyhedron3)));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>(
       new SceneObjectRegion3(std::move(polyhedron3), triangle_soup));
@@ -76,7 +78,8 @@ CreateSceneObjectRegion3(const hypo::Region3& data) {
 
 SceneObjectRegion3::SceneObjectRegion3(
     hypo::cgal::Nef_polyhedron_3&& polyhedron3,
-    const std::shared_ptr<const MeshRenderer::TriangleSoup>& triangle_soup)
+    const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>&
+        triangle_soup)
     : polyhedron3_(std::move(polyhedron3)), triangle_soup_(triangle_soup) {}
 
 SceneObjectRegion3::~SceneObjectRegion3() {}
@@ -126,20 +129,23 @@ SceneObjectRegion3::CreateSceneObjectRenderable(
   }
   auto& render_pass_renderer = std::get<1>(render_pass_renderer_or_error);
 
-  auto renderer_or_error = MeshRenderer::Create(
+  auto renderer_or_error = FlatShadedTriangleRenderer3::Create(
       instance, physical_device, device, output_image_format,
       render_pass_renderer.render_pass());
   if (auto error = std::get_if<0>(&renderer_or_error)) {
     return reify::utils::Error{error->msg};
   }
 
-  auto mesh_renderer = std::unique_ptr<MeshRenderer>(
-      new MeshRenderer(std::move(std::get<1>(renderer_or_error))));
-  mesh_renderer->SetTriangleSoup(triangle_soup_);
+  auto flat_shaded_triangle_renderer =
+      std::unique_ptr<FlatShadedTriangleRenderer3>(
+          new FlatShadedTriangleRenderer3(
+              std::move(std::get<1>(renderer_or_error))));
+  flat_shaded_triangle_renderer->SetTriangleSoup(triangle_soup_);
 
   return std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>(
-      new SceneObjectRenderableRegion3(std::move(render_pass_renderer),
-                                       std::move(mesh_renderer)));
+      new SceneObjectRenderableRegion3(
+          std::move(render_pass_renderer),
+          std::move(flat_shaded_triangle_renderer)));
 }
 
 reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources>
@@ -153,8 +159,8 @@ SceneObjectRenderableRegion3::Render(VkCommandBuffer command_buffer,
       {viewport_region.left, viewport_region.top, viewport_region.right,
        viewport_region.bottom},
       [&](VkCommandBuffer command_buffer) {
-        return mesh_renderer_->RenderFrame(command_buffer,
-                                           view_projection_matrix);
+        return flat_shaded_triangle_renderer_->RenderFrame(
+            command_buffer, view_projection_matrix);
       });
 }
 

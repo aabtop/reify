@@ -12,7 +12,7 @@ cc_library(
         "//:hypo-purecpp",
         "//:hypo_lib",
         "@reify//src/idt/targets/pure_cpp/object_visualizer:interface",
-        "//src/visualizer/vulkan:mesh_renderer",
+        "//src/visualizer/vulkan:renderers",
         "@imgui//:frontend",
         "@imgui-filebrowser",
     ],

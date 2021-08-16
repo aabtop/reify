@@ -1,5 +1,5 @@
-#ifndef _IDE_VULKAN_MESH_RENDERER_H
-#define _IDE_VULKAN_MESH_RENDERER_H
+#ifndef _IDE_VULKAN_FLAT_TRIANGLE_RENDERER2_H
+#define _IDE_VULKAN_FLAT_TRIANGLE_RENDERER2_H
 
 #include <vulkan/vulkan.h>
 
@@ -16,13 +16,12 @@
 
 using vulkan_utils::WithDeleter;
 
-class MeshRenderer {
+class FlatTriangleRenderer2 {
  public:
   struct TriangleSoup {
-    using Vector3 = std::array<float, 3>;
+    using Vector2 = std::array<float, 2>;
     struct Vertex {
-      Vector3 position;
-      Vector3 normal;
+      Vector2 position;
     };
     using Index = uint32_t;
     using Triangle = std::array<Index, 3>;
@@ -31,21 +30,21 @@ class MeshRenderer {
     std::vector<Triangle> triangles;
   };
 
-  static vulkan_utils::ErrorOr<MeshRenderer> Create(
+  static vulkan_utils::ErrorOr<FlatTriangleRenderer2> Create(
       VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
       VkFormat output_image_format, VkRenderPass render_pass);
 
-  MeshRenderer(MeshRenderer&& other) = default;
-  ~MeshRenderer();
+  FlatTriangleRenderer2(FlatTriangleRenderer2&& other) = default;
+  ~FlatTriangleRenderer2();
 
   std::optional<vulkan_utils::Error> SetTriangleSoup(
       std::shared_ptr<const TriangleSoup> triangle_soup);
 
   vulkan_utils::ErrorOr<vulkan_utils::FrameResources> RenderFrame(
-      VkCommandBuffer command_buffer, const glm::mat4& projection_view_matrix);
+      VkCommandBuffer command_buffer, const glm::mat3& projection_view_matrix);
 
  private:
-  struct MeshRendererConstructorData {
+  struct FlatTriangleRenderer2ConstructorData {
     VkInstance instance;
     VkPhysicalDevice physical_device;
     VkDevice device;
@@ -58,12 +57,6 @@ class MeshRenderer {
     std::shared_ptr<WithDeleter<VkPipeline>> pipeline;
   };
 
-  MeshRenderer(MeshRendererConstructorData&& data) : data_(std::move(data)) {}
-
-  MeshRendererConstructorData data_;
-
-  std::shared_ptr<const TriangleSoup> triangle_soup_;
-
   struct VulkanTriangleSoup {
     WithDeleter<VkBuffer> vertex_buffer;
     WithDeleter<VkDeviceMemory> vertex_buffer_memory;
@@ -71,7 +64,15 @@ class MeshRenderer {
     WithDeleter<VkBuffer> index_buffer;
     WithDeleter<VkDeviceMemory> index_buffer_memory;
   };
+
+  FlatTriangleRenderer2(FlatTriangleRenderer2ConstructorData&& data)
+      : data_(std::move(data)) {}
+
+  FlatTriangleRenderer2ConstructorData data_;
+
+  std::shared_ptr<const TriangleSoup> triangle_soup_;
+
   std::shared_ptr<VulkanTriangleSoup> vulkan_triangle_soup_;
 };
 
-#endif  // _IDE_VULKAN_MESH_RENDERER_H
+#endif  // _IDE_VULKAN_FLAT_TRIANGLE_RENDERER2_H

@@ -10,7 +10,7 @@
 #include "reify/pure_cpp/scene_visualizer.h"
 #include "reify/pure_cpp/scene_visualizer_camera_3d_arcball.h"
 #include "reify/purecpp/hypo.h"
-#include "src/visualizer/vulkan/mesh_renderer.h"
+#include "src/visualizer/vulkan/flat_shaded_triangle_renderer3.h"
 #include "src/visualizer/vulkan/simple_render_pass_renderer.h"
 
 namespace ImGui {
@@ -30,7 +30,8 @@ class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
  public:
   SceneObjectRegion3(
       hypo::cgal::Nef_polyhedron_3&& polyhedron3,
-      const std::shared_ptr<const MeshRenderer::TriangleSoup>& triangle_soup);
+      const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>&
+          triangle_soup);
   ~SceneObjectRegion3();
 
   reify::utils::ErrorOr<
@@ -48,7 +49,8 @@ class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
 
  private:
   const hypo::cgal::Nef_polyhedron_3 polyhedron3_;
-  const std::shared_ptr<const MeshRenderer::TriangleSoup> triangle_soup_;
+  const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>
+      triangle_soup_;
 
   std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
 };
@@ -58,9 +60,11 @@ class SceneObjectRenderableRegion3
  public:
   SceneObjectRenderableRegion3(
       vulkan::SimpleRenderPassRenderer&& render_pass_renderer,
-      std::unique_ptr<MeshRenderer>&& mesh_renderer)
+      std::unique_ptr<FlatShadedTriangleRenderer3>&&
+          flat_shaded_triangle_renderer)
       : render_pass_renderer_(std::move(render_pass_renderer)),
-        mesh_renderer_(std::move(mesh_renderer)) {}
+        flat_shaded_triangle_renderer_(
+            std::move(flat_shaded_triangle_renderer)) {}
 
   reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
@@ -69,7 +73,7 @@ class SceneObjectRenderableRegion3
 
  private:
   vulkan::SimpleRenderPassRenderer render_pass_renderer_;
-  std::unique_ptr<MeshRenderer> mesh_renderer_;
+  std::unique_ptr<FlatShadedTriangleRenderer3> flat_shaded_triangle_renderer_;
 };
 
 }  // namespace visualizer
