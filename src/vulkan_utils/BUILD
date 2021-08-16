@@ -15,6 +15,15 @@ cc_library(
 )
 
 cc_library(
+  name = "simple_render_pass_renderer",
+  srcs = ["simple_render_pass_renderer.cc"],
+  hdrs = ["include/vulkan_utils/simple_render_pass_renderer.h"],
+  includes = ["include"],
+  deps = [":vulkan_utils"],
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
   name = "swap_chain_renderer",
   srcs = ["swap_chain_renderer.cc"],
   hdrs = ["include/vulkan_utils/swap_chain_renderer.h"],

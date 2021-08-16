@@ -5,6 +5,7 @@
 #include "reify/pure_cpp/object_visualizer.h"
 #include "reify/pure_cpp/scene_visualizer_camera.h"
 #include "reify/utils/thread_with_work_queue.h"
+#include "vulkan_utils/simple_render_pass_renderer.h"
 
 namespace reify {
 namespace pure_cpp {
@@ -14,8 +15,7 @@ class SceneObjectRenderable {
  public:
   virtual ~SceneObjectRenderable() {}
   virtual utils::ErrorOr<window::Window::Renderer::FrameResources> Render(
-      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      VkImage output_color_image, const window::Rect& viewport_region,
+      VkCommandBuffer command_buffer,
       const ViewMatrix& view_projection_matrix) = 0;
 };
 
@@ -26,7 +26,8 @@ class SceneObject {
   virtual utils::ErrorOr<std::unique_ptr<SceneObjectRenderable<ViewMatrix>>>
   CreateSceneObjectRenderable(VkInstance instance,
                               VkPhysicalDevice physical_device, VkDevice device,
-                              VkFormat output_image_format) = 0;
+                              VkFormat output_image_format,
+                              VkRenderPass render_pass) = 0;
   virtual reify::pure_cpp::ImGuiVisualizer* GetImGuiVisualizer() const = 0;
 };
 
@@ -73,14 +74,16 @@ class SceneVisualizer : public ObjectVisualizer<T>,
  private:
   class Renderer : public window::Window::Renderer {
    public:
-    Renderer(VkInstance instance, VkPhysicalDevice physical_device,
-             VkDevice device, VkFormat output_image_format,
-             SceneVisualizer* parent)
-        : instance_(instance),
+    Renderer(SceneVisualizer* parent, VkInstance instance,
+             VkPhysicalDevice physical_device, VkDevice device,
+             VkFormat output_image_format,
+             vulkan_utils::SimpleRenderPassRenderer&& render_pass_renderer)
+        : parent_(parent),
+          instance_(instance),
           physical_device_(physical_device),
           device_(device),
           output_image_format_(output_image_format),
-          parent_(parent) {}
+          render_pass_renderer_(std::move(render_pass_renderer)) {}
     ~Renderer();
 
     utils::ErrorOr<FrameResources> RenderFrame(
@@ -89,12 +92,13 @@ class SceneVisualizer : public ObjectVisualizer<T>,
         const window::Rect& viewport_region) override;
 
    private:
+    SceneVisualizer* parent_;
     VkInstance instance_;
     VkPhysicalDevice physical_device_;
     VkDevice device_;
     VkFormat output_image_format_;
 
-    SceneVisualizer* parent_;
+    vulkan_utils::SimpleRenderPassRenderer render_pass_renderer_;
   };
 
   SceneVisualizerCamera<ViewMatrix>* camera_;
@@ -195,8 +199,16 @@ SceneVisualizer<T, ViewMatrix>::CreateRenderer(VkInstance instance,
                                                VkPhysicalDevice physical_device,
                                                VkDevice device,
                                                VkFormat output_image_format) {
-  return std::unique_ptr<window::Window::Renderer>(new Renderer(
-      instance, physical_device, device, output_image_format, this));
+  auto error_or_render_pass_renderer =
+      vulkan_utils::SimpleRenderPassRenderer::Create(
+          instance, physical_device, device, output_image_format);
+  if (auto error = std::get_if<0>(&error_or_render_pass_renderer)) {
+    return reify::utils::Error{error->msg};
+  }
+
+  return std::unique_ptr<window::Window::Renderer>(
+      new Renderer(this, instance, physical_device, device, output_image_format,
+                   std::move(std::get<1>(error_or_render_pass_renderer))));
 }
 
 template <typename T, typename ViewMatrix>
@@ -219,15 +231,21 @@ SceneVisualizer<T, ViewMatrix>::Renderer::RenderFrame(
     REIFY_UTILS_ASSIGN_OR_RETURN(
         object_renderable,
         parent_->current_prepared_object_->CreateSceneObjectRenderable(
-            instance_, physical_device_, device_, output_image_format_));
+            instance_, physical_device_, device_, output_image_format_,
+            render_pass_renderer_.render_pass()));
     parent_->current_renderable_prepared_object_ = std::move(object_renderable);
   }
 
-  // Finally go ahead and execute the render.
-  return parent_->current_renderable_prepared_object_->Render(
-      command_buffer, framebuffer, output_color_image, viewport_region,
-      parent_->camera_->ProjectionViewMatrix(viewport_region.width(),
-                                             viewport_region.height()));
+  return render_pass_renderer_.Render(
+      command_buffer, framebuffer, output_color_image, viewport_region.left,
+      viewport_region.top, viewport_region.right, viewport_region.bottom,
+      [&](VkCommandBuffer command_buffer) {
+        // Finally go ahead and execute the render.
+        return parent_->current_renderable_prepared_object_->Render(
+            command_buffer,
+            parent_->camera_->ProjectionViewMatrix(viewport_region.width(),
+                                                   viewport_region.height()));
+      });
 }
 
 }  // namespace pure_cpp

@@ -20,5 +20,6 @@ cc_library(
         "@reify//src/window",
         "//src/utils",
         "@glm",
+        "@reify//src/vulkan_utils:simple_render_pass_renderer",
     ],
 )

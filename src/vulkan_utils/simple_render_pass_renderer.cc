@@ -1,12 +1,11 @@
-#include "simple_render_pass_renderer.h"
+#include "vulkan_utils/simple_render_pass_renderer.h"
 
+#include <array>
 #include <cstring>
 
 #include "vulkan_utils/vulkan_utils.h"
 
-namespace hypo {
-namespace visualizer {
-namespace vulkan {
+namespace vulkan_utils {
 
 vulkan_utils::ErrorOr<SimpleRenderPassRenderer>
 SimpleRenderPassRenderer::Create(VkInstance instance,
@@ -44,27 +43,27 @@ SimpleRenderPassRenderer::Create(VkInstance instance,
           std::move(render_pass))});
 }
 
-vulkan_utils::ErrorOr<reify::window::Window::Renderer::FrameResources>
+vulkan_utils::ErrorOr<SimpleRenderPassRenderer::FrameResources>
 SimpleRenderPassRenderer::Render(
     VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-    VkImage output_color_image, const reify::window::Rect& viewport_region,
-    const std::function<
-        vulkan_utils::ErrorOr<reify::window::Window::Renderer::FrameResources>(
-            VkCommandBuffer)>& render_with_render_pass) {
+    VkImage output_color_image, int viewport_left, int viewport_top,
+    int viewport_right, int viewport_bottom,
+    const std::function<vulkan_utils::ErrorOr<FrameResources>(VkCommandBuffer)>&
+        render_with_render_pass) {
   VkViewport viewport;
-  viewport.x = viewport_region.left;
-  viewport.y = viewport_region.top;
-  viewport.width = viewport_region.right - viewport_region.left;
-  viewport.height = viewport_region.bottom - viewport_region.top;
+  viewport.x = viewport_left;
+  viewport.y = viewport_top;
+  viewport.width = viewport_right - viewport_left;
+  viewport.height = viewport_bottom - viewport_top;
   viewport.minDepth = 0;
   viewport.maxDepth = 1;
   vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
   VkRect2D scissor;
-  scissor.offset.x = viewport_region.left;
-  scissor.offset.y = viewport_region.top;
-  scissor.extent.width = viewport_region.right - viewport_region.left;
-  scissor.extent.height = viewport_region.bottom - viewport_region.top;
+  scissor.offset.x = viewport_left;
+  scissor.offset.y = viewport_top;
+  scissor.extent.width = viewport_right - viewport_left;
+  scissor.extent.height = viewport_bottom - viewport_top;
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
   std::array<VkClearValue, 2> clear_values{};
@@ -77,10 +76,10 @@ SimpleRenderPassRenderer::Render(
   rpb.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   rpb.renderPass = data_.render_pass->value();
   rpb.framebuffer = framebuffer;
-  rpb.renderArea.offset.x = viewport_region.left;
-  rpb.renderArea.offset.y = viewport_region.top;
-  rpb.renderArea.extent.width = viewport_region.right - viewport_region.left;
-  rpb.renderArea.extent.height = viewport_region.bottom - viewport_region.top;
+  rpb.renderArea.offset.x = viewport_left;
+  rpb.renderArea.offset.y = viewport_top;
+  rpb.renderArea.extent.width = viewport_right - viewport_left;
+  rpb.renderArea.extent.height = viewport_bottom - viewport_top;
   rpb.clearValueCount = clear_values.size();
   rpb.pClearValues = clear_values.data();
 
@@ -96,10 +95,7 @@ SimpleRenderPassRenderer::Render(
   // std::any doesn't support move only types, so we wrap it in a shared_ptr.
   auto result =
       std::make_tuple(std::get<1>(error_or_resources), data_.render_pass);
-  return reify::window::Window::Renderer::FrameResources(
-      std::make_shared<decltype(result)>(std::move(result)));
+  return FrameResources(std::make_shared<decltype(result)>(std::move(result)));
 }
 
-}  // namespace vulkan
-}  // namespace visualizer
-}  // namespace hypo
+}  // namespace vulkan_utils

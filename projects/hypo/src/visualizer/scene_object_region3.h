@@ -11,7 +11,6 @@
 #include "reify/pure_cpp/scene_visualizer_camera_3d_arcball.h"
 #include "reify/purecpp/hypo.h"
 #include "src/visualizer/vulkan/flat_shaded_triangle_renderer3.h"
-#include "src/visualizer/vulkan/simple_render_pass_renderer.h"
 
 namespace ImGui {
 // We forward declare this class to avoid including `imfilebrowser.h`, which
@@ -38,7 +37,8 @@ class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
       std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>>
   CreateSceneObjectRenderable(VkInstance instance,
                               VkPhysicalDevice physical_device, VkDevice device,
-                              VkFormat output_image_format) override;
+                              VkFormat output_image_format,
+                              VkRenderPass render_pass) override;
 
   reify::pure_cpp::ImGuiVisualizer* GetImGuiVisualizer() const override {
     return const_cast<SceneObjectRegion3*>(this);
@@ -58,21 +58,16 @@ class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
 class SceneObjectRenderableRegion3
     : public reify::pure_cpp::SceneObjectRenderable<glm::mat4> {
  public:
-  SceneObjectRenderableRegion3(
-      vulkan::SimpleRenderPassRenderer&& render_pass_renderer,
-      std::unique_ptr<FlatShadedTriangleRenderer3>&&
-          flat_shaded_triangle_renderer)
-      : render_pass_renderer_(std::move(render_pass_renderer)),
-        flat_shaded_triangle_renderer_(
+  SceneObjectRenderableRegion3(std::unique_ptr<FlatShadedTriangleRenderer3>&&
+                                   flat_shaded_triangle_renderer)
+      : flat_shaded_triangle_renderer_(
             std::move(flat_shaded_triangle_renderer)) {}
 
   reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
-      VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
-      VkImage output_color_image, const reify::window::Rect& viewport_region,
+      VkCommandBuffer command_buffer,
       const glm::mat4& view_projection_matrix) override;
 
  private:
-  vulkan::SimpleRenderPassRenderer render_pass_renderer_;
   std::unique_ptr<FlatShadedTriangleRenderer3> flat_shaded_triangle_renderer_;
 };
 
