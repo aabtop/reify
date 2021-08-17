@@ -161,7 +161,8 @@ SceneObjectRenderableRegion2::Render(VkCommandBuffer command_buffer,
   if (parent_->fill_region_interior_) {
     REIFY_UTILS_ASSIGN_OR_RETURN(fill_region_frame_resources,
                                  flat_triangle_renderer2_->RenderFrame(
-                                     command_buffer, view_projection_matrix));
+                                     command_buffer, view_projection_matrix,
+                                     glm::vec4(0.8, 0.8, 0.8, 1.0)));
 
     frame_resources.push_back(fill_region_frame_resources);
   }

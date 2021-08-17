@@ -41,7 +41,8 @@ class FlatTriangleRenderer2 {
       std::shared_ptr<const TriangleSoup> triangle_soup);
 
   vulkan_utils::ErrorOr<vulkan_utils::FrameResources> RenderFrame(
-      VkCommandBuffer command_buffer, const glm::mat3& projection_view_matrix);
+      VkCommandBuffer command_buffer, const glm::mat3& projection_view_matrix,
+      const glm::vec4& color);
 
  private:
   struct FlatTriangleRenderer2ConstructorData {

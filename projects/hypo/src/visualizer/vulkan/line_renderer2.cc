@@ -28,6 +28,8 @@ vulkan_utils::ErrorOr<LineRenderer2> LineRenderer2::Create(
       vulkan_utils::MakeDescriptorSetLayout(
           device,
           {VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                                        VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+           VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
                                         VK_SHADER_STAGE_VERTEX_BIT, nullptr}}));
 
   // Pipeline cache
@@ -49,6 +51,11 @@ vulkan_utils::ErrorOr<LineRenderer2> LineRenderer2::Create(
       vulkan_utils::CreateShader(device, color_frag_spv, color_frag_spv_len));
 
   // Graphics pipeline
+  vulkan_utils::MakePipelineOptions make_pipeline_options;
+  make_pipeline_options.depth_test = false;
+  make_pipeline_options.depth_write = false;
+  make_pipeline_options.line_width = 1.0f;
+  make_pipeline_options.primitive_topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       pipeline, vulkan_utils::MakePipeline(
                     device, pipeline_layout.value(), render_pass,
@@ -69,8 +76,7 @@ vulkan_utils::ErrorOr<LineRenderer2> LineRenderer2::Create(
                             0,
                         },
                     },
-                    fragment_shader_module.value(),
-                    VK_PRIMITIVE_TOPOLOGY_LINE_LIST, 2.0f));
+                    fragment_shader_module.value(), make_pipeline_options));
 
   return LineRenderer2(LineRenderer2ConstructorData{
       instance,
@@ -86,35 +92,51 @@ vulkan_utils::ErrorOr<LineRenderer2> LineRenderer2::Create(
 LineRenderer2::~LineRenderer2() {}
 
 auto LineRenderer2::RenderFrame(VkCommandBuffer command_buffer,
-                                const glm::mat3& projection_view_matrix)
+                                const glm::mat3& projection_view_matrix,
+                                const glm::vec4& color)
     -> vulkan_utils::ErrorOr<vulkan_utils::FrameResources> {
   glm::mat4 model_matrix = glm::mat4(1.0f);
-  MvpUniform uniform_data{model_matrix, glm::mat4(projection_view_matrix)};
+  MvpUniform mvp_uniform_data{model_matrix, glm::mat4(projection_view_matrix)};
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(
-      uniform_buffer,
+      mvp_uniform_buffer,
       vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                               sizeof(uniform_data)));
+                               sizeof(mvp_uniform_data)));
   VULKAN_UTILS_ASSIGN_OR_RETURN(
-      uniform_buffer_memory,
+      mvp_uniform_buffer_memory,
       vulkan_utils::AllocateAndBindBufferMemory(
-          data_.physical_device, data_.device, uniform_buffer.value(),
-          reinterpret_cast<uint8_t*>(&uniform_data), sizeof(uniform_data)));
+          data_.physical_device, data_.device, mvp_uniform_buffer.value(),
+          reinterpret_cast<uint8_t*>(&mvp_uniform_data),
+          sizeof(mvp_uniform_data)));
+
+  VULKAN_UTILS_ASSIGN_OR_RETURN(
+      color_uniform_buffer,
+      vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                               sizeof(color)));
+  VULKAN_UTILS_ASSIGN_OR_RETURN(
+      color_uniform_buffer_memory,
+      vulkan_utils::AllocateAndBindBufferMemory(
+          data_.physical_device, data_.device, color_uniform_buffer.value(),
+          reinterpret_cast<const uint8_t*>(&color), sizeof(color)));
 
   // Set up descriptor set and its layout.
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       descriptor_pool,
       vulkan_utils::MakeDescriptorPool(
           data_.device,
-          {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}}, 1));
+          {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
+           VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}},
+          1));
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       uniform_descriptor_set,
       vulkan_utils::MakeDescriptorSet(
           data_.device, descriptor_pool.value(),
           data_.descriptor_set_layout.value(),
-          {VkDescriptorBufferInfo{uniform_buffer.value(), 0,
-                                  sizeof(MvpUniform)}}));
+          {VkDescriptorBufferInfo{mvp_uniform_buffer.value(), 0,
+                                  sizeof(MvpUniform)},
+           VkDescriptorBufferInfo{color_uniform_buffer.value(), 0,
+                                  sizeof(glm::vec4)}}));
 
   if (vulkan_line_segment_soup_) {
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -139,8 +161,9 @@ auto LineRenderer2::RenderFrame(VkCommandBuffer command_buffer,
 
   auto resources = std::make_tuple(
       vulkan_line_segment_soup_, std::move(uniform_descriptor_set),
-      std::move(descriptor_pool), std::move(uniform_buffer_memory),
-      std::move(uniform_buffer), data_.pipeline);
+      std::move(descriptor_pool), std::move(mvp_uniform_buffer_memory),
+      std::move(mvp_uniform_buffer), std::move(color_uniform_buffer_memory),
+      std::move(color_uniform_buffer), data_.pipeline);
   // std::any doesn't support move only types, so we wrap it in a shared_ptr.
   return vulkan_utils::FrameResources(
       std::make_shared<decltype(resources)>(std::move(resources)));

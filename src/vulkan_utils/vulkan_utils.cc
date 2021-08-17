@@ -491,8 +491,7 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
         vertex_input_binding_descriptions,
     const std::vector<VkVertexInputAttributeDescription>&
         vertex_input_attribute_description,
-    VkShaderModule fragment_shader_module,
-    VkPrimitiveTopology primitive_topology, float line_width) {
+    VkShaderModule fragment_shader_module, const MakePipelineOptions& options) {
   VkGraphicsPipelineCreateInfo pipeline_create_info;
   memset(&pipeline_create_info, 0, sizeof(pipeline_create_info));
   pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -524,7 +523,7 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
   VkPipelineInputAssemblyStateCreateInfo ia;
   memset(&ia, 0, sizeof(ia));
   ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  ia.topology = primitive_topology;
+  ia.topology = options.primitive_topology;
   pipeline_create_info.pInputAssemblyState = &ia;
 
   // The viewport and scissor will be set dynamically via
@@ -543,7 +542,7 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
   rs.polygonMode = VK_POLYGON_MODE_FILL;
   rs.cullMode = VK_CULL_MODE_BACK_BIT;
   rs.frontFace = VK_FRONT_FACE_CLOCKWISE;
-  rs.lineWidth = line_width;
+  rs.lineWidth = options.line_width;
   pipeline_create_info.pRasterizationState = &rs;
 
   VkPipelineMultisampleStateCreateInfo ms;
@@ -556,8 +555,8 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
   VkPipelineDepthStencilStateCreateInfo ds;
   memset(&ds, 0, sizeof(ds));
   ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  ds.depthTestEnable = VK_TRUE;
-  ds.depthWriteEnable = VK_TRUE;
+  ds.depthTestEnable = (options.depth_test ? VK_TRUE : VK_FALSE);
+  ds.depthWriteEnable = (options.depth_write ? VK_TRUE : VK_FALSE);
   ds.depthCompareOp = VK_COMPARE_OP_LESS;
   pipeline_create_info.pDepthStencilState = &ds;
 

@@ -119,6 +119,13 @@ ErrorOr<WithDeleter<VkRenderPass>> MakeRenderPass(
     const std::optional<VkAttachmentDescription>&
         maybe_depth_stencil_attachment);
 
+struct MakePipelineOptions {
+  VkPrimitiveTopology primitive_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+  float line_width = 1.0f;
+  bool depth_write = true;
+  bool depth_test = true;
+};
+
 ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
     VkDevice device, VkPipelineLayout pipeline_layout, VkRenderPass render_pass,
     VkPipelineCache pipeline_cache, VkShaderModule vertex_shader_module,
@@ -127,9 +134,7 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
     const std::vector<VkVertexInputAttributeDescription>&
         vertex_input_attribute_description,
     VkShaderModule fragment_shader_module,
-    VkPrimitiveTopology primitive_topology =
-        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-    float line_width = 1.0f);
+    const MakePipelineOptions& options = MakePipelineOptions());
 
 ErrorOr<WithDeleter<VkSemaphore>> MakeSemaphore(VkDevice device);
 

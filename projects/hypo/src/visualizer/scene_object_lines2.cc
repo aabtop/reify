@@ -114,34 +114,7 @@ SceneObjectLines2::~SceneObjectLines2() {}
 std::string SceneObjectLines2::ImGuiWindowPanelTitle() const {
   return "Lines2";
 }
-void SceneObjectLines2::RenderImGuiWindow() {
-  if (ImGui::Button("Export to SVG")) {
-    export_file_selector_.reset(
-        new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc |
-                               ImGuiFileBrowserFlags_EnterNewFilename |
-                               ImGuiFileBrowserFlags_CreateNewDir));
-    export_file_selector_->SetTitle("Export to SVG");
-    export_file_selector_->SetTypeFilters({".svg"});
-    export_file_selector_->Open();
-  }
-
-  if (export_file_selector_) {
-    export_file_selector_->Display();
-    if (export_file_selector_->HasSelected()) {
-      std::filesystem::path selected_path =
-          std::filesystem::absolute(export_file_selector_->GetSelected());
-      if (!selected_path.has_extension()) {
-        selected_path.replace_extension("svg");
-      }
-
-      cgal::ExportToSVG(polygon_set_, std::filesystem::absolute(selected_path));
-      export_file_selector_->Close();
-    }
-    if (!export_file_selector_->IsOpened()) {
-      export_file_selector_.reset();
-    }
-  }
-}
+void SceneObjectLines2::RenderImGuiWindow() {}
 
 reify::utils::ErrorOr<
     std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>>
@@ -167,7 +140,8 @@ SceneObjectLines2::CreateSceneObjectRenderable(VkInstance instance,
 reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources>
 SceneObjectRenderableLines2::Render(VkCommandBuffer command_buffer,
                                     const glm::mat3& view_projection_matrix) {
-  return line_renderer2_->RenderFrame(command_buffer, view_projection_matrix);
+  return line_renderer2_->RenderFrame(command_buffer, view_projection_matrix,
+                                      glm::vec4(0.95, 0.95, 0.95, 1.0));
 }
 
 }  // namespace visualizer
