@@ -74,7 +74,7 @@ SceneObjectLines2::SceneObjectLines2(
 SceneObjectLines2::~SceneObjectLines2() {}
 
 std::string SceneObjectLines2::ImGuiWindowPanelTitle() const {
-  return "Region2";
+  return "Lines2";
 }
 void SceneObjectLines2::RenderImGuiWindow() {
   if (ImGui::Button("Export to SVG")) {

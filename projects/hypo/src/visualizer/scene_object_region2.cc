@@ -117,6 +117,15 @@ void SceneObjectRegion2::RenderImGuiWindow() {
   }
 
   ImGui::Checkbox("Show region outline", &show_region_outline_);
+  if (show_region_outline_) {
+    auto lines_imgui = scene_object_lines_->GetImGuiVisualizer();
+    if (lines_imgui) {
+      if (ImGui::CollapsingHeader(
+              lines_imgui->ImGuiWindowPanelTitle().c_str())) {
+        lines_imgui->RenderImGuiWindow();
+      }
+    }
+  }
 }
 
 reify::utils::ErrorOr<
