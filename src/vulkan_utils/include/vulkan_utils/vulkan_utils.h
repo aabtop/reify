@@ -126,7 +126,10 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
         vertex_input_binding_descriptions,
     const std::vector<VkVertexInputAttributeDescription>&
         vertex_input_attribute_description,
-    VkShaderModule fragment_shader_module);
+    VkShaderModule fragment_shader_module,
+    VkPrimitiveTopology primitive_topology =
+        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+    float line_width = 1.0f);
 
 ErrorOr<WithDeleter<VkSemaphore>> MakeSemaphore(VkDevice device);
 

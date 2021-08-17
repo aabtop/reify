@@ -23,10 +23,12 @@ cc_library(
   srcs = [
     "flat_shaded_triangle_renderer3.cc",
     "flat_triangle_renderer2.cc",
+    "line_renderer2.cc",
   ],
   hdrs = [
     "flat_shaded_triangle_renderer3.h",
     "flat_triangle_renderer2.h",
+    "line_renderer2.h",
   ],
   deps = [
     "@vulkan_sdk//:vulkan",

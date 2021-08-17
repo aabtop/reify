@@ -491,7 +491,8 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
         vertex_input_binding_descriptions,
     const std::vector<VkVertexInputAttributeDescription>&
         vertex_input_attribute_description,
-    VkShaderModule fragment_shader_module) {
+    VkShaderModule fragment_shader_module,
+    VkPrimitiveTopology primitive_topology, float line_width) {
   VkGraphicsPipelineCreateInfo pipeline_create_info;
   memset(&pipeline_create_info, 0, sizeof(pipeline_create_info));
   pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -523,7 +524,7 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
   VkPipelineInputAssemblyStateCreateInfo ia;
   memset(&ia, 0, sizeof(ia));
   ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+  ia.topology = primitive_topology;
   pipeline_create_info.pInputAssemblyState = &ia;
 
   // The viewport and scissor will be set dynamically via
@@ -542,7 +543,7 @@ ErrorOr<WithDeleter<VkPipeline>> MakePipeline(
   rs.polygonMode = VK_POLYGON_MODE_FILL;
   rs.cullMode = VK_CULL_MODE_BACK_BIT;
   rs.frontFace = VK_FRONT_FACE_CLOCKWISE;
-  rs.lineWidth = 1.0f;
+  rs.lineWidth = line_width;
   pipeline_create_info.pRasterizationState = &rs;
 
   VkPipelineMultisampleStateCreateInfo ms;

@@ -21,55 +21,93 @@ namespace hypo {
 namespace visualizer {
 
 namespace {
-FlatTriangleRenderer2::TriangleSoup ConvertToTriangleSoup(
-    const hypo::cgal::Polygon_set_2& polygon_set) {
-  cgal::Constrained_Delaunay_triangulation_2 cdt =
-      cgal::TriangulatePolygonSet(polygon_set);
 
-  std::vector<FlatTriangleRenderer2::TriangleSoup::Triangle> triangles;
-  triangles.reserve(cdt.number_of_faces());
-  std::vector<FlatTriangleRenderer2::TriangleSoup::Vertex> vertices;
-  vertices.reserve(cdt.number_of_vertices());
+void MergeLineSegmentSoups(LineRenderer2::LineSegmentSoup&& src,
+                           LineRenderer2::LineSegmentSoup* dest) {
+  LineRenderer2::LineSegmentSoup::Index base_index = dest->vertices.size();
 
-  for (auto iter = cdt.finite_faces_begin(); iter != cdt.finite_faces_end();
+  std::copy(src.vertices.begin(), src.vertices.end(),
+            std::back_inserter(dest->vertices));
+
+  dest->line_segments.reserve(dest->line_segments.size() +
+                              src.line_segments.size());
+  for (const auto& line_segment : src.line_segments) {
+    dest->line_segments.push_back(LineRenderer2::LineSegmentSoup::LineSegment{
+        line_segment[0] + base_index, line_segment[1] + base_index});
+  }
+}
+
+LineRenderer2::LineSegmentSoup ConvertToLineSegmentSoup(
+    const cgal::Polygon_2& polygon) {
+  LineRenderer2::LineSegmentSoup result;
+  result.vertices.reserve(polygon.size());
+  result.line_segments.reserve(polygon.size());
+
+  for (auto iter = polygon.vertices_begin(); iter != polygon.vertices_end();
        ++iter) {
-    cgal::Constrained_Delaunay_triangulation_2::Face_handle face = iter;
-    if (!face->info().in_domain()) continue;
+    result.vertices.push_back(LineRenderer2::LineSegmentSoup::Vertex{
+        LineRenderer2::LineSegmentSoup::Vector2{
+            static_cast<float>(CGAL::to_double(iter->x())),
+            static_cast<float>(CGAL::to_double(iter->y()))}});
+  }
+  for (size_t i = 0; i < result.vertices.size() - 1; ++i) {
+    auto index = static_cast<LineRenderer2::LineSegmentSoup::Index>(i);
+    result.line_segments.push_back(
+        LineRenderer2::LineSegmentSoup::LineSegment{index, index + 1});
+  }
+  result.line_segments.push_back(LineRenderer2::LineSegmentSoup::LineSegment{
+      static_cast<LineRenderer2::LineSegmentSoup::Index>(
+          result.vertices.size() - 1),
+      0});
 
-    for (int i = 0; i < 3; ++i) {
-      const cgal::Point_2& pt = face->vertex(i)->point();
+  return result;
+}
 
-      vertices.push_back(FlatTriangleRenderer2::TriangleSoup::Vertex{
-          {static_cast<float>(CGAL::to_double(pt.x())),
-           static_cast<float>(CGAL::to_double(pt.y()))}});
-    }
-    triangles.push_back(FlatTriangleRenderer2::TriangleSoup::Triangle{
-        static_cast<uint32_t>(vertices.size() - 1),
-        static_cast<uint32_t>(vertices.size() - 2),
-        static_cast<uint32_t>(vertices.size() - 3)});
+LineRenderer2::LineSegmentSoup ConvertToLineSegmentSoup(
+    const cgal::Polygon_with_holes_2& polygon_with_holes) {
+  LineRenderer2::LineSegmentSoup result =
+      ConvertToLineSegmentSoup(polygon_with_holes.outer_boundary());
+  for (auto iter = polygon_with_holes.holes_begin();
+       iter != polygon_with_holes.holes_end(); ++iter) {
+    const cgal::Polygon_2& hole = *iter;
+    MergeLineSegmentSoups(ConvertToLineSegmentSoup(hole), &result);
+  }
+  return result;
+}
+
+LineRenderer2::LineSegmentSoup ConvertToLineSegmentSoup(
+    const cgal::Polygon_set_2& polygon_set) {
+  LineRenderer2::LineSegmentSoup result;
+
+  std::vector<cgal::Polygon_with_holes_2> polygons_with_holes;
+  polygons_with_holes.reserve(polygon_set.number_of_polygons_with_holes());
+  polygon_set.polygons_with_holes(std::back_inserter(polygons_with_holes));
+  for (const auto& polygon_with_holes : polygons_with_holes) {
+    MergeLineSegmentSoups(ConvertToLineSegmentSoup(polygon_with_holes),
+                          &result);
   }
 
-  return FlatTriangleRenderer2::TriangleSoup{std::move(vertices),
-                                             std::move(triangles)};
+  return result;
 }
 }  // namespace
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
 CreateSceneObjectLines2(const hypo::Region2& data) {
-  hypo::cgal::Polygon_set_2 polygon_set = hypo::cgal::ConstructRegion2(data);
-  const std::shared_ptr<const FlatTriangleRenderer2::TriangleSoup>
-      triangle_soup(new FlatTriangleRenderer2::TriangleSoup(
-          ConvertToTriangleSoup(polygon_set)));
+  cgal::Polygon_set_2 polygon_set = cgal::ConstructRegion2(data);
+  const std::shared_ptr<const LineRenderer2::LineSegmentSoup> line_segment_soup(
+      new LineRenderer2::LineSegmentSoup(
+          ConvertToLineSegmentSoup(polygon_set)));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>(
-      new SceneObjectLines2(std::move(polygon_set), triangle_soup));
+      new SceneObjectLines2(std::move(polygon_set), line_segment_soup));
 }
 
 SceneObjectLines2::SceneObjectLines2(
-    hypo::cgal::Polygon_set_2&& polygon_set,
-    const std::shared_ptr<const FlatTriangleRenderer2::TriangleSoup>&
-        triangle_soup)
-    : polygon_set_(std::move(polygon_set)), triangle_soup_(triangle_soup) {}
+    cgal::Polygon_set_2&& polygon_set,
+    const std::shared_ptr<const LineRenderer2::LineSegmentSoup>&
+        line_segment_soup)
+    : polygon_set_(std::move(polygon_set)),
+      line_segment_soup_(line_segment_soup) {}
 
 SceneObjectLines2::~SceneObjectLines2() {}
 
@@ -96,8 +134,7 @@ void SceneObjectLines2::RenderImGuiWindow() {
         selected_path.replace_extension("svg");
       }
 
-      hypo::cgal::ExportToSVG(polygon_set_,
-                              std::filesystem::absolute(selected_path));
+      cgal::ExportToSVG(polygon_set_, std::filesystem::absolute(selected_path));
       export_file_selector_->Close();
     }
     if (!export_file_selector_->IsOpened()) {
@@ -113,25 +150,24 @@ SceneObjectLines2::CreateSceneObjectRenderable(VkInstance instance,
                                                VkDevice device,
                                                VkFormat output_image_format,
                                                VkRenderPass render_pass) {
-  auto renderer_or_error = FlatTriangleRenderer2::Create(
+  auto renderer_or_error = LineRenderer2::Create(
       instance, physical_device, device, output_image_format, render_pass);
   if (auto error = std::get_if<0>(&renderer_or_error)) {
     return reify::utils::Error{error->msg};
   }
 
-  auto flag_triangle_renderer = std::unique_ptr<FlatTriangleRenderer2>(
-      new FlatTriangleRenderer2(std::move(std::get<1>(renderer_or_error))));
-  flag_triangle_renderer->SetTriangleSoup(triangle_soup_);
+  auto flag_line_segment_renderer = std::unique_ptr<LineRenderer2>(
+      new LineRenderer2(std::move(std::get<1>(renderer_or_error))));
+  flag_line_segment_renderer->SetLineSegmentSoup(line_segment_soup_);
 
   return std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>(
-      new SceneObjectRenderableLines2(std::move(flag_triangle_renderer)));
+      new SceneObjectRenderableLines2(std::move(flag_line_segment_renderer)));
 }
 
 reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources>
 SceneObjectRenderableLines2::Render(VkCommandBuffer command_buffer,
                                     const glm::mat3& view_projection_matrix) {
-  return flat_triangle_renderer2_->RenderFrame(command_buffer,
-                                               view_projection_matrix);
+  return line_renderer2_->RenderFrame(command_buffer, view_projection_matrix);
 }
 
 }  // namespace visualizer
