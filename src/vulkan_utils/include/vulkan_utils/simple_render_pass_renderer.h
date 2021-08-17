@@ -1,6 +1,8 @@
 #ifndef _REIFY_SRC_VULKAN_UTILS_INCLUDE_VULKAN_UTILS_SIMPLE_RENDER_PASS_RENDERER_H_
 #define _REIFY_SRC_VULKAN_UTILS_INCLUDE_VULKAN_UTILS_SIMPLE_RENDER_PASS_RENDERER_H_
 
+#include <memory>
+
 #include "vulkan_utils/vulkan_utils.h"
 
 namespace vulkan_utils {
