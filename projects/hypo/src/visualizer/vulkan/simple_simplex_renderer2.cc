@@ -1,4 +1,4 @@
-#include "flat_triangle_renderer2.h"
+#include "simple_simplex_renderer2.h"
 
 #include <cstring>
 #include <glm/glm.hpp>
@@ -20,9 +20,10 @@ struct MvpUniform {
 }  // namespace
 
 // static
-vulkan_utils::ErrorOr<FlatTriangleRenderer2> FlatTriangleRenderer2::Create(
+vulkan_utils::ErrorOr<SimpleSimplexRenderer2> SimpleSimplexRenderer2::Create(
     VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
-    VkFormat output_image_format, VkRenderPass render_pass) {
+    VkFormat output_image_format, VkRenderPass render_pass,
+    int embedded_dimension) {
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       descriptor_set_layout,
       vulkan_utils::MakeDescriptorSetLayout(
@@ -54,6 +55,14 @@ vulkan_utils::ErrorOr<FlatTriangleRenderer2> FlatTriangleRenderer2::Create(
   vulkan_utils::MakePipelineOptions make_pipeline_options;
   make_pipeline_options.depth_test = false;
   make_pipeline_options.depth_write = false;
+  if (embedded_dimension == 1) {
+    make_pipeline_options.primitive_topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+  } else if (embedded_dimension == 2) {
+    make_pipeline_options.primitive_topology =
+        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+  } else {
+    assert(false);
+  }
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       pipeline, vulkan_utils::MakePipeline(
                     device, pipeline_layout.value(), render_pass,
@@ -76,7 +85,7 @@ vulkan_utils::ErrorOr<FlatTriangleRenderer2> FlatTriangleRenderer2::Create(
                     },
                     fragment_shader_module.value(), make_pipeline_options));
 
-  return FlatTriangleRenderer2(FlatTriangleRenderer2ConstructorData{
+  return SimpleSimplexRenderer2(SimpleSimplexRenderer2ConstructorData{
       instance,
       physical_device,
       device,
@@ -87,11 +96,11 @@ vulkan_utils::ErrorOr<FlatTriangleRenderer2> FlatTriangleRenderer2::Create(
   });
 }
 
-FlatTriangleRenderer2::~FlatTriangleRenderer2() {}
+SimpleSimplexRenderer2::~SimpleSimplexRenderer2() {}
 
-auto FlatTriangleRenderer2::RenderFrame(VkCommandBuffer command_buffer,
-                                        const glm::mat3& projection_view_matrix,
-                                        const glm::vec4& color)
+auto SimpleSimplexRenderer2::RenderFrame(
+    VkCommandBuffer command_buffer, const glm::mat3& projection_view_matrix,
+    const glm::vec4& color)
     -> vulkan_utils::ErrorOr<vulkan_utils::FrameResources> {
   glm::mat4 model_matrix = glm::mat4(1.0f);
   MvpUniform mvp_uniform_data{model_matrix, glm::mat4(projection_view_matrix)};
@@ -136,7 +145,7 @@ auto FlatTriangleRenderer2::RenderFrame(VkCommandBuffer command_buffer,
            VkDescriptorBufferInfo{color_uniform_buffer.value(), 0,
                                   sizeof(glm::vec4)}}));
 
-  if (vulkan_triangle_soup_) {
+  if (simplex_soup_vulkan_buffers_) {
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       data_.pipeline->value());
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -144,21 +153,22 @@ auto FlatTriangleRenderer2::RenderFrame(VkCommandBuffer command_buffer,
                             &(uniform_descriptor_set.value()), 0, nullptr);
 
     VkDeviceSize vertex_buffer_offset = 0;
-    vkCmdBindVertexBuffers(command_buffer, 0, 1,
-                           &(vulkan_triangle_soup_->vertex_buffer.value()),
-                           &vertex_buffer_offset);
+    vkCmdBindVertexBuffers(
+        command_buffer, 0, 1,
+        &(simplex_soup_vulkan_buffers_->vertex_buffer.value()),
+        &vertex_buffer_offset);
     vkCmdBindIndexBuffer(command_buffer,
-                         vulkan_triangle_soup_->index_buffer.value(), 0,
+                         simplex_soup_vulkan_buffers_->index_buffer.value(), 0,
                          VK_INDEX_TYPE_UINT32);
 
     vkCmdDrawIndexed(
         command_buffer,
-        static_cast<uint32_t>(triangle_soup_->triangles.size() * 3), 1, 0, 0,
-        0);
+        static_cast<uint32_t>(simplex_soup_vulkan_buffers_->indices_count), 1,
+        0, 0, 0);
   }
 
   auto resources = std::make_tuple(
-      vulkan_triangle_soup_, std::move(uniform_descriptor_set),
+      simplex_soup_vulkan_buffers_, std::move(uniform_descriptor_set),
       std::move(descriptor_pool), std::move(mvp_uniform_buffer_memory),
       std::move(mvp_uniform_buffer), std::move(color_uniform_buffer_memory),
       std::move(color_uniform_buffer), data_.pipeline);
@@ -167,48 +177,41 @@ auto FlatTriangleRenderer2::RenderFrame(VkCommandBuffer command_buffer,
       std::make_shared<decltype(resources)>(std::move(resources)));
 }
 
-std::optional<vulkan_utils::Error> FlatTriangleRenderer2::SetTriangleSoup(
-    std::shared_ptr<const TriangleSoup> triangle_soup) {
-  triangle_soup_ = triangle_soup;
-  if (!triangle_soup_) {
-    vulkan_triangle_soup_ = nullptr;
-    return std::nullopt;
-  }
-
-  size_t vertex_buffer_size =
-      triangle_soup_->vertices.size() * sizeof(triangle_soup_->vertices[0]);
-
+std::optional<vulkan_utils::Error>
+SimpleSimplexRenderer2::SetSimplexSoupInternal(
+    int embedder_dimension, int embedded_dimension, const void* vertex_data,
+    size_t vertex_data_size, const void* simplex_data, size_t simplex_data_size,
+    size_t indices_count) {
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       vertex_buffer,
       vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                               vertex_buffer_size));
+                               vertex_data_size));
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       vertex_buffer_memory,
       vulkan_utils::AllocateAndBindBufferMemory(
           data_.physical_device, data_.device, vertex_buffer.value(),
-          reinterpret_cast<const uint8_t*>(triangle_soup_->vertices.data()),
-          vertex_buffer_size));
+          reinterpret_cast<const uint8_t*>(vertex_data), vertex_data_size));
 
-  size_t index_buffer_size =
-      triangle_soup_->triangles.size() * sizeof(triangle_soup_->triangles[0]);
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       index_buffer,
       vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                               index_buffer_size));
+                               simplex_data_size));
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       index_buffer_memory,
       vulkan_utils::AllocateAndBindBufferMemory(
           data_.physical_device, data_.device, index_buffer.value(),
-          reinterpret_cast<const uint8_t*>(triangle_soup_->triangles.data()),
-          index_buffer_size));
+          reinterpret_cast<const uint8_t*>(simplex_data), simplex_data_size));
 
-  vulkan_triangle_soup_ =
-      std::shared_ptr<VulkanTriangleSoup>(new VulkanTriangleSoup{
-          std::move(vertex_buffer),
-          std::move(vertex_buffer_memory),
-          std::move(index_buffer),
-          std::move(index_buffer_memory),
-      });
+  simplex_soup_vulkan_buffers_ =
+      std::shared_ptr<SimplexSoupVulkanBuffers>(new SimplexSoupVulkanBuffers{
+          std::move(vertex_buffer), std::move(vertex_buffer_memory),
+          std::move(index_buffer), std::move(index_buffer_memory),
+          indices_count});
 
+  // Success!
   return std::nullopt;
+}
+
+void SimpleSimplexRenderer2::ClearSimplexSoup() {
+  simplex_soup_vulkan_buffers_ = nullptr;
 }

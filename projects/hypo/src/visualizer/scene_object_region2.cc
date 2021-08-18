@@ -22,14 +22,14 @@ namespace hypo {
 namespace visualizer {
 
 namespace {
-FlatTriangleRenderer2::TriangleSoup ConvertToTriangleSoup(
+SceneObjectRegion2::TriangleSoup ConvertToTriangleSoup(
     const hypo::cgal::Polygon_set_2& polygon_set) {
   cgal::Constrained_Delaunay_triangulation_2 cdt =
       cgal::TriangulatePolygonSet(polygon_set);
 
-  std::vector<FlatTriangleRenderer2::TriangleSoup::Triangle> triangles;
+  std::vector<SceneObjectRegion2::TriangleSoup::Simplex> triangles;
   triangles.reserve(cdt.number_of_faces());
-  std::vector<FlatTriangleRenderer2::TriangleSoup::Vertex> vertices;
+  std::vector<SceneObjectRegion2::TriangleSoup::Vertex> vertices;
   vertices.reserve(cdt.number_of_vertices());
 
   for (auto iter = cdt.finite_faces_begin(); iter != cdt.finite_faces_end();
@@ -40,27 +40,26 @@ FlatTriangleRenderer2::TriangleSoup ConvertToTriangleSoup(
     for (int i = 0; i < 3; ++i) {
       const cgal::Point_2& pt = face->vertex(i)->point();
 
-      vertices.push_back(FlatTriangleRenderer2::TriangleSoup::Vertex{
+      vertices.push_back(SceneObjectRegion2::TriangleSoup::Vertex{
           {static_cast<float>(CGAL::to_double(pt.x())),
            static_cast<float>(CGAL::to_double(pt.y()))}});
     }
-    triangles.push_back(FlatTriangleRenderer2::TriangleSoup::Triangle{
+    triangles.push_back(SceneObjectRegion2::TriangleSoup::Simplex{
         static_cast<uint32_t>(vertices.size() - 1),
         static_cast<uint32_t>(vertices.size() - 2),
         static_cast<uint32_t>(vertices.size() - 3)});
   }
 
-  return FlatTriangleRenderer2::TriangleSoup{std::move(vertices),
-                                             std::move(triangles)};
+  return SceneObjectRegion2::TriangleSoup{std::move(vertices),
+                                          std::move(triangles)};
 }
 }  // namespace
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
 CreateSceneObjectRegion2(const hypo::Region2& data) {
   hypo::cgal::Polygon_set_2 polygon_set = hypo::cgal::ConstructRegion2(data);
-  const std::shared_ptr<const FlatTriangleRenderer2::TriangleSoup>
-      triangle_soup(new FlatTriangleRenderer2::TriangleSoup(
-          ConvertToTriangleSoup(polygon_set)));
+  const std::shared_ptr<const SceneObjectRegion2::TriangleSoup> triangle_soup(
+      new SceneObjectRegion2::TriangleSoup(ConvertToTriangleSoup(polygon_set)));
 
   REIFY_UTILS_ASSIGN_OR_RETURN(scene_object_lines,
                                CreateSceneObjectLines2(data));
@@ -72,8 +71,7 @@ CreateSceneObjectRegion2(const hypo::Region2& data) {
 
 SceneObjectRegion2::SceneObjectRegion2(
     hypo::cgal::Polygon_set_2&& polygon_set,
-    const std::shared_ptr<const FlatTriangleRenderer2::TriangleSoup>&
-        triangle_soup,
+    const std::shared_ptr<const TriangleSoup>& triangle_soup,
     const std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>&
         scene_object_lines)
     : polygon_set_(std::move(polygon_set)),
@@ -133,15 +131,19 @@ reify::utils::ErrorOr<
 SceneObjectRegion2::CreateSceneObjectRenderable(
     VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
     VkFormat output_image_format, VkRenderPass render_pass) {
-  auto renderer_or_error = FlatTriangleRenderer2::Create(
-      instance, physical_device, device, output_image_format, render_pass);
+  auto renderer_or_error = SimpleSimplexRenderer2::Create(
+      instance, physical_device, device, output_image_format, render_pass, 2);
   if (auto error = std::get_if<0>(&renderer_or_error)) {
     return reify::utils::Error{error->msg};
   }
 
-  auto flag_triangle_renderer = std::unique_ptr<FlatTriangleRenderer2>(
-      new FlatTriangleRenderer2(std::move(std::get<1>(renderer_or_error))));
-  flag_triangle_renderer->SetTriangleSoup(triangle_soup_);
+  auto flag_triangle_renderer = std::unique_ptr<SimpleSimplexRenderer2>(
+      new SimpleSimplexRenderer2(std::move(std::get<1>(renderer_or_error))));
+  if (triangle_soup_) {
+    flag_triangle_renderer->SetSimplexSoup(*triangle_soup_);
+  } else {
+    flag_triangle_renderer->ClearSimplexSoup();
+  }
 
   REIFY_UTILS_ASSIGN_OR_RETURN(
       lines_renderer,

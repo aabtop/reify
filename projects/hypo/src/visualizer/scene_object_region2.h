@@ -10,7 +10,7 @@
 #include "cgal/types_polygons.h"
 #include "reify/pure_cpp/scene_visualizer.h"
 #include "reify/purecpp/hypo.h"
-#include "src/visualizer/vulkan/flat_triangle_renderer2.h"
+#include "src/visualizer/vulkan/simple_simplex_renderer2.h"
 
 namespace ImGui {
 // We forward declare this class to avoid including `imfilebrowser.h`, which
@@ -27,10 +27,10 @@ CreateSceneObjectRegion2(const hypo::Region2& data);
 class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat3>,
                            public reify::pure_cpp::ImGuiVisualizer {
  public:
+  using TriangleSoup = SimpleSimplexRenderer2::SimplexSoup<2, 2>;
   SceneObjectRegion2(
       hypo::cgal::Polygon_set_2&& polygon_set,
-      const std::shared_ptr<const FlatTriangleRenderer2::TriangleSoup>&
-          triangle_soup,
+      const std::shared_ptr<const TriangleSoup>& triangle_soup,
       const std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>&
           scene_object_lines);
   ~SceneObjectRegion2();
@@ -53,8 +53,7 @@ class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat3>,
   friend class SceneObjectRenderableRegion2;
 
   const hypo::cgal::Polygon_set_2 polygon_set_;
-  const std::shared_ptr<const FlatTriangleRenderer2::TriangleSoup>
-      triangle_soup_;
+  const std::shared_ptr<const TriangleSoup> triangle_soup_;
 
   std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
 
@@ -70,7 +69,7 @@ class SceneObjectRenderableRegion2
  public:
   SceneObjectRenderableRegion2(
       SceneObjectRegion2* parent,
-      std::unique_ptr<FlatTriangleRenderer2>&& flat_triangle_renderer2,
+      std::unique_ptr<SimpleSimplexRenderer2>&& flat_triangle_renderer2,
       std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>&&
           lines_renderer)
       : parent_(parent),
@@ -83,7 +82,7 @@ class SceneObjectRenderableRegion2
 
  private:
   SceneObjectRegion2* parent_;
-  std::unique_ptr<FlatTriangleRenderer2> flat_triangle_renderer2_;
+  std::unique_ptr<SimpleSimplexRenderer2> flat_triangle_renderer2_;
 
   // For drawing the outlines, if the user chooses to enable outlines.
   std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>
