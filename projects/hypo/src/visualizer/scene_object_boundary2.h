@@ -1,5 +1,5 @@
-#ifndef _HYPO_VISUALIZER_SCENE_OBJECT_LINES2_H
-#define _HYPO_VISUALIZER_SCENE_OBJECT_LINES2_H
+#ifndef _HYPO_VISUALIZER_SCENE_OBJECT_BOUNDARY2_H
+#define _HYPO_VISUALIZER_SCENE_OBJECT_BOUNDARY2_H
 
 #include <any>
 #include <glm/glm.hpp>
@@ -22,16 +22,16 @@ namespace hypo {
 namespace visualizer {
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
-CreateSceneObjectLines2(const hypo::Boundary2& data);
+CreateSceneObjectBoundary2(const hypo::Boundary2& data);
 
-class SceneObjectLines2 : public reify::pure_cpp::SceneObject<glm::mat3>,
-                          public reify::pure_cpp::ImGuiVisualizer {
+class SceneObjectBoundary2 : public reify::pure_cpp::SceneObject<glm::mat3>,
+                             public reify::pure_cpp::ImGuiVisualizer {
  public:
   using LineSegmentSoup = SimpleSimplexRenderer2::SimplexSoup<2, 1>;
-  SceneObjectLines2(
+  SceneObjectBoundary2(
       hypo::cgal::Polygon_set_2&& polygon_set,
       const std::shared_ptr<const LineSegmentSoup>& line_segment_soup);
-  ~SceneObjectLines2();
+  ~SceneObjectBoundary2();
 
   reify::utils::ErrorOr<
       std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>>
@@ -41,7 +41,7 @@ class SceneObjectLines2 : public reify::pure_cpp::SceneObject<glm::mat3>,
                               VkRenderPass render_pass) override;
 
   reify::pure_cpp::ImGuiVisualizer* GetImGuiVisualizer() const override {
-    return const_cast<SceneObjectLines2*>(this);
+    return const_cast<SceneObjectBoundary2*>(this);
   }
 
   std::string ImGuiWindowPanelTitle() const override;
@@ -72,4 +72,4 @@ class SceneObjectRenderableLines2
 }  // namespace visualizer
 }  // namespace hypo
 
-#endif  // _HYPO_VISUALIZER_SCENE_OBJECT_LINES2_H
+#endif  // _HYPO_VISUALIZER_SCENE_OBJECT_BOUNDARY2_H

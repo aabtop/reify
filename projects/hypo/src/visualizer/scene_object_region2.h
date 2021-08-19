@@ -32,7 +32,7 @@ class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat3>,
       hypo::cgal::Polygon_set_2&& polygon_set,
       const std::shared_ptr<const TriangleSoup>& triangle_soup,
       const std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>&
-          scene_object_lines);
+          scene_object_boundary2);
   ~SceneObjectRegion2();
 
   reify::utils::ErrorOr<
@@ -58,7 +58,8 @@ class SceneObjectRegion2 : public reify::pure_cpp::SceneObject<glm::mat3>,
   std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
 
   // Used whenever the user chooses to view the outline.
-  std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>> scene_object_lines_;
+  std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>
+      scene_object_boundary2_;
 
   bool fill_region_interior_ = true;
   bool show_region_outline_ = false;
@@ -71,10 +72,10 @@ class SceneObjectRenderableRegion2
       SceneObjectRegion2* parent,
       std::unique_ptr<SimpleSimplexRenderer2>&& flat_triangle_renderer2,
       std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>&&
-          lines_renderer)
+          boundary2_renderer)
       : parent_(parent),
         flat_triangle_renderer2_(std::move(flat_triangle_renderer2)),
-        lines_renderer_(std::move(lines_renderer)) {}
+        boundary2_renderer_(std::move(boundary2_renderer)) {}
 
   reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
       VkCommandBuffer command_buffer,
@@ -86,7 +87,7 @@ class SceneObjectRenderableRegion2
 
   // For drawing the outlines, if the user chooses to enable outlines.
   std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>
-      lines_renderer_;
+      boundary2_renderer_;
 };
 
 }  // namespace visualizer

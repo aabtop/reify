@@ -18,7 +18,7 @@
 #include "cgal/export_to_svg.h"
 #include "cgal/types_polygons.h"
 #include "reify/purecpp/hypo.h"
-#include "src/visualizer/scene_object_lines2.h"
+#include "src/visualizer/scene_object_boundary2.h"
 
 namespace hypo {
 namespace visualizer {
@@ -63,22 +63,23 @@ CreateSceneObjectRegion2(const hypo::Region2& data) {
   const std::shared_ptr<const SceneObjectRegion2::TriangleSoup> triangle_soup(
       new SceneObjectRegion2::TriangleSoup(ConvertToTriangleSoup(polygon_set)));
 
-  REIFY_UTILS_ASSIGN_OR_RETURN(scene_object_lines,
-                               CreateSceneObjectLines2(hypo::Boundary2{data}));
+  REIFY_UTILS_ASSIGN_OR_RETURN(
+      scene_object_boundary2,
+      CreateSceneObjectBoundary2(hypo::Boundary2{data}));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>(
       new SceneObjectRegion2(std::move(polygon_set), triangle_soup,
-                             std::move(scene_object_lines)));
+                             std::move(scene_object_boundary2)));
 }
 
 SceneObjectRegion2::SceneObjectRegion2(
     hypo::cgal::Polygon_set_2&& polygon_set,
     const std::shared_ptr<const TriangleSoup>& triangle_soup,
     const std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>&
-        scene_object_lines)
+        scene_object_boundary2)
     : polygon_set_(std::move(polygon_set)),
       triangle_soup_(triangle_soup),
-      scene_object_lines_(scene_object_lines) {}
+      scene_object_boundary2_(scene_object_boundary2) {}
 
 SceneObjectRegion2::~SceneObjectRegion2() {}
 
@@ -118,13 +119,13 @@ void SceneObjectRegion2::RenderImGuiWindow() {
 
   ImGui::Checkbox("Show region outline", &show_region_outline_);
   if (show_region_outline_) {
-    auto lines_imgui = scene_object_lines_->GetImGuiVisualizer();
-    if (lines_imgui) {
+    auto boundary2_imgui = scene_object_boundary2_->GetImGuiVisualizer();
+    if (boundary2_imgui) {
       if (ImGui::CollapsingHeader(
               fmt::format("Outline options ({})",
-                          lines_imgui->ImGuiWindowPanelTitle())
+                          boundary2_imgui->ImGuiWindowPanelTitle())
                   .c_str())) {
-        lines_imgui->RenderImGuiWindow();
+        boundary2_imgui->RenderImGuiWindow();
       }
     }
   }
@@ -150,13 +151,13 @@ SceneObjectRegion2::CreateSceneObjectRenderable(
   }
 
   REIFY_UTILS_ASSIGN_OR_RETURN(
-      lines_renderer,
-      scene_object_lines_->CreateSceneObjectRenderable(
+      boundary2_renderer,
+      scene_object_boundary2_->CreateSceneObjectRenderable(
           instance, physical_device, device, output_image_format, render_pass));
 
   return std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>(
       new SceneObjectRenderableRegion2(this, std::move(flag_triangle_renderer),
-                                       std::move(lines_renderer)));
+                                       std::move(boundary2_renderer)));
 }
 
 reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources>
@@ -175,9 +176,9 @@ SceneObjectRenderableRegion2::Render(VkCommandBuffer command_buffer,
 
   if (parent_->show_region_outline_) {
     REIFY_UTILS_ASSIGN_OR_RETURN(
-        lines_renderer_frame_resources,
-        lines_renderer_->Render(command_buffer, view_projection_matrix));
-    frame_resources.push_back(lines_renderer_frame_resources);
+        boundary2_renderer_frame_resources,
+        boundary2_renderer_->Render(command_buffer, view_projection_matrix));
+    frame_resources.push_back(boundary2_renderer_frame_resources);
   }
 
   return frame_resources;
