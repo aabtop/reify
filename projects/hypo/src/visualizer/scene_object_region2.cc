@@ -89,7 +89,7 @@ std::string SceneObjectRegion2::ImGuiWindowPanelTitle() const {
 void SceneObjectRegion2::RenderImGuiWindow() {
   ImGui::Checkbox("Fill region interior", &fill_region_interior_);
 
-  if (ImGui::Button("Export to SVG")) {
+  if (ImGui::Button("Export region to SVG")) {
     export_file_selector_.reset(
         new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc |
                                ImGuiFileBrowserFlags_EnterNewFilename |
@@ -108,8 +108,8 @@ void SceneObjectRegion2::RenderImGuiWindow() {
         selected_path.replace_extension("svg");
       }
 
-      hypo::cgal::ExportToSVG(polygon_set_,
-                              std::filesystem::absolute(selected_path));
+      hypo::cgal::ExportRegionToSVG(polygon_set_,
+                                    std::filesystem::absolute(selected_path));
       export_file_selector_->Close();
     }
     if (!export_file_selector_->IsOpened()) {

@@ -45,7 +45,8 @@ void OutputPolygon(std::ostream* out, const Polygon_2& polygon,
 }
 
 void OutputPolygonWithHoles(std::ostream* out,
-                            const Polygon_with_holes_2& polygon_with_holes) {
+                            const Polygon_with_holes_2& polygon_with_holes,
+                            const std::string& style_tags = std::string()) {
   *out << "  <path d=\"";
   OutputPolygon(out, polygon_with_holes.outer_boundary());
 
@@ -56,7 +57,7 @@ void OutputPolygonWithHoles(std::ostream* out,
     OutputPolygon(out, *iter, true);
   }
 
-  *out << "\" />" << std::endl;
+  *out << "\" " << style_tags << " />" << std::endl;
 }
 
 Bbox_2 BoundingBox(
@@ -67,10 +68,12 @@ Bbox_2 BoundingBox(
   }
   return ret;
 }
-}  // namespace
 
-bool ExportToSVG(const Polygon_set_2& polygon_set,
-                 const std::filesystem::path& output_filepath) {
+bool ExportToSVG(
+    const Polygon_set_2& polygon_set,
+    const std::filesystem::path& output_filepath,
+    const std::function<void(std::ostream*, const Polygon_with_holes_2&)>&
+        output_polygon_with_holes) {
   std::ofstream out(output_filepath);
 
   std::vector<Polygon_with_holes_2> polygons_with_holes;
@@ -93,7 +96,7 @@ bool ExportToSVG(const Polygon_set_2& polygon_set,
   out << std::endl;
 
   for (const auto& polygon_with_holes : polygons_with_holes) {
-    OutputPolygonWithHoles(&out, polygon_with_holes);
+    output_polygon_with_holes(&out, polygon_with_holes);
   }
 
   out << std::endl;
@@ -101,6 +104,27 @@ bool ExportToSVG(const Polygon_set_2& polygon_set,
 
   out << "</svg>" << std::endl;
   return true;
+}
+}  // namespace
+
+bool ExportRegionToSVG(const Polygon_set_2& polygon_set,
+                       const std::filesystem::path& output_filepath) {
+  return ExportToSVG(
+      polygon_set, output_filepath,
+      [](std::ostream* out, const Polygon_with_holes_2& polygon_with_holes) {
+        OutputPolygonWithHoles(out, polygon_with_holes);
+      });
+}
+
+bool ExportBoundaryToSVG(const Polygon_set_2& polygon_set,
+                         const std::filesystem::path& output_filepath) {
+  return ExportToSVG(
+      polygon_set, output_filepath,
+      [](std::ostream* out, const Polygon_with_holes_2& polygon_with_holes) {
+        OutputPolygonWithHoles(
+            out, polygon_with_holes,
+            "fill=\"transparent\" stroke=\"black\" stroke-width=\"1%\"");
+      });
 }
 
 }  // namespace cgal

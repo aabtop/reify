@@ -113,7 +113,35 @@ SceneObjectBoundary2::~SceneObjectBoundary2() {}
 std::string SceneObjectBoundary2::ImGuiWindowPanelTitle() const {
   return "Boundary2";
 }
-void SceneObjectBoundary2::RenderImGuiWindow() {}
+void SceneObjectBoundary2::RenderImGuiWindow() {
+  if (ImGui::Button("Export boundary to SVG")) {
+    export_file_selector_.reset(
+        new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc |
+                               ImGuiFileBrowserFlags_EnterNewFilename |
+                               ImGuiFileBrowserFlags_CreateNewDir));
+    export_file_selector_->SetTitle("Export to SVG");
+    export_file_selector_->SetTypeFilters({".svg"});
+    export_file_selector_->Open();
+  }
+
+  if (export_file_selector_) {
+    export_file_selector_->Display();
+    if (export_file_selector_->HasSelected()) {
+      std::filesystem::path selected_path =
+          std::filesystem::absolute(export_file_selector_->GetSelected());
+      if (!selected_path.has_extension()) {
+        selected_path.replace_extension("svg");
+      }
+
+      hypo::cgal::ExportBoundaryToSVG(polygon_set_,
+                                      std::filesystem::absolute(selected_path));
+      export_file_selector_->Close();
+    }
+    if (!export_file_selector_->IsOpened()) {
+      export_file_selector_.reset();
+    }
+  }
+}
 
 reify::utils::ErrorOr<
     std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>>

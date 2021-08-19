@@ -8,8 +8,11 @@
 namespace hypo {
 namespace cgal {
 
-bool ExportToSVG(const Polygon_set_2& polygon_set,
-                 const std::filesystem::path& output_filepath);
+bool ExportRegionToSVG(const Polygon_set_2& polygon_set,
+                       const std::filesystem::path& output_filepath);
+
+bool ExportBoundaryToSVG(const Polygon_set_2& polygon_set,
+                         const std::filesystem::path& output_filepath);
 
 }  // namespace cgal
 }  // namespace hypo
