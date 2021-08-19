@@ -113,6 +113,8 @@ bool LayerStack::OnInputEvent(const InputEvent& input_event) {
                                 bool capitalize) -> std::optional<char> {
         if (key >= kPlatformWindowKeyA && key <= kPlatformWindowKeyZ) {
           return key - kPlatformWindowKeyA + (capitalize ? 'A' : 'a');
+        } else if (key >= kPlatformWindowKey0 && key <= kPlatformWindowKey9) {
+          return key - kPlatformWindowKey0 + '0';
         } else {
           switch (key) {
             case kPlatformWindowKeyOemMinus:
