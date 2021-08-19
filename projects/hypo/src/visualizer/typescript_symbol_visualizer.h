@@ -5,6 +5,7 @@
 #include "reify/pure_cpp/scene_visualizer_camera_3d_arcball.h"
 #include "reify/typescript_cpp_v8/hypo.h"
 #include "reify/typescript_cpp_v8/symbol_visualizer.h"
+#include "src/visualizer/scene_object_lines2.h"
 #include "src/visualizer/scene_object_region2.h"
 #include "src/visualizer/scene_object_region3.h"
 
@@ -16,11 +17,14 @@ class TypeScriptSymbolVisualizer {
   TypeScriptSymbolVisualizer()
       : camera_2d(0, 0),
         camera_3d(0, 0),
+        lines_2_visualizer(&camera_2d, &CreateSceneObjectLines2),
         region_2_visualizer(&camera_2d, &CreateSceneObjectRegion2),
         region_3_visualizer(&camera_3d, &CreateSceneObjectRegion3),
         visualizer(
             reify::typescript_cpp_v8::hypo::typescript_declarations(),
             {
+                *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
+                    &lines_2_visualizer),
                 *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
                     &region_2_visualizer),
                 *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
@@ -30,6 +34,8 @@ class TypeScriptSymbolVisualizer {
   reify::pure_cpp::SceneVisualizerCamera2d camera_2d;
   reify::pure_cpp::SceneVisualizerCamera3dArcball camera_3d;
 
+  reify::pure_cpp::SceneVisualizer<hypo::Boundary2, glm::mat3>
+      lines_2_visualizer;
   reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat3>
       region_2_visualizer;
   reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>

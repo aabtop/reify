@@ -91,8 +91,8 @@ SceneObjectLines2::LineSegmentSoup ConvertToLineSegmentSoup(
 }  // namespace
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
-CreateSceneObjectLines2(const hypo::Region2& data) {
-  cgal::Polygon_set_2 polygon_set = cgal::ConstructRegion2(data);
+CreateSceneObjectLines2(const hypo::Boundary2& data) {
+  cgal::Polygon_set_2 polygon_set = cgal::ConstructBoundary2(data);
   const std::shared_ptr<const SceneObjectLines2::LineSegmentSoup>
       line_segment_soup(new SceneObjectLines2::LineSegmentSoup(
           ConvertToLineSegmentSoup(polygon_set)));
@@ -110,7 +110,7 @@ SceneObjectLines2::SceneObjectLines2(
 SceneObjectLines2::~SceneObjectLines2() {}
 
 std::string SceneObjectLines2::ImGuiWindowPanelTitle() const {
-  return "Lines2";
+  return "Boundary2";
 }
 void SceneObjectLines2::RenderImGuiWindow() {}
 

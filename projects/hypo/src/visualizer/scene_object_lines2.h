@@ -22,7 +22,7 @@ namespace hypo {
 namespace visualizer {
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
-CreateSceneObjectLines2(const hypo::Region2& data);
+CreateSceneObjectLines2(const hypo::Boundary2& data);
 
 class SceneObjectLines2 : public reify::pure_cpp::SceneObject<glm::mat3>,
                           public reify::pure_cpp::ImGuiVisualizer {

@@ -146,12 +146,6 @@ idt =
             [ ( "region"
               , "The 2D region to find the boundary of."
               , Concrete region2)]
-    closedPolylines2 =
-      NamedType
-          "ClosedPolylines2"
-          "An oriented set of closed polylines embedded in R2."
-        $ TaggedUnion
-            [ Reference boundary2 ]
 
     triangleList n =
       NamedType ("TriangleList" ++ show n)
@@ -322,7 +316,7 @@ idt =
             , Reference subdivideSphere
             ]
   in
-    [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3, closedPolylines2]
+    [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, region2, region3, boundary2]
 
 -- The directory containing typescript files which defines the interface.
 -- Within these files one may import reify_generated_interface to access the

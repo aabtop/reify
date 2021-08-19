@@ -9,6 +9,8 @@
 #include "imfilebrowser.h"
 // clang-format on
 
+#include <fmt/format.h>
+
 #include <glm/glm.hpp>
 
 #include "cgal/construct_region2.h"
@@ -62,7 +64,7 @@ CreateSceneObjectRegion2(const hypo::Region2& data) {
       new SceneObjectRegion2::TriangleSoup(ConvertToTriangleSoup(polygon_set)));
 
   REIFY_UTILS_ASSIGN_OR_RETURN(scene_object_lines,
-                               CreateSceneObjectLines2(data));
+                               CreateSceneObjectLines2(hypo::Boundary2{data}));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>(
       new SceneObjectRegion2(std::move(polygon_set), triangle_soup,
@@ -119,7 +121,9 @@ void SceneObjectRegion2::RenderImGuiWindow() {
     auto lines_imgui = scene_object_lines_->GetImGuiVisualizer();
     if (lines_imgui) {
       if (ImGui::CollapsingHeader(
-              lines_imgui->ImGuiWindowPanelTitle().c_str())) {
+              fmt::format("Outline options ({})",
+                          lines_imgui->ImGuiWindowPanelTitle())
+                  .c_str())) {
         lines_imgui->RenderImGuiWindow();
       }
     }

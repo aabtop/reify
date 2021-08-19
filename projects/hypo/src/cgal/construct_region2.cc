@@ -12,10 +12,6 @@ namespace hypo {
 namespace cgal {
 
 namespace {
-Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
-  return hypo::cgal::ConstructRegion2(x);
-}
-
 Polygon_set_2 ConstructRegion2(const hypo::Polygon& polygon) {
   Polygon_2 polygon_out;
   polygon_out.container().reserve(polygon.path.size());
@@ -71,7 +67,7 @@ Polygon_set_2 ConstructRegion2(const hypo::Box2& rectangle) {
 Polygon_set_2 ConstructRegion2(const hypo::Transform2& x) {
   Aff_transformation_2 transform = ToAff_transformation_2(x.transform);
 
-  Polygon_set_2 input_polygon_set(ConstructRegion2(x.source));
+  Polygon_set_2 input_polygon_set(cgal::ConstructRegion2(x.source));
 
   std::vector<Polygon_with_holes_2> polygons_with_holes;
   polygons_with_holes.reserve(
@@ -101,7 +97,7 @@ Polygon_set_2 ConstructRegion2(const hypo::Transform2& x) {
 Polygon_set_2 ConstructRegion2(const hypo::Union2& x) {
   Polygon_set_2 result;
   for (const auto& region : x.regions) {
-    result.join(ConstructRegion2(region));
+    result.join(cgal::ConstructRegion2(region));
   }
   return result;
 }
@@ -111,16 +107,16 @@ Polygon_set_2 ConstructRegion2(const hypo::Intersection2& x) {
     return Polygon_set_2();
   }
 
-  Polygon_set_2 result(ConstructRegion2(x.regions[0]));
+  Polygon_set_2 result(cgal::ConstructRegion2(x.regions[0]));
   for (auto iter = x.regions.begin() + 1; iter != x.regions.end(); ++iter) {
-    result.intersection(ConstructRegion2(*iter));
+    result.intersection(cgal::ConstructRegion2(*iter));
   }
   return result;
 }
 
 Polygon_set_2 ConstructRegion2(const hypo::Difference2& x) {
   Polygon_set_2 result;
-  result.difference(ConstructRegion2(x.a), ConstructRegion2(x.b));
+  result.difference(cgal::ConstructRegion2(x.a), cgal::ConstructRegion2(x.b));
   return result;
 }
 
@@ -149,9 +145,9 @@ Polygon_set_2 ConstructRegion2(const hypo::MinkowskiSum2& x) {
     return Polygon_set_2();
   }
 
-  Polygon_set_2 result = ConstructRegion2(x.regions[0]);
+  Polygon_set_2 result = cgal::ConstructRegion2(x.regions[0]);
   for (size_t i = 1; i < x.regions.size(); ++i) {
-    result = MinkowskiSum(result, ConstructRegion2(x.regions[i]));
+    result = MinkowskiSum(result, cgal::ConstructRegion2(x.regions[i]));
   }
   return result;
 }
@@ -190,20 +186,8 @@ Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
   return Polygon_set_2();
 }
 
-namespace {
-Polygon_set_2 ConstructClosedPolylines2(const hypo::Boundary2& x) {
+Polygon_set_2 ConstructBoundary2(const hypo::Boundary2& x) {
   return ConstructRegion2(x.region);
-}
-}  // namespace
-
-Polygon_set_2 ConstructClosedPolylines2(const hypo::ClosedPolylines2& x) {
-  if (auto obj_ptr = std::get_if<std::shared_ptr<const hypo::Boundary2>>(&x)) {
-    return ConstructClosedPolylines2(**obj_ptr);
-  }
-
-  std::cerr << "Unhandled ClosedPolylines2 type." << std::endl;
-  assert(false);
-  return Polygon_set_2();
 }
 
 }  // namespace cgal
