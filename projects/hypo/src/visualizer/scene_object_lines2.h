@@ -10,7 +10,7 @@
 #include "cgal/types_polygons.h"
 #include "reify/pure_cpp/scene_visualizer.h"
 #include "reify/purecpp/hypo.h"
-#include "src/visualizer/vulkan/line_renderer2.h"
+#include "src/visualizer/vulkan/simple_simplex_renderer2.h"
 
 namespace ImGui {
 // We forward declare this class to avoid including `imfilebrowser.h`, which
@@ -27,9 +27,10 @@ CreateSceneObjectLines2(const hypo::Region2& data);
 class SceneObjectLines2 : public reify::pure_cpp::SceneObject<glm::mat3>,
                           public reify::pure_cpp::ImGuiVisualizer {
  public:
-  SceneObjectLines2(hypo::cgal::Polygon_set_2&& polygon_set,
-                    const std::shared_ptr<const LineRenderer2::LineSegmentSoup>&
-                        line_segment_soup);
+  using LineSegmentSoup = SimpleSimplexRenderer2::SimplexSoup<2, 1>;
+  SceneObjectLines2(
+      hypo::cgal::Polygon_set_2&& polygon_set,
+      const std::shared_ptr<const LineSegmentSoup>& line_segment_soup);
   ~SceneObjectLines2();
 
   reify::utils::ErrorOr<
@@ -48,8 +49,7 @@ class SceneObjectLines2 : public reify::pure_cpp::SceneObject<glm::mat3>,
 
  private:
   const hypo::cgal::Polygon_set_2 polygon_set_;
-  const std::shared_ptr<const LineRenderer2::LineSegmentSoup>
-      line_segment_soup_;
+  const std::shared_ptr<const LineSegmentSoup> line_segment_soup_;
 
   std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
 };
@@ -57,7 +57,8 @@ class SceneObjectLines2 : public reify::pure_cpp::SceneObject<glm::mat3>,
 class SceneObjectRenderableLines2
     : public reify::pure_cpp::SceneObjectRenderable<glm::mat3> {
  public:
-  SceneObjectRenderableLines2(std::unique_ptr<LineRenderer2>&& line_renderer2)
+  SceneObjectRenderableLines2(
+      std::unique_ptr<SimpleSimplexRenderer2>&& line_renderer2)
       : line_renderer2_(std::move(line_renderer2)) {}
 
   reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
@@ -65,7 +66,7 @@ class SceneObjectRenderableLines2
       const glm::mat3& view_projection_matrix) override;
 
  private:
-  std::unique_ptr<LineRenderer2> line_renderer2_;
+  std::unique_ptr<SimpleSimplexRenderer2> line_renderer2_;
 };
 
 }  // namespace visualizer
