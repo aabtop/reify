@@ -47,6 +47,7 @@ cc_library(
         "core/global_initialization.cc",
         "core/global_initialization.h",
         "core/project.cc",
+        "core/project.h",
         "core/runtime_environment.cc",
         "core/typescript_compiler.cc",
         "core/typescript_compiler.h",

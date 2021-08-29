@@ -1,3 +1,5 @@
+#include "project.h"
+
 #include <fmt/format.h>
 
 #include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
@@ -64,6 +66,10 @@ std::set<VirtualFilesystem::AbsolutePath> GetAllVisibleTypeScriptSources(
            virtual_filesystem->host_root())) {
     VirtualFilesystem::AbsolutePath virtual_path =
         *virtual_filesystem->HostPathToVirtualPath(path);
+    if (virtual_path.components().front() == DECLS_SUBDIR) {
+      // Don't include any files from a generated declarations directory.
+      continue;
+    }
     if (std::regex_search(virtual_path.string(), source_file_regex)) {
       source_files.insert(virtual_path);
     }

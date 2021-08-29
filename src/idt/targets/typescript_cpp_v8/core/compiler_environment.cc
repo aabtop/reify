@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include "compiled_module_impl.h"
+#include "project.h"
 #include "public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h"
 #include "typescript_compiler.h"
 
@@ -122,7 +123,6 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
     return false;
   }
 
-  const std::string DECLS_SUBDIR = ".reify-decls";
   const auto declarations_directory = out_dir_path / DECLS_SUBDIR;
   std::filesystem::create_directories(declarations_directory);
   if (!std::filesystem::directory_entry(declarations_directory).exists()) {
