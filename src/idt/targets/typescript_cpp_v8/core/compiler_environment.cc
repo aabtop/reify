@@ -1,3 +1,5 @@
+#include <fmt/format.h>
+
 #include <fstream>
 #include <iostream>
 #include <string_view>
@@ -77,16 +79,21 @@ bool WriteToFile(const std::filesystem::path& path, std::string_view content) {
   return true;
 }
 
-const char* TSCONFIG_JSON_CONTENT = R"json(
-{
-  "compilerOptions": {
+const char* TSCONFIG_JSON_CONTENT_TEMPLATE = R"json(
+{{
+  "compilerOptions": {{
     "target": "ES2015",
     "module": "ES2015",
     "lib": [],
     "strict": true,
-    "baseUrl": "./",
-  },
-}
+    "baseUrl": ".",
+    "paths": {{
+      "{module_name}": [
+        "{decls_subdir}/{module_name}"
+      ],
+    }},
+  }},
+}}
 )json";
 
 }  // namespace
@@ -114,7 +121,9 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
     std::cerr << "Error creating directory " << out_dir_path << std::endl;
     return false;
   }
-  const auto declarations_directory = out_dir_path;
+
+  const std::string DECLS_SUBDIR = ".reify-decls";
+  const auto declarations_directory = out_dir_path / DECLS_SUBDIR;
   std::filesystem::create_directories(declarations_directory);
   if (!std::filesystem::directory_entry(declarations_directory).exists()) {
     std::cerr << "Error creating declarations directory "
@@ -126,13 +135,24 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
       transpile_results_or_error);
 
   for (auto& declaration : transpile_results.declaration_files) {
-    if (!WriteToFile(declarations_directory / declaration.path,
-                     declaration.content)) {
+    auto out_path = declarations_directory / declaration.path;
+    if (!WriteToFile(out_path, declaration.content)) {
+      std::cerr << "Error writing to declaration file " << out_path << "."
+                << std::endl;
       return false;
     }
   }
 
-  if (!WriteToFile(out_dir_path / "tsconfig.json", TSCONFIG_JSON_CONTENT)) {
+  const std::string& main_module_file =
+      initial_modules[0].path.components().back();
+  // Remove the ".ts" extension.
+  const std::string main_module_name =
+      main_module_file.substr(0, main_module_file.size() - 3);
+  if (!WriteToFile(out_dir_path / "tsconfig.json",
+                   fmt::format(TSCONFIG_JSON_CONTENT_TEMPLATE,
+                               fmt::arg("decls_subdir", DECLS_SUBDIR),
+                               fmt::arg("module_name", main_module_name)))) {
+    std::cerr << "Error writing tsconfig.json file." << std::endl;
     return false;
   }
 
