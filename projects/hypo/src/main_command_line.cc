@@ -72,13 +72,13 @@ std::optional<CallAndExportResults> CallFunctionAndExportOutput(
   auto call_time = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::high_resolution_clock::now() - start_call_time);
 
-  auto results = hypo::cgal::BuildAndExportToFile(std::get<1>(result_or_error),
-                                                  output_base_file_path);
-
-  if (!results) {
+  auto build_result_or_error = hypo::cgal::BuildAndExportToFile(
+      std::get<1>(result_or_error), output_base_file_path);
+  if (auto error = std::get_if<0>(&build_result_or_error)) {
+    std::cerr << "Error building geometry: " << *error << std::endl;
     return std::nullopt;
   }
-
+  const auto& results = std::get<1>(build_result_or_error);
   return std::optional<CallAndExportResults>(
       {/*.call_time = */ call_time,
        /*.build_time = */ results->build_time,

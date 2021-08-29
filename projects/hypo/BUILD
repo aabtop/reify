@@ -57,6 +57,7 @@ cc_library(
         "src/cgal/types_nef_polyhedron_3.h",
         "src/cgal/types_polygons.h",
         "src/cgal/types_surface_mesh.h",
+        "src/cgal/errors.h",
     ],
     includes = [
         "src/",

@@ -51,4 +51,7 @@ cc_library(
       ":mpfr",
     ],
   }),
+  # We actually want assertion errors, even in release mode, so that we can
+  # let users know if their data is causing errors (e.g. degenerate polygons).
+  defines = ["CGAL_DEBUG"],
 )

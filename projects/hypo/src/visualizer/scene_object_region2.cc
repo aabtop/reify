@@ -15,6 +15,7 @@
 
 #include "cgal/construct_region2.h"
 #include "cgal/embed_2d_in_3d.h"
+#include "cgal/errors.h"
 #include "cgal/export_to_svg.h"
 #include "cgal/types_polygons.h"
 #include "reify/purecpp/hypo.h"
@@ -59,7 +60,9 @@ SceneObjectRegion2::TriangleSoup ConvertToTriangleSoup(
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
 CreateSceneObjectRegion2(const hypo::Region2& data) {
-  hypo::cgal::Polygon_set_2 polygon_set = hypo::cgal::ConstructRegion2(data);
+  REIFY_UTILS_ASSIGN_OR_RETURN(polygon_set,
+                               hypo::cgal::CallCgalAndCatchExceptions(
+                                   &hypo::cgal::ConstructRegion2, data));
   const std::shared_ptr<const SceneObjectRegion2::TriangleSoup> triangle_soup(
       new SceneObjectRegion2::TriangleSoup(ConvertToTriangleSoup(polygon_set)));
 

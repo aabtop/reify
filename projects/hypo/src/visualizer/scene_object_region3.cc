@@ -10,6 +10,7 @@
 // clang-format on
 
 #include "cgal/construct_region3.h"
+#include "cgal/errors.h"
 #include "cgal/export_to_stl.h"
 #include "cgal/types_nef_polyhedron_3.h"
 #include "reify/purecpp/hypo.h"
@@ -67,7 +68,9 @@ FlatShadedTriangleRenderer3::TriangleSoup ConvertToTriangleSoup(
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
 CreateSceneObjectRegion3(const hypo::Region3& data) {
-  hypo::cgal::Nef_polyhedron_3 polyhedron3 = hypo::cgal::ConstructRegion3(data);
+  REIFY_UTILS_ASSIGN_OR_RETURN(polyhedron3,
+                               hypo::cgal::CallCgalAndCatchExceptions(
+                                   &hypo::cgal::ConstructRegion3, data));
   const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>
       triangle_soup(new FlatShadedTriangleRenderer3::TriangleSoup(
           ConvertToTriangleSoup(polyhedron3)));

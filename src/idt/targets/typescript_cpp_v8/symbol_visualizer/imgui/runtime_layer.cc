@@ -56,6 +56,7 @@ RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
 
 void RuntimeLayer::SetCompileResults(
     const CompilerEnvironmentThreadSafe::MultiCompileResults& compile_results) {
+  preview_error_ = std::nullopt;
   compile_results_ = compile_results;
   previewable_symbols_ = ComputePreviewableSymbolsFromCompileResults(
       compile_results_,
@@ -351,14 +352,24 @@ void RuntimeLayer::RebuildSelectedSymbol() {
               pending_preview_results_ = std::nullopt;
               preview_error_ = std::nullopt;
 
+              auto make_error = [this](const std::string& msg) {
+                return utils::Error{fmt::format(
+                    "{}:{}: {}",
+                    selected_symbol_->previewable_entry.module_path.string(),
+                    selected_symbol_->previewable_entry
+                        .symbols[selected_symbol_->symbol_preview_index]
+                        .name,
+                    msg)};
+              };
+
               if (std::holds_alternative<utils::CancelledFuture>(x)) {
-                preview_error_ = utils::Error{"Compilation cancelled."};
+                preview_error_ = make_error("Compilation cancelled.");
                 return;
               }
 
               const auto& error_or = *std::get<1>(x);
               if (auto error = std::get_if<0>(&error_or)) {
-                preview_error_ = utils::Error{error->msg};
+                preview_error_ = make_error(error->msg);
               } else {
                 symbol_visualizer_->SetPreview(std::get<1>(error_or));
                 preview_active = true;

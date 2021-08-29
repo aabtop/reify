@@ -63,7 +63,7 @@ SymbolVisualizer::PrepareSymbolForPreview(
                 .wait_and_get_results();
 
         if (std::holds_alternative<utils::CancelledFuture>(results)) {
-          return utils::Error{"Cancelled."};
+          return utils::CancelledFuture();
         }
         if (auto error = std::get_if<0>(&std::get<1>(results))) {
           return *error;
