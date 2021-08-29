@@ -97,16 +97,21 @@ std::optional<CallAndExportResults> BuildOutputAndSaveToFile(
     return CallFunctionAndExportOutput<hypo::Region2>(
         runtime_env, entry_point_function->name, output_base_file_path);
   } else if (entry_point_function->HasType<
+                 reify::typescript_cpp_v8::Function<hypo::Boundary2()>>()) {
+    return CallFunctionAndExportOutput<hypo::Boundary2>(
+        runtime_env, entry_point_function->name, output_base_file_path);
+  } else if (entry_point_function->HasType<
                  reify::typescript_cpp_v8::Function<hypo::Region3()>>()) {
     return CallFunctionAndExportOutput<hypo::Region3>(
         runtime_env, entry_point_function->name, output_base_file_path);
   } else {
-    std::cerr << "Exported symbol '" << entry_point_function->name
-              << "' has type '" << entry_point_function->typescript_type_string
-              << "', which is not a supported type.  Currently only "
-                 "parameter-less functions that return Region2 or Region3 "
-                 "types are supported."
-              << std::endl;
+    std::cerr
+        << "Exported symbol '" << entry_point_function->name << "' has type '"
+        << entry_point_function->typescript_type_string
+        << "', which is not a supported type.  Currently only "
+           "parameter-less functions that return Region2, Boundary2 or Region3 "
+           "types are supported."
+        << std::endl;
     return std::nullopt;
   }
 }
