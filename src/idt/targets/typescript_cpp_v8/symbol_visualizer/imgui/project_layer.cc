@@ -87,6 +87,27 @@ void ProjectLayer::LoadProject(const std::filesystem::path& project_path) {
   return;
 }
 
+std::optional<reify::utils::Error> ProjectLayer::CreateProjectDirectory(
+    const std::filesystem::path& project_path) {
+  if (std::filesystem::exists(project_path)) {
+    return reify::utils::Error{
+        fmt::format("Path {} already exists! Choose a directory that doesn't "
+                    "already exist since some project files like "
+                    "`tsconfig.json` will be written into it.",
+                    project_path.string())};
+  }
+
+  auto maybe_error = CompilerEnvironment::CreateWorkspaceDirectory(
+      project_path, symbol_visualizer_->GetTypeScriptModules());
+  if (maybe_error) {
+    return *maybe_error;
+  }
+
+  // If the creation was successful, load the directory as a project.
+  LoadProject(std::filesystem::canonical(project_path));
+  return std::nullopt;
+}
+
 namespace {
 
 // Helper class for setting up menu items with shortcuts.
@@ -135,30 +156,48 @@ class Action {
 
 }  // namespace
 void ProjectLayer::ExecuteImGuiCommands() {
+  if (show_modal_message_) {
+  }
+
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 8));
   if (ImGui::BeginMainMenuBar()) {
+    Action create_project_directory_action(
+        "Create project directory",
+        [this] {
+          file_dialog_ =
+              FileDialog{FileDialog::Action::CreateProjectDirectory,
+                         std::make_unique<ImGui::FileBrowser>(
+                             ImGuiFileBrowserFlags_CloseOnEsc |
+                             ImGuiFileBrowserFlags_EnterNewFilename)};
+          file_dialog_->file_browser->SetTitle("Create project directory");
+          file_dialog_->file_browser->Open();
+        },
+        !file_dialog_);
     Action open_file_action(
         "Open file",
         [this] {
-          file_browser_.reset(
-              new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc));
-          file_browser_->SetTitle("Open file");
-          file_browser_->SetTypeFilters({".ts"});
-          file_browser_->Open();
+          file_dialog_ = FileDialog{FileDialog::Action::OpenFile,
+                                    std::make_unique<ImGui::FileBrowser>(
+                                        ImGuiFileBrowserFlags_CloseOnEsc)};
+          file_dialog_->file_browser->SetTitle("Open file");
+          file_dialog_->file_browser->SetTypeFilters({".ts"});
+          file_dialog_->file_browser->Open();
         },
-        !file_browser_, kPlatformWindowKeyO);
+        !file_dialog_, kPlatformWindowKeyO);
     Action open_dir_action(
         "Open directory",
         [this] {
-          file_browser_.reset(
-              new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc |
-                                     ImGuiFileBrowserFlags_SelectDirectory));
-          file_browser_->SetTitle("Open directory");
-          file_browser_->Open();
+          file_dialog_ = FileDialog{FileDialog::Action::OpenDirectory,
+                                    std::make_unique<ImGui::FileBrowser>(
+                                        ImGuiFileBrowserFlags_CloseOnEsc |
+                                        ImGuiFileBrowserFlags_SelectDirectory)};
+          file_dialog_->file_browser->SetTitle("Open directory");
+          file_dialog_->file_browser->Open();
         },
-        !file_browser_);
+        !file_dialog_);
 
     if (ImGui::BeginMenu("File")) {
+      create_project_directory_action.MenuItem(true);
       open_file_action.MenuItem(true);
       open_dir_action.MenuItem(true);
       ImGui::EndMenu();
@@ -216,32 +255,59 @@ void ProjectLayer::ExecuteImGuiCommands() {
   }
   ImGui::PopStyleVar();
 
-  if (file_browser_) {
-    file_browser_->Display();
-    if (file_browser_->HasSelected()) {
-      LoadProject(std::filesystem::canonical(file_browser_->GetSelected()));
-      file_browser_->Close();
+  if (file_dialog_) {
+    file_dialog_->file_browser->Display();
+    if (file_dialog_->file_browser->HasSelected()) {
+      switch (file_dialog_->action) {
+        case FileDialog::Action::OpenFile:
+        case FileDialog::Action::OpenDirectory: {
+          LoadProject(std::filesystem::canonical(
+              file_dialog_->file_browser->GetSelected()));
+        } break;
+        case FileDialog::Action::CreateProjectDirectory: {
+          auto maybe_error =
+              CreateProjectDirectory(file_dialog_->file_browser->GetSelected());
+          if (maybe_error) {
+            show_modal_message_ =
+                fmt::format("Error attempting to create project directory: {}",
+                            maybe_error->msg);
+            ImGui::OpenPopup("Error creating project directory");
+          }
+        } break;
+      }
+      file_dialog_->file_browser->Close();
+
+      if (!file_dialog_->file_browser->IsOpened()) {
+        file_dialog_ = std::nullopt;
+      }
     }
-    if (!file_browser_->IsOpened()) {
-      file_browser_.reset();
+
+    if (pending_compile_results_) {
+      if (!status_window_) {
+        status_window_.emplace(status_layer_, [this] {
+          Spinner("status compiling spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
+                  ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
+          ImGui::SameLine();
+          ImGui::Text(
+              "Compiling %s...",
+              project_->host_filesystem_project.virtual_filesystem->host_root()
+                  .string()
+                  .c_str());
+        });
+      }
+    } else {
+      status_window_ = std::nullopt;
     }
   }
 
-  if (pending_compile_results_) {
-    if (!status_window_) {
-      status_window_.emplace(status_layer_, [this] {
-        Spinner("status compiling spinner", 10.0f, ImVec4{0.2, 0.6, 0.5, 1.0},
-                ImVec4{0.1, 0.3, 0.2, 1.0}, 10, 2.5f);
-        ImGui::SameLine();
-        ImGui::Text(
-            "Compiling %s...",
-            project_->host_filesystem_project.virtual_filesystem->host_root()
-                .string()
-                .c_str());
-      });
+  if (ImGui::BeginPopupModal("Error creating project directory", NULL,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    ImGui::Text(show_modal_message_->c_str());
+    ImGui::Separator();
+    if (ImGui::Button("OK")) {
+      ImGui::CloseCurrentPopup();
     }
-  } else {
-    status_window_ = std::nullopt;
+    ImGui::EndPopup();
   }
 }
 

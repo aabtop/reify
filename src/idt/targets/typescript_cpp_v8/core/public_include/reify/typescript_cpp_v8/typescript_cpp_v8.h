@@ -199,7 +199,7 @@ class CompilerEnvironment {
   // it will create a `tsconfig.json` file as well as a directory containing
   // the `.d.ts` TypeScript declaration files.
   // Returns true on success and false on failure.
-  static bool CreateWorkspaceDirectory(
+  static std::optional<utils::Error> CreateWorkspaceDirectory(
       const std::filesystem::path& out_dir_path,
       const std::vector<InputModule>& initial_modules);
 

@@ -102,7 +102,7 @@ const char* TSCONFIG_JSON_CONTENT_TEMPLATE = R"json(
 CompilerEnvironment::CompilerEnvironment(CompilerEnvironment&& x)
     : impl_(std::move(x.impl_)) {}
 
-bool CompilerEnvironment::CreateWorkspaceDirectory(
+std::optional<utils::Error> CompilerEnvironment::CreateWorkspaceDirectory(
     const std::filesystem::path& out_dir_path,
     const std::vector<InputModule>& initial_modules) {
   InMemoryFilesystem filesystem(InMemoryFilesystem::FileMap(
@@ -119,16 +119,15 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
 
   std::filesystem::create_directories(out_dir_path);
   if (!std::filesystem::directory_entry(out_dir_path).exists()) {
-    std::cerr << "Error creating directory " << out_dir_path << std::endl;
-    return false;
+    return utils::Error{
+        fmt::format("Error creating directory {}", out_dir_path.string())};
   }
 
   const auto declarations_directory = out_dir_path / DECLS_SUBDIR;
   std::filesystem::create_directories(declarations_directory);
   if (!std::filesystem::directory_entry(declarations_directory).exists()) {
-    std::cerr << "Error creating declarations directory "
-              << declarations_directory << std::endl;
-    return false;
+    return utils::Error{fmt::format("Error creating declarations directory {}",
+                                    declarations_directory.string())};
   }
 
   auto transpile_results = std::get<TypeScriptCompiler::TranspileResults>(
@@ -137,9 +136,8 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
   for (auto& declaration : transpile_results.declaration_files) {
     auto out_path = declarations_directory / declaration.path;
     if (!WriteToFile(out_path, declaration.content)) {
-      std::cerr << "Error writing to declaration file " << out_path << "."
-                << std::endl;
-      return false;
+      return utils::Error{fmt::format("Error writing to declaration file {}",
+                                      out_path.string())};
     }
   }
 
@@ -152,11 +150,10 @@ bool CompilerEnvironment::CreateWorkspaceDirectory(
                    fmt::format(TSCONFIG_JSON_CONTENT_TEMPLATE,
                                fmt::arg("decls_subdir", DECLS_SUBDIR),
                                fmt::arg("module_name", main_module_name)))) {
-    std::cerr << "Error writing tsconfig.json file." << std::endl;
-    return false;
+    return utils::Error{"Error writing tsconfig.json file."};
   }
 
-  return true;
+  return std::nullopt;
 }
 
 CompilerEnvironmentThreadSafe::CompilerEnvironmentThreadSafe(

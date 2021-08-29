@@ -98,15 +98,17 @@ int GenerateProjectDirectory(
     const GenerateProjectDirectoryCommandLineParameters& clp,
     const std::vector<CompilerEnvironment::InputModule>&
         typescript_input_modules) {
-  bool result = CompilerEnvironment::CreateWorkspaceDirectory(
+  auto maybe_error = CompilerEnvironment::CreateWorkspaceDirectory(
       clp.project_directory, typescript_input_modules);
-  if (result) {
-    std::cout << "Created directory " << clp.project_directory
-              << ".  You can now add TypeScript files to it." << std::endl;
-    return 0;
-  } else {
+  if (maybe_error) {
+    std::cerr << "Error creating project directory: " << maybe_error->msg
+              << std::endl;
     return 1;
   }
+
+  std::cout << "Created directory " << clp.project_directory
+            << ".  You can now add TypeScript files to it." << std::endl;
+  return 0;
 }
 
 std::variant<int, std::unique_ptr<CommandLineToolParseResult>> Build(

@@ -32,7 +32,19 @@ class ProjectLayer {
   void ExecuteImGuiCommands();
 
  private:
+  struct FileDialog {
+    enum class Action {
+      CreateProjectDirectory,
+      OpenFile,
+      OpenDirectory,
+    };
+    Action action;
+    std::unique_ptr<ImGui::FileBrowser> file_browser;
+  };
+
   void LoadProject(const std::filesystem::path& project_path);
+  std::optional<reify::utils::Error> CreateProjectDirectory(
+      const std::filesystem::path& project_path);
 
   StatusLayer* status_layer_;
   RuntimeLayer* runtime_layer_;
@@ -48,7 +60,9 @@ class ProjectLayer {
   std::optional<CompilerEnvironmentThreadSafe::MultiCompileFuture::Watch>
       pending_compile_results_;
 
-  std::unique_ptr<ImGui::FileBrowser> file_browser_;
+  std::optional<FileDialog> file_dialog_;
+
+  std::optional<std::string> show_modal_message_;
 };
 
 }  // namespace imgui
