@@ -302,7 +302,7 @@ void ProjectLayer::ExecuteImGuiCommands() {
 
   if (ImGui::BeginPopupModal("Error creating project directory", NULL,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
-    ImGui::Text(show_modal_message_->c_str());
+    ImGui::TextUnformatted(show_modal_message_->c_str());
     ImGui::Separator();
     if (ImGui::Button("OK")) {
       ImGui::CloseCurrentPopup();

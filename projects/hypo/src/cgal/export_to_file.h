@@ -69,7 +69,8 @@ reify::utils::ErrorOr<BuildAndExportResults> BuildAndExportToFile(
     export_success = hypo::cgal::ExportToSTL(std::move(built_region),
                                              results.output_filepath);
   } else {
-    static_assert(false);
+    assert(false);
+    return reify::utils::Error{"Unexpected build object type."};
   }
 
   results.export_time = std::chrono::duration_cast<std::chrono::microseconds>(
