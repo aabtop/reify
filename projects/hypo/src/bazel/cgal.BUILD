@@ -18,40 +18,42 @@ configure_make(
 )
 
 cc_library(
-  name = "cgal",
-  hdrs = glob([
-    "include/CGAL/**/*.h",
-    "include/CGAL/**/*.hpp",
-  ]),
-  includes = ["include"],
-  visibility = ["//visibility:public"],
-  deps = [
-    "@boost//:core",
-    "@boost//:predef",
-    "@boost//:utility",
-    "@boost//:array",
-    "@boost//:iterator",
-    "@boost//:lexical_cast",
-    "@boost//:multiprecision",
-    "@boost//:property_map",
-    "@boost//:random",
-    "@boost//:variant",
-    "@boost//:any",
-    "@boost//:graph",
-    "@boost//:dynamic_bitset",
-    "@boost//:tribool",
-    "@boost//:heap",
-  ] + select({
-    "@bazel_tools//src/conditions:windows": [
-        "@vcpkg//:mpir",
-        "@vcpkg//:mpfr",
-    ],
-    "//conditions:default": [
-      ":gmp",
-      ":mpfr",
-    ],
-  }),
-  # We actually want assertion errors, even in release mode, so that we can
-  # let users know if their data is causing errors (e.g. degenerate polygons).
-  defines = ["CGAL_DEBUG"],
+    name = "cgal",
+    hdrs = glob([
+        "include/CGAL/**/*.h",
+        "include/CGAL/**/*.hpp",
+        "include/CGAL/**/*.tcc",
+    ]),
+    # We actually want assertion errors, even in release mode, so that we can
+    # let users know if their data is causing errors (e.g. degenerate polygons).
+    defines = ["CGAL_DEBUG"],
+    includes = ["include"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@boost//:core",
+        "@boost//:predef",
+        "@boost//:utility",
+        "@boost//:array",
+        "@boost//:iterator",
+        "@boost//:lexical_cast",
+        "@boost//:multiprecision",
+        "@boost//:property_map",
+        "@boost//:random",
+        "@boost//:variant",
+        "@boost//:any",
+        "@boost//:graph",
+        "@boost//:dynamic_bitset",
+        "@boost//:tribool",
+        "@boost//:heap",
+        "@boost//:pool",
+    ] + select({
+        "@bazel_tools//src/conditions:windows": [
+            "@vcpkg//:mpir",
+            "@vcpkg//:mpfr",
+        ],
+        "//conditions:default": [
+            ":gmp",
+            ":mpfr",
+        ],
+    }),
 )
