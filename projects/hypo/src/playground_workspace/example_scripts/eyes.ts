@@ -25,5 +25,9 @@ export function Main() {
 }
 
 export function MainBoundary() {
-  return h.Boundary2({ region: Main() });
+  return h.BoundaryOfRegion2({ region: Main() });
+}
+
+export function WidenedBoundary() {
+  return h.WidenBoundary2({ boundary: MainBoundary(), width: 0.1 });
 }

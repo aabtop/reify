@@ -1,5 +1,6 @@
 #include "cgal/construct_region2.h"
 
+#include <CGAL/create_offset_polygons_from_polygon_with_holes_2.h>
 #include <CGAL/minkowski_sum_2.h>
 
 #include <limits>
@@ -152,6 +153,79 @@ Polygon_set_2 ConstructRegion2(const hypo::MinkowskiSum2& x) {
   return result;
 }
 
+Polygon_set_2 ConstructRegion2(const hypo::WidenBoundary2& x) {
+  Polygon_set_2 contours = ConstructBoundary2(x.boundary);
+  std::vector<Polygon_with_holes_2> contour_polygons_with_holes;
+  contour_polygons_with_holes.reserve(contours.number_of_polygons_with_holes());
+  contours.polygons_with_holes(std::back_inserter(contour_polygons_with_holes));
+
+  Polygon_set_2 result;
+
+  for (const auto& polygon_with_holes : contour_polygons_with_holes) {
+    Polygon_set_2 inner_offset;
+    {
+      auto inner_offset_polygons =
+          CGAL::create_interior_skeleton_and_offset_polygons_with_holes_2(
+              x.width, polygon_with_holes, Kernel());
+      for (const auto& inner_polygon_with_holes : inner_offset_polygons) {
+        inner_offset.insert(*inner_polygon_with_holes);
+      }
+    }
+
+    Polygon_set_2 outer_offset_boundary;
+    {
+      auto outer_offset_polygons =
+          CGAL::create_exterior_skeleton_and_offset_polygons_with_holes_2(
+              x.width, polygon_with_holes.outer_boundary(), Kernel());
+      for (const auto& outer_polygon_with_holes : outer_offset_polygons) {
+        // The exterior skeleton returns a result where a generated frame
+        // is created that bounds the exterior offset polygon, so we actually
+        // want the inverse of this, so we grab the hole.
+        for (auto hole_iter = outer_polygon_with_holes->holes_begin();
+             hole_iter != outer_polygon_with_holes->holes_end(); ++hole_iter) {
+          Polygon_2 hole = *hole_iter;
+          hole.reverse_orientation();
+          outer_offset_boundary.insert(hole);
+        }
+      }
+    }
+
+    // The create_exterior_skeleton_and_offset_polygons_with_holes_2 function
+    // also doesn't properly deal with holes, so we have to go into those and
+    // process them separately.
+    Polygon_set_2 outer_offset_holes;
+    for (auto hole_iter = polygon_with_holes.holes_begin();
+         hole_iter != polygon_with_holes.holes_end(); ++hole_iter) {
+      Polygon_2 hole = *hole_iter;
+      hole.reverse_orientation();
+      auto inner_offset_polygons =
+          CGAL::create_interior_skeleton_and_offset_polygons_with_holes_2(
+              x.width, hole, Kernel());
+      Polygon_set_2 inner_offset;
+      for (const auto& inner_polygon_with_holes : inner_offset_polygons) {
+        outer_offset_holes.insert(*inner_polygon_with_holes);
+      }
+    }
+
+    // Now reconstruct the expanded outer offset with its holes.
+    Polygon_set_2 outer_offset;
+    outer_offset.difference(outer_offset_boundary, outer_offset_holes);
+
+    // Finally subtract the inner_offset from the outer_offset to get the
+    // final widened region.
+    Polygon_set_2 difference;
+    difference.difference(outer_offset, inner_offset);
+
+    result.join(difference);
+  }
+
+  return result;
+}
+
+Polygon_set_2 ConstructBoundary2(const hypo::BoundaryOfRegion2& x) {
+  return hypo::cgal::ConstructRegion2(x.region);
+}
+
 }  // namespace
 
 Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
@@ -179,6 +253,9 @@ Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
   } else if (auto obj_ptr =
                  std::get_if<std::shared_ptr<const hypo::MinkowskiSum2>>(&x)) {
     return ConstructRegion2(**obj_ptr);
+  } else if (auto obj_ptr =
+                 std::get_if<std::shared_ptr<const hypo::WidenBoundary2>>(&x)) {
+    return ConstructRegion2(**obj_ptr);
   }
 
   std::cerr << "Unhandled Region2 type." << std::endl;
@@ -187,7 +264,14 @@ Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
 }
 
 Polygon_set_2 ConstructBoundary2(const hypo::Boundary2& x) {
-  return ConstructRegion2(x.region);
+  if (auto obj_ptr =
+          std::get_if<std::shared_ptr<const hypo::BoundaryOfRegion2>>(&x)) {
+    return ConstructBoundary2(**obj_ptr);
+  }
+
+  std::cerr << "Unhandled Boundary2 type." << std::endl;
+  assert(false);
+  return Polygon_set_2();
 }
 
 }  // namespace cgal

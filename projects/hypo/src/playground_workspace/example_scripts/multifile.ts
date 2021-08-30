@@ -2,7 +2,7 @@ import * as h from 'hypo';
 
 import * as TungstenModule from 'tungsten';
 import * as TorusModule from './torus';
-import * as SpiralBeamsModule from '/spiral_beams';
+import * as SpiralBeamsModule from 'spiral_beams';
 
 export function Main() {
   return h.Union3({

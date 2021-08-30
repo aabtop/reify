@@ -1,0 +1,15 @@
+
+{
+  "compilerOptions": {
+    "target": "ES2015",
+    "module": "ES2015",
+    "lib": [],
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "hypo": [
+        ".reify-decls/hypo"
+      ],
+    },
+  },
+}

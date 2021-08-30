@@ -68,7 +68,7 @@ CreateSceneObjectRegion2(const hypo::Region2& data) {
 
   REIFY_UTILS_ASSIGN_OR_RETURN(
       scene_object_boundary2,
-      CreateSceneObjectBoundary2(hypo::Boundary2{data}));
+      CreateSceneObjectBoundary2(hypo::NewBoundaryOfRegion2({data})));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>(
       new SceneObjectRegion2(std::move(polygon_set), triangle_soup,

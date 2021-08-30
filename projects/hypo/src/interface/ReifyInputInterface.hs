@@ -125,6 +125,20 @@ idt =
               , List $ Concrete region2
               )
             ]
+    widenBoundary2 =
+      NamedType
+          "WidenBoundary2"
+          "Widens a 1D boundary of a 2D region by a given width such that it become a region again. Each joint will be offset in the direction of the average of the normals of each two adjacent line segments."
+        $ Struct
+            [ ( "boundary"
+              , "The boundary to widen."
+              , Concrete boundary2
+              ),
+              ( "width"
+              , "How many units to widen the boundary by."
+              , f32
+              )
+            ]
     region2 =
       NamedType "Region2" "An arbitrary shape representing a 2D area."
         $ TaggedUnion
@@ -136,17 +150,23 @@ idt =
             , Reference intersection2
             , Reference difference2
             , Reference minkowskiSum2
+            , Reference widenBoundary2
             ]
 
-    boundary2 =
+    boundaryOfRegion2 =
       NamedType
-          "Boundary2"
+          "BoundaryOfRegion2"
           "Returns an object representing the 1D polygonal boundary of a 2D polygonal region. This will be a closed polygon."
         $ Struct
             [ ( "region"
               , "The 2D region to find the boundary of."
               , Concrete region2)]
-
+    boundary2 =
+      NamedType "Boundary2" "A set of closed polylines that envelope a 2D region."
+      $ TaggedUnion
+          [ Reference boundaryOfRegion2
+          ]
+          
     triangleList n =
       NamedType ("TriangleList" ++ show n)
                 ("A list of " ++ show n ++ "-dimensional triangles.")
