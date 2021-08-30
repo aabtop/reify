@@ -13,6 +13,7 @@
 
 #include "cgal/construct_region2.h"
 #include "cgal/embed_2d_in_3d.h"
+#include "cgal/errors.h"
 #include "cgal/export_to_svg.h"
 #include "cgal/types_polygons.h"
 #include "reify/purecpp/hypo.h"
@@ -93,7 +94,9 @@ SceneObjectBoundary2::LineSegmentSoup ConvertToLineSegmentSoup(
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
 CreateSceneObjectBoundary2(const hypo::Boundary2& data) {
-  cgal::Polygon_set_2 polygon_set = cgal::ConstructBoundary2(data);
+  REIFY_UTILS_ASSIGN_OR_RETURN(
+      polygon_set,
+      cgal::CallCgalAndCatchExceptions(&cgal::ConstructBoundary2, data));
   const std::shared_ptr<const SceneObjectBoundary2::LineSegmentSoup>
       line_segment_soup(new SceneObjectBoundary2::LineSegmentSoup(
           ConvertToLineSegmentSoup(polygon_set)));
