@@ -56,35 +56,39 @@ topLevelTemplate =
       Left  bundle   -> panic (errorBundlePretty bundle)
       Right template -> template
 
-typeString :: Type -> String
-typeString (Concrete (NamedType n _ _)) = n
-typeString (Reference (NamedType n _ _)) = "std::shared_ptr<const " ++ n ++ ">"
-typeString (NamedPrimitive n) = case n of
+typeString :: Bool -> Type -> String
+typeString _ (Concrete (NamedType n _ _)) = n
+typeString enableHashes (Reference (NamedType n _ _)) = 
+  if enableHashes then
+    "std::shared_ptr<const ObjectAndHash<" ++ n ++ ">>"
+  else
+    "std::shared_ptr<const " ++ n ++ ">"
+typeString _ (NamedPrimitive n) = case n of
   "string"  -> "std::string"
   "f32"     -> "float"
   "i32"     -> "int"
   "boolean" -> "bool"
   _         -> panic $ "Unsupported primitive type: " ++ n
-typeString (List t) = "std::vector<" ++ typeString t ++ ">"
-typeString (Tuple l) =
-  "std::tuple<" ++ intercalate ", " [ typeString x | x <- l ] ++ ">"
-typeString (FixedSizeArray t s) =
-  "std::array<" ++ typeString t ++ ", " ++ show s ++ ">"
-typeString (Struct l) = panic "Structs may only be referenced as named types."
-typeString (Enum   l) = panic "Enums may only be referenced as named types."
-typeString (TaggedUnion l) =
+typeString enableHashes (List t) = "std::vector<" ++ typeString enableHashes t ++ ">"
+typeString enableHashes (Tuple l) =
+  "std::tuple<" ++ intercalate ", " [ typeString enableHashes x | x <- l ] ++ ">"
+typeString enableHashes (FixedSizeArray t s) =
+  "std::array<" ++ typeString enableHashes t ++ ", " ++ show s ++ ">"
+typeString _ (Struct l) = panic "Structs may only be referenced as named types."
+typeString _ (Enum   l) = panic "Enums may only be referenced as named types."
+typeString _ (TaggedUnion l) =
   panic "TaggedUnions may only be referenced as named types."
 
 
 enumTypeNames ts = map (("p" ++) . show) [0 .. length ts - 1]
 
-contructorToStacheObject :: (String, String, [Type]) -> Value
-contructorToStacheObject (n, _, ts) = object
+contructorToStacheObject :: Bool -> (String, String, [Type]) -> Value
+contructorToStacheObject enableHashes (n, _, ts) = object
   [ "cname" .= DT.pack n
   , "params"
     .= zipWith
          (\tn t ->
-           object ["name" .= DT.pack tn, "type" .= DT.pack (typeString t)]
+           object ["name" .= DT.pack tn, "type" .= DT.pack (typeString enableHashes t)]
          )
          (enumTypeNames ts)
          ts
@@ -93,29 +97,35 @@ contructorToStacheObject (n, _, ts) = object
 constructorNames :: [(String, String, [Type])] -> [String]
 constructorNames = map (\(x, _, _) -> x)
 
-constructors :: [(String, String, [Type])] -> [Value]
-constructors = map contructorToStacheObject
+constructors :: Bool -> [(String, String, [Type])] -> [Value]
+constructors enableHashes = map (contructorToStacheObject enableHashes)
 
-member :: (String, String, Type) -> Value
-member (n, c, t) = object
+member :: Bool -> (String, String, Type) -> Value
+member enableHashes (n, c, t) = object
   [ "name" .= DT.pack n
   , "comment" .= DT.pack c
-  , "type" .= DT.pack (typeString t)
+  , "type" .= DT.pack (typeString enableHashes t)
   ]
 
-members :: [(String, String, Type)] -> [Value]
-members = map member
+members :: Bool -> [(String, String, Type)] -> [Value]
+members enableHashes = map (member enableHashes)
 
-namedTypeDefinition :: Declaration -> String
-namedTypeDefinition t = case t of
-  ForwardDeclaration (NamedType n _ (Struct      _)) -> "struct " ++ n ++ ";\n"
+namedTypeDefinition :: Bool -> Declaration -> String
+namedTypeDefinition enableHashes t = case t of
+  ForwardDeclaration (NamedType n _ (Struct      _)) ->
+    if enableHashes then
+      "struct " ++ n ++ ";\n" ++
+      "template<>\n" ++
+      "struct ObjectAndHash<" ++ n ++ ">;\n"
+    else
+      "struct " ++ n ++ ";\n"
   ForwardDeclaration (NamedType n _ (Enum        _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration (NamedType n _ (TaggedUnion _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration _ ->
     panic "Only forward declarations of Enum and Structs are supported."
   TypeDeclaration (NamedType n c t@(Struct l)) ->
     DTL.unpack $ renderMustache structTemplate $ object
-      ["name" .= n, "comment" .= c, "members" .= members l]
+      ["name" .= n, "comment" .= c, "members" .= members enableHashes l, "enable_hashes" .= enableHashes, "no_enable_hashes" .= not enableHashes]
   TypeDeclaration (NamedType n c t@(Enum l)) -> if isSimpleEnum l
     then
       "// "
@@ -127,7 +137,7 @@ namedTypeDefinition t = case t of
       ++ unlines (map (\(en, ec, _) -> "  // " ++ ec ++ "\n  " ++ en ++ ",") l)
       ++ "};\n"
     else DTL.unpack $ renderMustache enumTemplate $ object
-      [ "constructors" .= constructors l
+      [ "constructors" .= constructors enableHashes l
       , "tagged_union_def" .= renderMustache
         taggedUnionTemplate
         (object
@@ -136,20 +146,23 @@ namedTypeDefinition t = case t of
           , "comma_sep_types" .= DT.pack (intercalate ", " (constructorNames l))
           ]
         )
+      , "enable_hashes" .= enableHashes
       ]
   TypeDeclaration (NamedType n c t@(TaggedUnion ts)) ->
     DTL.unpack $ renderMustache taggedUnionTemplate $ object
       [ "name" .= DT.pack n
       , "comment" .= DT.pack c
       , "comma_sep_types"
-        .= DT.pack (intercalate ", " [ typeString t | t <- ts ])
+        .= DT.pack (intercalate ", " [ typeString enableHashes t | t <- ts ])
+      , "enable_hashes" .= enableHashes
       ]
   TypeDeclaration (NamedType n c t) ->
-    "// " ++ c ++ "\n" ++ "using " ++ n ++ " = " ++ typeString t ++ ";\n"
+    "// " ++ c ++ "\n" ++ "using " ++ n ++ " = " ++ typeString enableHashes t ++ ";\n"
 
-toCppImmutableRefCountedSourceCode :: String -> DeclarationSequence -> String
-toCppImmutableRefCountedSourceCode namespace decls =
+toCppImmutableRefCountedSourceCode :: String -> Bool -> DeclarationSequence -> String
+toCppImmutableRefCountedSourceCode namespace enableHashes decls =
   DTL.unpack $ renderMustache topLevelTemplate $ object
     [ "namespace" .= namespace
-    , "declarationSequence" .= [ namedTypeDefinition x | x <- decls ]
+    , "declarationSequence" .= [ namedTypeDefinition enableHashes x | x <- decls ]
+    , "enable_hashes" .= enableHashes
     ]

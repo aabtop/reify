@@ -15,7 +15,7 @@ import           ReifyInputInterface
 main = do
   args <- getArgs
   case args of
-    [namespace, outputDirectory] ->
+    [namespace, outputDirectory, enableHashes] ->
       let buildTargetToFile filename = buildTargetToFilePath
             (joinPath [outputDirectory, filename])
             ReifyInputInterface.idt
@@ -23,9 +23,9 @@ main = do
             createDirectoryIfMissing True outputDirectory
             buildTargetToFile
               (namespace ++ ".h")
-              (toCppImmutableRefCountedSourceCode namespace)
+              (toCppImmutableRefCountedSourceCode namespace (enableHashes == "True"))
     _ -> do
-      hPutStrLn stderr "Usage: Expected two parameters, [namespace, outputDirectory]."
+      hPutStrLn stderr "Usage: Expected two parameters, [namespace, outputDirectory, enableHashes]."
       hPutStrLn stderr ("Args: " ++ (show args))
       exitFailure
 

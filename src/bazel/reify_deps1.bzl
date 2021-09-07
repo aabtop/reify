@@ -86,3 +86,11 @@ def reify_deps1():
         sha256 = "dc7dda7aeadc65e1201c8b6210d82bb146de957a582930d14650d544d165ae34",
         build_file = "@reify//:third_party/imgui-filebrowser/imgui-filebrowser.BUILD",
     )
+
+    http_archive(
+        name = "BLAKE3",
+        strip_prefix = "BLAKE3-b404c851c284ed01f51a4606e1e13f51a89c2584",
+        urls = ["https://github.com/BLAKE3-team/BLAKE3/archive/b404c851c284ed01f51a4606e1e13f51a89c2584.zip"],
+        sha256 = "70e5f85834e136d5d9e48261b90a0e360d557dc1d482dd138e307e9ef4a9cc40",
+        build_file = "@reify//:third_party/BLAKE3/BLAKE3.BUILD",
+    )

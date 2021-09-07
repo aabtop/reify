@@ -10,6 +10,10 @@ struct {{name}} {
 {{/members}}
 };
 
-inline std::shared_ptr<const {{name}}> New{{name}}({{name}}&& from) {
-  return std::make_shared<{{name}}>(std::move(from));
+{{#enable_hashes}}
+inline void AddObjectToHash(blake3_hasher* hasher, const {{name}}& input) {
+{{#members}}
+  AddObjectToHash(hasher, input.{{name}});
+{{/members}}
 }
+{{/enable_hashes}}

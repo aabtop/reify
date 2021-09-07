@@ -10,7 +10,11 @@ def __idt_as_purecpp_rule_impl(ctx):
     ctx.actions.run(
         outputs = [output_header_file],
         tools = [ctx.executable.generator_binary],
-        arguments = [ctx.attr.idt[IdtInfo].namespace, ctx.bin_dir.path + "/" + output_directory],
+        arguments = [
+            ctx.attr.idt[IdtInfo].namespace,
+            ctx.bin_dir.path + "/" + output_directory,
+            "True" if ctx.attr.enable_hashes else "False",
+        ],
         progress_message = "Generating pure C++ interface for IDT %s" % ctx.attr.idt.label,
         executable = ctx.executable.generator_binary,
     )
@@ -39,10 +43,14 @@ _idt_as_purecpp_rule = rule(
             executable = True,
             cfg = "exec",
         ),
+        "enable_hashes": attr.bool(
+            default = False,
+            doc = "When set to true, will generate hash functions for all data types, and references will cache the hash of their referenced value.",
+        )
     },
 )
 
-def idt_as_purecpp(name, idt):
+def idt_as_purecpp(name, idt, enable_hashes=False):
     generator_name = name + "_generator"
     haskell_binary(
         name = generator_name,
@@ -58,8 +66,25 @@ def idt_as_purecpp(name, idt):
             idt + "_lib",
         ],
     )
+
+    purecpp_source_files_name = name + "_source_files"
     _idt_as_purecpp_rule(
-        name = name,
+        name = purecpp_source_files_name,
         idt = idt,
         generator_binary = generator_name,
+        enable_hashes = enable_hashes,
+    )
+
+    target_deps = []
+    if enable_hashes:
+        # We use BLAKE3 for hashing:
+        # https://github.com/BLAKE3-team/BLAKE3
+        target_deps += ["@BLAKE3"]
+
+    native.cc_library(
+        name = name,
+        srcs = [],
+        deps = [
+            ":" + purecpp_source_files_name,
+        ] + target_deps,
     )

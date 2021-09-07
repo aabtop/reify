@@ -17,6 +17,7 @@ idt(
 idt_as_purecpp(
     name = "hypo-purecpp",
     idt = ":hypo-idt",
+    enable_hashes = True,
 )
 
 idt_as_typescript(
