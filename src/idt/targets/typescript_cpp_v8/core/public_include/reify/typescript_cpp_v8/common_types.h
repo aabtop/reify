@@ -1,11 +1,13 @@
-#ifndef _REIFY_COMMON_TYPES_H_
-#define _REIFY_COMMON_TYPES_H_
+#ifndef _REIFY_IDT_TARGETS_TYPESCRIPT_CPP_V8_COMMON_TYPES_H_
+#define _REIFY_IDT_TARGETS_TYPESCRIPT_CPP_V8_COMMON_TYPES_H_
 
 #include <v8.h>
 
 #include <cassert>
 #include <tuple>
 #include <vector>
+
+#include "reify/pure_cpp/common_types.h"
 
 namespace reify_v8 {
 
@@ -289,7 +291,7 @@ class Ref : public T {
  public:
   using DerefValueType = const decltype(reify_v8::Value<T>::Call(
       std::declval<v8::Isolate*>(), std::declval<v8::Local<T>>()));
-  using RefValueType = std::shared_ptr<DerefValueType>;
+  using RefValueType = ::reify::Reference<DerefValueType>;
 
   V8_INLINE static Ref<T>* Cast(v8::Value* obj) {
     return static_cast<Ref<T>*>(T::Cast(obj));
@@ -299,8 +301,7 @@ class Ref : public T {
 template <typename T>
 typename Ref<T>::RefValueType ConstructRefValue(v8::Isolate* isolate,
                                                 v8::Local<Ref<T>> x) {
-  return std::make_shared<typename Ref<T>::DerefValueType>(
-      Value<T>::Call(isolate, v8::Local<T>::Cast(x)));
+  return ::reify::New(Value<T>::Call(isolate, v8::Local<T>::Cast(x)));
 }
 
 template <typename T>
@@ -351,17 +352,17 @@ struct Value<Ref<T>> {
   }
 };
 template <typename T>
-struct FromImmRefCnt<std::shared_ptr<const T>> {
+struct FromImmRefCnt<::reify::Reference<T>> {
   using type = Ref<typename FromImmRefCnt<T>::type>;
 };
 
 template <typename T>
-struct TypeScriptTypeString<std::shared_ptr<const T>> {
+struct TypeScriptTypeString<::reify::Reference<T>> {
   static std::string value() { return TypeScriptTypeString<T>::value(); }
 };
 
 template <typename T>
-struct TypeMatchesTypeScriptString<std::shared_ptr<const T>> {
+struct TypeMatchesTypeScriptString<::reify::Reference<T>> {
   static bool Result(std::string_view ts) {
     return TypeMatchesTypeScriptString<T>::Result(ts);
   }
@@ -369,4 +370,4 @@ struct TypeMatchesTypeScriptString<std::shared_ptr<const T>> {
 
 }  // namespace reify_v8
 
-#endif  // _REIFY_COMMON_TYPES_H_
+#endif  // _REIFY_IDT_TARGETS_TYPESCRIPT_CPP_V8_COMMON_TYPES_H_

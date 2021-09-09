@@ -60,7 +60,7 @@ typeString :: Bool -> Type -> String
 typeString _ (Concrete (NamedType n _ _)) = n
 typeString enableHashes (Reference (NamedType n _ _)) = 
   if enableHashes then
-    "std::shared_ptr<const ObjectAndHash<" ++ n ++ ">>"
+    "std::shared_ptr<const ObjectAndHash_" ++ n ++ ">"
   else
     "std::shared_ptr<const " ++ n ++ ">"
 typeString _ (NamedPrimitive n) = case n of
@@ -110,13 +110,11 @@ member enableHashes (n, c, t) = object
 members :: Bool -> [(String, String, Type)] -> [Value]
 members enableHashes = map (member enableHashes)
 
-namedTypeDefinition :: Bool -> Declaration -> String
-namedTypeDefinition enableHashes t = case t of
+namedTypeDefinition :: Bool -> String -> Declaration -> String
+namedTypeDefinition enableHashes namespace t = case t of
   ForwardDeclaration (NamedType n _ (Struct      _)) ->
     if enableHashes then
-      "struct " ++ n ++ ";\n" ++
-      "template<>\n" ++
-      "struct ObjectAndHash<" ++ n ++ ">;\n"
+      "struct ObjectAndHash_" ++ n ++ ";\n"
     else
       "struct " ++ n ++ ";\n"
   ForwardDeclaration (NamedType n _ (Enum        _)) -> "class " ++ n ++ ";\n"
@@ -125,7 +123,7 @@ namedTypeDefinition enableHashes t = case t of
     panic "Only forward declarations of Enum and Structs are supported."
   TypeDeclaration (NamedType n c t@(Struct l)) ->
     DTL.unpack $ renderMustache structTemplate $ object
-      ["name" .= n, "comment" .= c, "members" .= members enableHashes l, "enable_hashes" .= enableHashes, "no_enable_hashes" .= not enableHashes]
+      ["name" .= n, "comment" .= c, "members" .= members enableHashes l, "enable_hashes" .= enableHashes, "no_enable_hashes" .= not enableHashes, "namespace" .= namespace]
   TypeDeclaration (NamedType n c t@(Enum l)) -> if isSimpleEnum l
     then
       "// "
@@ -136,6 +134,14 @@ namedTypeDefinition enableHashes t = case t of
       ++ " {\n"
       ++ unlines (map (\(en, ec, _) -> "  // " ++ ec ++ "\n  " ++ en ++ ",") l)
       ++ "};\n"
+      ++ "\n"
+      ++ if enableHashes then
+           "inline void AddObjectToHash(blake3_hasher* hasher, "++ n ++ " input) {\n"
+           ++ "  blake3_hasher_update(hasher, \n"
+           ++ "  reinterpret_cast<const uint8_t*>(&input), sizeof(input));\n"
+           ++ "}\n"
+         else
+           ""
     else DTL.unpack $ renderMustache enumTemplate $ object
       [ "constructors" .= constructors enableHashes l
       , "tagged_union_def" .= renderMustache
@@ -144,9 +150,11 @@ namedTypeDefinition enableHashes t = case t of
           [ "name" .= DT.pack n
           , "comment" .= DT.pack c
           , "comma_sep_types" .= DT.pack (intercalate ", " (constructorNames l))
+          , "namespace" .= DT.pack namespace
           ]
         )
       , "enable_hashes" .= enableHashes
+      , "namespace" .= namespace
       ]
   TypeDeclaration (NamedType n c t@(TaggedUnion ts)) ->
     DTL.unpack $ renderMustache taggedUnionTemplate $ object
@@ -155,6 +163,7 @@ namedTypeDefinition enableHashes t = case t of
       , "comma_sep_types"
         .= DT.pack (intercalate ", " [ typeString enableHashes t | t <- ts ])
       , "enable_hashes" .= enableHashes
+      , "namespace" .= namespace
       ]
   TypeDeclaration (NamedType n c t) ->
     "// " ++ c ++ "\n" ++ "using " ++ n ++ " = " ++ typeString enableHashes t ++ ";\n"
@@ -163,6 +172,6 @@ toCppImmutableRefCountedSourceCode :: String -> Bool -> DeclarationSequence -> S
 toCppImmutableRefCountedSourceCode namespace enableHashes decls =
   DTL.unpack $ renderMustache topLevelTemplate $ object
     [ "namespace" .= namespace
-    , "declarationSequence" .= [ namedTypeDefinition enableHashes x | x <- decls ]
+    , "declarationSequence" .= [ namedTypeDefinition enableHashes namespace x | x <- decls ]
     , "enable_hashes" .= enableHashes
     ]

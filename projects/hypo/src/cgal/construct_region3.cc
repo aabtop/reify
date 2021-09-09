@@ -113,11 +113,11 @@ const Sphere& ToSphere(const hypo::SphereBased& sphere_like) {
       [](const auto& x) -> const Sphere& {
         using T = std::decay_t<decltype(x)>;
         if constexpr (std::is_same<T,
-                                   std::shared_ptr<
+                                   ::reify::Reference<
                                        const hypo::SubdivideSphere>>::value) {
-          return ToSphere(x->source);
+          return ToSphere(::reify::Deref(x).source);
         } else {
-          return x->sphere;
+          return ::reify::Deref(x).sphere;
         }
       },
       static_cast<const hypo::SphereBased::AsVariant&>(sphere_like));
@@ -147,42 +147,44 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::MinkowskiSum3& x) {
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
   if (auto obj_ptr =
-          std::get_if<std::shared_ptr<const hypo::TriangleList3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
+          std::get_if<::reify::Reference<const hypo::TriangleList3>>(&x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::Box3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
+                 std::get_if<::reify::Reference<const hypo::Box3>>(&x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::Extrude>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
+                 std::get_if<::reify::Reference<const hypo::Extrude>>(&x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::Transform3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
+                 std::get_if<::reify::Reference<const hypo::Transform3>>(&x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::Union3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
+                 std::get_if<::reify::Reference<const hypo::Union3>>(&x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::Intersection3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::Difference3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::Icosahedron>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::Octahedron>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::Subdivide>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::SubdivideSphere>>(
+                 std::get_if<::reify::Reference<const hypo::Intersection3>>(
                      &x)) {
-    return ConstructRegion3(**obj_ptr);
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
   } else if (auto obj_ptr =
-                 std::get_if<std::shared_ptr<const hypo::MinkowskiSum3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
+                 std::get_if<::reify::Reference<const hypo::Difference3>>(&x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
+  } else if (auto obj_ptr =
+                 std::get_if<::reify::Reference<const hypo::Icosahedron>>(&x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
+  } else if (auto obj_ptr =
+                 std::get_if<::reify::Reference<const hypo::Octahedron>>(&x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
+  } else if (auto obj_ptr =
+                 std::get_if<::reify::Reference<const hypo::Subdivide>>(&x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
+  } else if (auto obj_ptr =
+                 std::get_if<::reify::Reference<const hypo::SubdivideSphere>>(
+                     &x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
+  } else if (auto obj_ptr =
+                 std::get_if<::reify::Reference<const hypo::MinkowskiSum3>>(
+                     &x)) {
+    return ConstructRegion3(::reify::Deref(*obj_ptr));
   }
 
   std::cerr << "Unhandled Region3 type." << std::endl;

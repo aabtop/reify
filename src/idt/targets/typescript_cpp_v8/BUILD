@@ -54,8 +54,8 @@ cc_library(
         "core/virtual_filesystem.cc",
     ],
     hdrs = [
-        "core/public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h",
         "core/public_include/reify/typescript_cpp_v8/common_types.h",
+        "core/public_include/reify/typescript_cpp_v8/typescript_cpp_v8.h",
         "core/public_include/reify/typescript_cpp_v8/virtual_filesystem.h",
     ],
     includes = [
@@ -64,6 +64,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//src/idt/targets/pure_cpp/core",
         "//src/tsc_wrapper:tsc_wrapper_as_header",
         "//src/utils",
         "@fmtlib",

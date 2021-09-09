@@ -46,11 +46,11 @@ _idt_as_purecpp_rule = rule(
         "enable_hashes": attr.bool(
             default = False,
             doc = "When set to true, will generate hash functions for all data types, and references will cache the hash of their referenced value.",
-        )
+        ),
     },
 )
 
-def idt_as_purecpp(name, idt, enable_hashes=False):
+def idt_as_purecpp(name, idt, enable_hashes = False):
     generator_name = name + "_generator"
     haskell_binary(
         name = generator_name,
@@ -75,7 +75,7 @@ def idt_as_purecpp(name, idt, enable_hashes=False):
         enable_hashes = enable_hashes,
     )
 
-    target_deps = []
+    target_deps = ["@reify//src/idt/targets/pure_cpp/core"]
     if enable_hashes:
         # We use BLAKE3 for hashing:
         # https://github.com/BLAKE3-team/BLAKE3

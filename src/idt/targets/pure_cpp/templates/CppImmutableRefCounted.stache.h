@@ -10,6 +10,9 @@
 #include <tuple>
 #include <variant>
 #include <vector>
+#include <iostream>
+
+#include "reify/pure_cpp/common_types.h"
 
 {{#enable_hashes}}
 #include "blake3.h"
@@ -31,12 +34,27 @@ inline uint64_t HashObject(const T& input) {
   return result;
 }
 
-template <typename T>
-inline void AddObjectToHash(blake3_hasher* hasher, const T& input) {
-  static_assert(std::is_standard_layout<T>::value,
-                "Unsupported type for hasher.");
+
+inline void AddObjectToHash(blake3_hasher* hasher, int input) {
   blake3_hasher_update(hasher, 
       reinterpret_cast<const uint8_t*>(&input), sizeof(input));
+}
+
+inline void AddObjectToHash(blake3_hasher* hasher, float input) {
+  blake3_hasher_update(hasher, 
+      reinterpret_cast<const uint8_t*>(&input), sizeof(input));
+}
+
+
+template<typename... U>
+inline void AddObjectToHash(blake3_hasher* hasher, const std::variant<U...>& input) {
+  size_t variant_index = input.index();
+  blake3_hasher_update(hasher, 
+    reinterpret_cast<const uint8_t*>(&variant_index), sizeof(variant_index));
+
+  std::visit([hasher](const auto& arg) {
+    AddObjectToHash(hasher, arg);    
+  }, input);
 }
 
 inline void AddObjectToHash(blake3_hasher* hasher, const std::string& input) {
@@ -44,7 +62,7 @@ inline void AddObjectToHash(blake3_hasher* hasher, const std::string& input) {
       reinterpret_cast<const uint8_t*>(input.data()), input.size());
 }
 
-template <typename T, int N>
+template <typename T, unsigned long N>
 inline void AddObjectToHash(blake3_hasher* hasher, const std::array<T, N>& input) {
   for (const auto& i : input) {
     AddObjectToHash(hasher, i);
@@ -59,16 +77,16 @@ inline void AddObjectToHash(blake3_hasher* hasher, const std::vector<T>& input) 
 }
 
 template <typename T>
-struct ObjectAndHash {
-  T object;
-  uint64_t hash;
-};
-
-template <typename T>
 inline void AddObjectToHash(
     blake3_hasher* hasher, const std::shared_ptr<const T>& input) {
   blake3_hasher_update(hasher, 
       reinterpret_cast<const uint8_t*>(&input->hash), sizeof(input->hash));
+}
+
+template <typename T>
+inline uint64_t HashObject(const std::shared_ptr<const T>& input) {
+  std::cerr << "yo!";
+  return input->hash;
 }
 
 template<size_t Index = 0, typename... U>
@@ -82,20 +100,7 @@ AddObjectToHash(blake3_hasher* hasher, const std::tuple<U...>& input) {
   AddObjectToHash<hasher, Index + 1, U...>(input);
 }
 
-template <typename T>
-inline std::shared_ptr<const T> New(T&& x) {
-  // Cache the hash of the referenced object.
-  auto hash = HashObject(x);
-  return std::make_shared<ObjectAndHash<T>>({std::move(x), hash});
-}
 {{/enable_hashes}}
-
-{{#no_enable_hashes}}
-template <typename T>
-inline std::shared_ptr<const T> New(T&& x) {
-  return std::make_shared<T>(std::move(x));
-}
-{{/no_enable_hashes}}
 
 {{#declarationSequence}}
 {{{.}}}

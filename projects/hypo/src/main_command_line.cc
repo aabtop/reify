@@ -122,9 +122,8 @@ int main(int argc, char* argv[]) {
   std::string output_file_basepath;
 
   std::cerr << " Hash of Vec3(1,1,1): "
-            << hypo::HashObject(
-                   hypo::Region3(hypo::NewOctahedron(hypo::Octahedron{
-                       hypo::Sphere{0.5f, hypo::Vec3{1.0f, 1.0f, 1.0f}}})))
+            << hypo::HashObject(hypo::Region3(::reify::New(hypo::Octahedron{
+                   hypo::Sphere{0.5f, hypo::Vec3{1.0f, 1.0f, 1.0f}}})))
             << std::endl;
 
   auto maybe_result = reify::typescript_cpp_v8::CommandLineToolParse(

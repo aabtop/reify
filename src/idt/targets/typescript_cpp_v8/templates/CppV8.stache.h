@@ -10,10 +10,9 @@
 
 #include <v8.h>
 
+#include "reify/purecpp/{{immutableRefCountedHeaderFile}}"
 #include "reify/typescript_cpp_v8/common_types.h"
 #include "reify/typescript_cpp_v8/typescript_cpp_v8.h"
-
-#include "reify/purecpp/{{immutableRefCountedHeaderFile}}"
 
 namespace reify_v8 {
 
