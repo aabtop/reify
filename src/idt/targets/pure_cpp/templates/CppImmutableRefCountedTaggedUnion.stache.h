@@ -14,3 +14,19 @@ class {{name}} : public internal::{{name}}ParentType {
  public:
   using AsVariant = ParentType;
 };
+
+{{#enable_hashes}}
+
+}  // {{namespace}}
+
+namespace reify {
+
+inline CachedHashReference<{{namespace}}::{{name}}> New({{namespace}}::{{name}}&& x) {
+  return CachedHashReference<{{namespace}}::{{name}}>(std::move(x));
+}
+
+}  // namespace reify
+
+namespace {{namespace}} {
+
+{{/enable_hashes}}
