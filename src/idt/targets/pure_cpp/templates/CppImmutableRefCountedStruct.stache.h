@@ -12,37 +12,19 @@ struct {{name}} {
 
 {{#enable_hashes}}
 
-struct ObjectAndHash_{{name}} {
-  ObjectAndHash_{{name}}({{name}}&& object, uint64_t hash) : object(object), hash(hash) {}
-  operator {{name}}() const { return object; }
+}  // {{namespace}}
 
-  {{name}} object;
-  uint64_t hash;
-};
+namespace reify {
 
-inline void AddObjectToHash(blake3_hasher* hasher, const {{name}}& input) {
+inline void AddObjectToHash(blake3_hasher* hasher, const {{namespace}}::{{name}}& input) {
 {{#members}}
   AddObjectToHash(hasher, input.{{name}});
 {{/members}}
 }
 
-}  // {{namespace}}
-
-namespace reify {
-
-template <>
-class Traits<{{namespace}}::{{name}}> {
- public:
-  using Reference = std::shared_ptr<const {{namespace}}::ObjectAndHash_{{name}}>;
-
-  static inline Reference New({{namespace}}::{{name}}&& x) {
-    // Cache the hash of the referenced object.
-    auto hash = HashObject(x);
-    return std::make_shared<{{namespace}}::ObjectAndHash_{{name}}>(std::move(x), hash);
-  }
-};
-
-inline const {{namespace}}::{{name}}& Deref(const std::shared_ptr<const {{namespace}}::ObjectAndHash_{{name}}>& x) { return x->object; }
+inline CachedHashReference<{{namespace}}::{{name}}> New({{namespace}}::{{name}}&& x) {
+  return CachedHashReference<{{namespace}}::{{name}}>(std::move(x));
+}
 
 }  // namespace reify
 

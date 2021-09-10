@@ -58,9 +58,9 @@ topLevelTemplate =
 
 typeString :: Bool -> Type -> String
 typeString _ (Concrete (NamedType n _ _)) = n
-typeString enableHashes (Reference (NamedType n _ _)) = 
+typeString enableHashes (Reference (NamedType n _ _)) =
   if enableHashes then
-    "std::shared_ptr<const ObjectAndHash_" ++ n ++ ">"
+    "::reify::CachedHashReference<" ++ n ++ ">"
   else
     "std::shared_ptr<const " ++ n ++ ">"
 typeString _ (NamedPrimitive n) = case n of
@@ -113,10 +113,7 @@ members enableHashes = map (member enableHashes)
 namedTypeDefinition :: Bool -> String -> Declaration -> String
 namedTypeDefinition enableHashes namespace t = case t of
   ForwardDeclaration (NamedType n _ (Struct      _)) ->
-    if enableHashes then
-      "struct ObjectAndHash_" ++ n ++ ";\n"
-    else
-      "struct " ++ n ++ ";\n"
+    "struct " ++ n ++ ";\n"
   ForwardDeclaration (NamedType n _ (Enum        _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration (NamedType n _ (TaggedUnion _)) -> "class " ++ n ++ ";\n"
   ForwardDeclaration _ ->
@@ -174,4 +171,5 @@ toCppImmutableRefCountedSourceCode namespace enableHashes decls =
     [ "namespace" .= namespace
     , "declarationSequence" .= [ namedTypeDefinition enableHashes namespace x | x <- decls ]
     , "enable_hashes" .= enableHashes
+    , "no_enable_hashes" .= not enableHashes
     ]

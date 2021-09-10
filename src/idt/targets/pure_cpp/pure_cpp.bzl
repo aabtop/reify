@@ -75,11 +75,9 @@ def idt_as_purecpp(name, idt, enable_hashes = False):
         enable_hashes = enable_hashes,
     )
 
-    target_deps = ["@reify//src/idt/targets/pure_cpp/core"]
+    target_deps = []
     if enable_hashes:
-        # We use BLAKE3 for hashing:
-        # https://github.com/BLAKE3-team/BLAKE3
-        target_deps += ["@BLAKE3"]
+        target_deps += ["@reify//src/idt/targets/pure_cpp/core"]
 
     native.cc_library(
         name = name,

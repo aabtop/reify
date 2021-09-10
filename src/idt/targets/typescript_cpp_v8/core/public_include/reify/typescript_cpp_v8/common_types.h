@@ -7,7 +7,7 @@
 #include <tuple>
 #include <vector>
 
-#include "reify/pure_cpp/common_types.h"
+#include "reify/pure_cpp/hashing.h"
 
 namespace reify_v8 {
 
@@ -291,7 +291,8 @@ class Ref : public T {
  public:
   using DerefValueType = const decltype(reify_v8::Value<T>::Call(
       std::declval<v8::Isolate*>(), std::declval<v8::Local<T>>()));
-  using RefValueType = ::reify::Reference<DerefValueType>;
+  using RefValueType =
+      decltype(::reify::New(std::declval<std::decay_t<DerefValueType>>()));
 
   V8_INLINE static Ref<T>* Cast(v8::Value* obj) {
     return static_cast<Ref<T>*>(T::Cast(obj));
@@ -351,23 +352,40 @@ struct Value<Ref<T>> {
     }
   }
 };
+
 template <typename T>
-struct FromImmRefCnt<::reify::Reference<T>> {
+struct FromImmRefCnt<std::shared_ptr<const T>> {
   using type = Ref<typename FromImmRefCnt<T>::type>;
 };
 
 template <typename T>
-struct TypeScriptTypeString<::reify::Reference<T>> {
+struct TypeScriptTypeString<std::shared_ptr<const T>> {
   static std::string value() { return TypeScriptTypeString<T>::value(); }
 };
 
 template <typename T>
-struct TypeMatchesTypeScriptString<::reify::Reference<T>> {
+struct TypeMatchesTypeScriptString<std::shared_ptr<const T>> {
   static bool Result(std::string_view ts) {
     return TypeMatchesTypeScriptString<T>::Result(ts);
   }
 };
 
+template <typename T>
+struct FromImmRefCnt<reify::CachedHashReference<T>> {
+  using type = Ref<typename FromImmRefCnt<T>::type>;
+};
+
+template <typename T>
+struct TypeScriptTypeString<reify::CachedHashReference<T>> {
+  static std::string value() { return TypeScriptTypeString<T>::value(); }
+};
+
+template <typename T>
+struct TypeMatchesTypeScriptString<reify::CachedHashReference<T>> {
+  static bool Result(std::string_view ts) {
+    return TypeMatchesTypeScriptString<T>::Result(ts);
+  }
+};
 }  // namespace reify_v8
 
 #endif  // _REIFY_IDT_TARGETS_TYPESCRIPT_CPP_V8_COMMON_TYPES_H_
