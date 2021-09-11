@@ -146,46 +146,9 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::MinkowskiSum3& x) {
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
-  if (auto obj_ptr =
-          std::get_if<::reify::Reference<const hypo::TriangleList3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::Box3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::Extrude>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::Transform3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::Union3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::Intersection3>>(
-                     &x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::Difference3>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::Icosahedron>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::Octahedron>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::Subdivide>>(&x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::SubdivideSphere>>(
-                     &x)) {
-    return ConstructRegion3(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<const hypo::MinkowskiSum3>>(
-                     &x)) {
-    return ConstructRegion3(**obj_ptr);
-  }
+  return std::visit(
+      [](const auto& x) -> Nef_polyhedron_3 { return ConstructRegion3(*x); },
+      x);
 
   std::cerr << "Unhandled Region3 type." << std::endl;
   assert(false);

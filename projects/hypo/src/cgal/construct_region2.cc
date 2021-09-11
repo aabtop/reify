@@ -229,46 +229,13 @@ Polygon_set_2 ConstructBoundary2(const hypo::BoundaryOfRegion2& x) {
 }  // namespace
 
 Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
-  if (auto obj_ptr = std::get_if<::reify::Reference<hypo::Polygon>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<hypo::CircleAsPolygon>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  } else if (auto obj_ptr = std::get_if<::reify::Reference<hypo::Box2>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<hypo::Transform2>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  } else if (auto obj_ptr = std::get_if<::reify::Reference<hypo::Union2>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<hypo::Difference2>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<hypo::Intersection2>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<hypo::MinkowskiSum2>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  } else if (auto obj_ptr =
-                 std::get_if<::reify::Reference<hypo::WidenBoundary2>>(&x)) {
-    return ConstructRegion2(**obj_ptr);
-  }
-
-  std::cerr << "Unhandled Region2 type." << std::endl;
-  assert(false);
-  return Polygon_set_2();
+  return std::visit(
+      [](const auto& x) -> Polygon_set_2 { return ConstructRegion2(*x); }, x);
 }
 
 Polygon_set_2 ConstructBoundary2(const hypo::Boundary2& x) {
-  if (auto obj_ptr =
-          std::get_if<::reify::Reference<const hypo::BoundaryOfRegion2>>(&x)) {
-    return ConstructBoundary2(**obj_ptr);
-  }
-
-  std::cerr << "Unhandled Boundary2 type." << std::endl;
-  assert(false);
-  return Polygon_set_2();
+  return std::visit(
+      [](const auto& x) -> Polygon_set_2 { return ConstructBoundary2(*x); }, x);
 }
 
 }  // namespace cgal
