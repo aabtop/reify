@@ -230,12 +230,14 @@ Polygon_set_2 ConstructBoundary2(const hypo::BoundaryOfRegion2& x) {
 
 Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
   return std::visit(
-      [](const auto& x) -> Polygon_set_2 { return ConstructRegion2(*x); }, x);
+      [](const auto& x) -> Polygon_set_2 { return ConstructRegion2(*x); },
+      static_cast<const hypo::Region2::AsVariant&>(x));
 }
 
 Polygon_set_2 ConstructBoundary2(const hypo::Boundary2& x) {
   return std::visit(
-      [](const auto& x) -> Polygon_set_2 { return ConstructBoundary2(*x); }, x);
+      [](const auto& x) -> Polygon_set_2 { return ConstructBoundary2(*x); },
+      static_cast<const hypo::Boundary2::AsVariant&>(x));
 }
 
 }  // namespace cgal

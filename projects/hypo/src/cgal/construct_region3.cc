@@ -148,11 +148,7 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::MinkowskiSum3& x) {
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
   return std::visit(
       [](const auto& x) -> Nef_polyhedron_3 { return ConstructRegion3(*x); },
-      x);
-
-  std::cerr << "Unhandled Region3 type." << std::endl;
-  assert(false);
-  return Nef_polyhedron_3();
+      static_cast<const hypo::Region3::AsVariant&>(x));
 }
 
 }  // namespace cgal
