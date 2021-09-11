@@ -85,7 +85,13 @@ const char* TSCONFIG_JSON_CONTENT_TEMPLATE = R"json(
   "compilerOptions": {{
     "target": "ES2015",
     "module": "ES2015",
-    "lib": [],
+    "lib": [
+      "ES5",
+      "ES2015.Core",
+      "ES2015.Symbol",
+      "ES2015.Iterable",
+      "ES2015.Generator",
+    ],
     "strict": true,
     "baseUrl": ".",
     "paths": {{

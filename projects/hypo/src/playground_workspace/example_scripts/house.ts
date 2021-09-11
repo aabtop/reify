@@ -269,7 +269,7 @@ class House {
   }
 }
 
-export function Main() {
+export function SingleHouse() {
   let house = new House({
     width: 7,
     length: 9,
@@ -295,4 +295,16 @@ export function Main() {
   house.addWindow(3, 6);
 
   return h.Transform3({ source: house.build(), transform: h.Rotate3X(-90) });
+}
+
+export function RowOfHouses() {
+  const house = SingleHouse();
+  const NUM_HOUSES = 6;
+  const SPACING_BETWEEN_HOUSES = 10.0;
+
+  const house_x_positions = [...Array(NUM_HOUSES).keys()].map((i) => (i - (NUM_HOUSES / 2)) * SPACING_BETWEEN_HOUSES);
+  return h.Union3({
+    regions: house_x_positions.map(
+      ((x_translation) => h.Transform3({ source: house, transform: h.Translate3([x_translation, 0, 0]) }))),
+  });
 }
