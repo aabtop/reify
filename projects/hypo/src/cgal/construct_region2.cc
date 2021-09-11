@@ -258,7 +258,7 @@ Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
       [](const auto& y) -> Polygon_set_2 {
         return ConstructRegion2Memoized(y);
       },
-      x);
+      static_cast<const hypo::Region2::AsVariant&>(x));
 }
 
 Polygon_set_2 ConstructBoundary2(const hypo::Boundary2& x) {
@@ -266,7 +266,7 @@ Polygon_set_2 ConstructBoundary2(const hypo::Boundary2& x) {
       [](const auto& y) -> Polygon_set_2 {
         return ConstructBoundary2Memoized(y);
       },
-      x);
+      static_cast<const hypo::Boundary2::AsVariant&>(x));
 }
 
 }  // namespace cgal

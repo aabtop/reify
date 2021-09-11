@@ -163,7 +163,7 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
       [](const auto& y) -> Nef_polyhedron_3 {
         return ConstructRegion3Memoized(y);
       },
-      x);
+      static_cast<const hypo::Region3::AsVariant&>(x));
 }
 
 }  // namespace cgal
