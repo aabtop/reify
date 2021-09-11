@@ -64,7 +64,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/idt/targets/pure_cpp/core",
+        "//src/idt/targets/pure_cpp/hashing",
         "//src/tsc_wrapper:tsc_wrapper_as_header",
         "//src/utils",
         "@fmtlib",

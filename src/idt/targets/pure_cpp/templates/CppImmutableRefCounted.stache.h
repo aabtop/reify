@@ -25,7 +25,8 @@ namespace {{namespace}} {
 }  // {{namespace}}
 
 // This is the same regardless of domain, so we only want to define it once,
-// but it's nice to avoid a header dependency if we can here.
+// but it's nice to avoid a header dependency if we can by putting the
+// definition here.
 #ifndef CPP_IMMUT_REF_COUNTED_IST_GENERATED_H_GENERIC_NEW
 #define CPP_IMMUT_REF_COUNTED_IST_GENERATED_H_GENERIC_NEW
 namespace reify {

@@ -1,5 +1,5 @@
 cc_library(
-    name = "core",
+    name = "hashing",
     srcs = [],
     hdrs = [
         "public_include/reify/pure_cpp/hashing.h",

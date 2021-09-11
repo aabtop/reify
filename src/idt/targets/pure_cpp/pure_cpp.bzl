@@ -77,7 +77,7 @@ def idt_as_purecpp(name, idt, enable_hashes = False):
 
     target_deps = []
     if enable_hashes:
-        target_deps += ["@reify//src/idt/targets/pure_cpp/core"]
+        target_deps += ["@reify//src/idt/targets/pure_cpp/hashing"]
 
     native.cc_library(
         name = name,
