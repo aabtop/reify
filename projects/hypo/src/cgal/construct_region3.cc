@@ -143,16 +143,27 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::MinkowskiSum3& x) {
   return result;
 }
 
+template <typename T>
+Nef_polyhedron_3 ConstructRegion3Memoized(
+    const reify::CachedHashReference<T>& x) {
+  static std::unordered_map<uint64_t, std::unique_ptr<Nef_polyhedron_3>> cache;
+  auto found = cache.find(x.hash());
+  if (found == cache.end()) {
+    std::tie(found, std::ignore) = cache.insert(
+        {x.hash(), std::unique_ptr<Nef_polyhedron_3>(
+                       new Nef_polyhedron_3(ConstructRegion3(*x)))});
+  }
+  return *found->second;
+}
+
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
   return std::visit(
-      [](const auto& x) -> Nef_polyhedron_3 { return ConstructRegion3(*x); },
+      [](const auto& y) -> Nef_polyhedron_3 {
+        return ConstructRegion3Memoized(y);
+      },
       x);
-
-  std::cerr << "Unhandled Region3 type." << std::endl;
-  assert(false);
-  return Nef_polyhedron_3();
 }
 
 }  // namespace cgal

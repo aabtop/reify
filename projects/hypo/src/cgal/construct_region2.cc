@@ -228,14 +228,45 @@ Polygon_set_2 ConstructBoundary2(const hypo::BoundaryOfRegion2& x) {
 
 }  // namespace
 
+template <typename T>
+Polygon_set_2 ConstructRegion2Memoized(const reify::CachedHashReference<T>& x) {
+  static std::unordered_map<uint64_t, std::unique_ptr<Polygon_set_2>> cache;
+  auto found = cache.find(x.hash());
+  if (found == cache.end()) {
+    std::tie(found, std::ignore) =
+        cache.insert({x.hash(), std::unique_ptr<Polygon_set_2>(
+                                    new Polygon_set_2(ConstructRegion2(*x)))});
+  }
+  return *found->second;
+}
+
+template <typename T>
+Polygon_set_2 ConstructBoundary2Memoized(
+    const reify::CachedHashReference<T>& x) {
+  static std::unordered_map<uint64_t, std::unique_ptr<Polygon_set_2>> cache;
+  auto found = cache.find(x.hash());
+  if (found == cache.end()) {
+    std::tie(found, std::ignore) = cache.insert(
+        {x.hash(), std::unique_ptr<Polygon_set_2>(
+                       new Polygon_set_2(ConstructBoundary2(*x)))});
+  }
+  return *found->second;
+}
+
 Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
   return std::visit(
-      [](const auto& x) -> Polygon_set_2 { return ConstructRegion2(*x); }, x);
+      [](const auto& y) -> Polygon_set_2 {
+        return ConstructRegion2Memoized(y);
+      },
+      x);
 }
 
 Polygon_set_2 ConstructBoundary2(const hypo::Boundary2& x) {
   return std::visit(
-      [](const auto& x) -> Polygon_set_2 { return ConstructBoundary2(*x); }, x);
+      [](const auto& y) -> Polygon_set_2 {
+        return ConstructBoundary2Memoized(y);
+      },
+      x);
 }
 
 }  // namespace cgal
