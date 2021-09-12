@@ -2,6 +2,7 @@ cc_library(
     name = "hashing",
     srcs = [],
     hdrs = [
+        "public_include/reify/pure_cpp/cache.h",
         "public_include/reify/pure_cpp/hashing.h",
         "public_include/reify/pure_cpp/hashing_post_definitions.h",
     ],

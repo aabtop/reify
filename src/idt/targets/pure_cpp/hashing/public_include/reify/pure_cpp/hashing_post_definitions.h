@@ -19,7 +19,7 @@ inline uint64_t HashObject(const CachedHashReference<T>& input) {
 }
 
 template <typename T>
-CachedHashReference<T>::CachedHashReference(T&& x)
+CachedHashReference<T>::CachedHashReference(BaseType&& x)
     : ptr_(std::make_shared<T>(std::move(x))), hash_(HashObject(*ptr_)) {}
 
 }  // namespace reify

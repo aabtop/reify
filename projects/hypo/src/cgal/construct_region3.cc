@@ -10,6 +10,7 @@
 #include "cgal/subdivide.h"
 #include "cgal/types_nef_polyhedron_3.h"
 #include "construct_region2.h"
+#include "reify/pure_cpp/cache.h"
 #include "reify/purecpp/hypo.h"
 
 namespace hypo {
@@ -143,25 +144,13 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::MinkowskiSum3& x) {
   return result;
 }
 
-template <typename T>
-Nef_polyhedron_3 ConstructRegion3Memoized(
-    const reify::CachedHashReference<T>& x) {
-  static std::unordered_map<uint64_t, std::unique_ptr<Nef_polyhedron_3>> cache;
-  auto found = cache.find(x.hash());
-  if (found == cache.end()) {
-    std::tie(found, std::ignore) = cache.insert(
-        {x.hash(), std::unique_ptr<Nef_polyhedron_3>(
-                       new Nef_polyhedron_3(ConstructRegion3(*x)))});
-  }
-  return *found->second;
-}
-
 }  // namespace
 
 Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
   return std::visit(
       [](const auto& y) -> Nef_polyhedron_3 {
-        return ConstructRegion3Memoized(y);
+        return reify::pure_cpp::ConstructMemoized<Nef_polyhedron_3>(
+            y, &ConstructRegion3);
       },
       static_cast<const hypo::Region3::AsVariant&>(x));
 }

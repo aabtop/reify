@@ -74,20 +74,22 @@ template <size_t Index = 0, typename... U>
 template <typename T>
 class CachedHashReference {
  public:
+  using BaseType = std::decay_t<T>;
+
   CachedHashReference(const CachedHashReference& x)
       : ptr_(x.ptr_), hash_(x.hash_) {}
   CachedHashReference(CachedHashReference&& x)
       : ptr_(std::move(x.ptr_)), hash_(x.hash_) {}
-  CachedHashReference(T&& x);
+  CachedHashReference(BaseType&& x);
 
-  operator std::shared_ptr<const std::decay_t<T>>() const { return ptr_; }
-  const std::decay_t<T>& operator*() const { return *ptr_; }
-  const std::decay_t<T>* operator->() const { return ptr_.operator->(); }
+  operator std::shared_ptr<const BaseType>() const { return ptr_; }
+  const BaseType& operator*() const { return *ptr_; }
+  const BaseType* operator->() const { return ptr_.operator->(); }
 
   uint64_t hash() const { return hash_; }
 
  private:
-  std::shared_ptr<const std::decay_t<T>> ptr_;
+  std::shared_ptr<const BaseType> ptr_;
   uint64_t hash_;
 };
 
