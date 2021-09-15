@@ -13,6 +13,7 @@
 #include "cgal/errors.h"
 #include "export_to_stl.h"
 #include "export_to_svg.h"
+#include "reify/pure_cpp/thread_pool_cache_runner.h"
 #include "reify/purecpp/hypo.h"
 #include "reify/utils/error.h"
 
@@ -27,15 +28,25 @@ struct BuildAndExportResults {
 
 template <typename T>
 auto BuildObject(const T& object) {
+    reify::pure_cpp::ThreadPoolCacheRunner runner(
+        std::make_unique<ebb::ThreadPool>(
+            std::thread::hardware_concurrency(), 256 * 1024,
+            ebb::ThreadPool::SchedulingPolicy::LIFO));
   if constexpr (std::is_same<T, hypo::Region2>::value) {
-    return hypo::cgal::CallCgalAndCatchExceptions(&hypo::cgal::ConstructRegion2,
-                                                  object);
+    auto polygon_set_2_future = hypo::cgal::CallCgalAndCatchExceptions(&hypo::cgal::ConstructRegion2,
+                                                  &runner, object);
+    return reify::utils::ErrorOr<Polygon_set_2>(
+        *std::get<1>(polygon_set_2_future).Get());
   } else if constexpr (std::is_same<T, hypo::Boundary2>::value) {
-    return hypo::cgal::CallCgalAndCatchExceptions(
-        &hypo::cgal::ConstructBoundary2, object);
+    auto polygon_set_2_future = hypo::cgal::CallCgalAndCatchExceptions(
+        &hypo::cgal::ConstructBoundary2, &runner, object);
+    return reify::utils::ErrorOr<Polygon_set_2>(
+        *std::get<1>(polygon_set_2_future).Get());
   } else if constexpr (std::is_same<T, hypo::Region3>::value) {
-    return hypo::cgal::CallCgalAndCatchExceptions(&hypo::cgal::ConstructRegion3,
-                                                  object);
+    auto polyhedron3_future = hypo::cgal::CallCgalAndCatchExceptions(
+        &hypo::cgal::ConstructRegion3, &runner, object);
+    return reify::utils::ErrorOr<Nef_polyhedron_3>(
+        *std::get<1>(polyhedron3_future).Get());
   } else {
     assert(false);
   }

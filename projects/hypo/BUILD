@@ -66,6 +66,7 @@ cc_library(
     deps = [
         ":hypo-purecpp",
         "@cgal",
+        "@reify//src/idt/targets/pure_cpp/hashing:thread_pool_cache_runner",
     ]
 )
 cc_binary(

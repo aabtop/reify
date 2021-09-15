@@ -14,3 +14,19 @@ cc_library(
     # https://github.com/BLAKE3-team/BLAKE3
     deps = ["@BLAKE3"],
 )
+
+cc_library(
+    name = "thread_pool_cache_runner",
+    srcs = [],
+    hdrs = [
+        "public_include/reify/pure_cpp/thread_pool_cache_runner.h",
+    ],
+    includes = [
+        "public_include",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":hashing",
+        "@ebb//:thread_pool",
+    ],
+)

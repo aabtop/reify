@@ -16,19 +16,27 @@
 namespace hypo {
 namespace cgal {
 
+using FutureRegion3 = reify::pure_cpp::ThreadPoolCacheRunner::Future<
+    std::shared_ptr<const Nef_polyhedron_3>>;
+
 namespace {
-Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
-  return hypo::cgal::ConstructRegion3(x);
+// Just a convenience function to avoid having to qualify the namespace.
+FutureRegion3 ConstructRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::Region3& x) {
+  return hypo::cgal::ConstructRegion3(runner, x);
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::TriangleList3& x) {
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
+    const hypo::TriangleList3& x) {
   Surface_mesh mesh;
   CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(
       x.vertices, x.triangles, mesh);
   return Nef_polyhedron_3(mesh);
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Box3& cuboid) {
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner, const hypo::Box3& cuboid) {
   Nef_polyhedron_3 result(MakeUnitBoxMesh());
 
   hypo::Vec3 bmin;
@@ -49,42 +57,65 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Box3& cuboid) {
   return result;
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Extrude& x) {
-  return EmbedPolygonSetAs3DSurfaceMesh(ConstructRegion2(x.source),
-                                        x.transforms, x.closed);
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner, const hypo::Extrude& x) {
+  return EmbedPolygonSetAs3DSurfaceMesh(
+      *ConstructRegion2(runner, x.source).Get(), x.transforms, x.closed);
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Transform3& x) {
-  Nef_polyhedron_3 result(ConstructRegion3(x.source));
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner, const hypo::Transform3& x) {
+  Nef_polyhedron_3 result(*ConstructRegion3(runner, x.source).Get());
   result.transform(ToAff_transformation_3(x.transform));
   return result;
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Union3& x) {
-  Nef_polyhedron_3 result;
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner, const hypo::Union3& x) {
+  std::vector<FutureRegion3> children;
+  children.reserve(x.regions.size());
   for (const auto& region : x.regions) {
-    result += ConstructRegion3(region);
+    children.push_back(ConstructRegion3(runner, region));
+  }
+
+  Nef_polyhedron_3 result;
+  for (auto& child : children) {
+    result += *child.Get();
   }
   return result;
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Intersection3& x) {
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
+    const hypo::Intersection3& x) {
   if (x.regions.empty()) {
     return Nef_polyhedron_3();
   }
 
-  Nef_polyhedron_3 result(ConstructRegion3(x.regions[0]));
-  for (auto iter = x.regions.begin() + 1; iter != x.regions.end(); ++iter) {
-    result *= (ConstructRegion3(*iter));
+  std::vector<FutureRegion3> children;
+  children.reserve(x.regions.size());
+  for (const auto& region : x.regions) {
+    children.push_back(ConstructRegion3(runner, region));
+  }
+
+  Nef_polyhedron_3 result(*children[0].Get());
+  for (auto iter = children.begin() + 1; iter != children.end(); ++iter) {
+    result *= *iter->Get();
   }
   return result;
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Difference3& x) {
-  return ConstructRegion3(x.a) - ConstructRegion3(x.b);
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
+    const hypo::Difference3& x) {
+  auto a = ConstructRegion3(runner, x.a);
+  auto b = ConstructRegion3(runner, x.b);
+  return *a.Get() - *b.Get();
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Icosahedron& x) {
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
+    const hypo::Icosahedron& x) {
   Nef_polyhedron_3 result(MakeUnitIcosahedronMesh());
   Aff_transformation_3 radius_scale(CGAL::Scaling(), x.sphere.radius);
   Aff_transformation_3 center_translate(
@@ -94,7 +125,8 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Icosahedron& x) {
   return result;
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Octahedron& x) {
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner, const hypo::Octahedron& x) {
   Nef_polyhedron_3 result(MakeUnitOctahedronMesh());
   Aff_transformation_3 radius_scale(CGAL::Scaling(), x.sphere.radius);
   Aff_transformation_3 center_translate(
@@ -104,8 +136,10 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::Octahedron& x) {
   return result;
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Subdivide& x) {
-  return cgal::Subdivide(ConstructRegion3(x.source), x.method, x.iterations);
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner, const hypo::Subdivide& x) {
+  return cgal::Subdivide(*ConstructRegion3(runner, x.source).Get(), x.method,
+                         x.iterations);
 }
 
 // Given a SphereBased object, extracts from it the Sphere object.
@@ -124,21 +158,34 @@ const Sphere& ToSphere(const hypo::SphereBased& sphere_like) {
       static_cast<const hypo::SphereBased::AsVariant&>(sphere_like));
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::SubdivideSphere& x) {
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
+    const hypo::SubdivideSphere& x) {
   return cgal::SubdivideSphere(
-      std::visit([](const auto& arg) { return ConstructRegion3(arg); },
-                 static_cast<const hypo::SphereBased::AsVariant&>(x.source)),
+      std::visit(
+          [runner](const auto& arg) {
+            return *ConstructRegion3(runner, arg).Get();
+          },
+          static_cast<const hypo::SphereBased::AsVariant&>(x.source)),
       ToSphere(x.source), x.iterations);
 }
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::MinkowskiSum3& x) {
+Nef_polyhedron_3 ConstructRegion3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
+    const hypo::MinkowskiSum3& x) {
   if (x.regions.empty()) {
     return Nef_polyhedron_3();
   }
 
-  Nef_polyhedron_3 result(ConstructRegion3(x.regions[0]));
-  for (size_t i = 1; i < x.regions.size(); ++i) {
-    Nef_polyhedron_3 next(ConstructRegion3(x.regions[i]));
+  std::vector<FutureRegion3> children;
+  children.reserve(x.regions.size());
+  for (const auto& region : x.regions) {
+    children.push_back(ConstructRegion3(runner, region));
+  }
+
+  Nef_polyhedron_3 result(*children[0].Get());
+  for (size_t i = 1; i < children.size(); ++i) {
+    Nef_polyhedron_3 next(*children[i].Get());
     result = CGAL::minkowski_sum_3(result, next);
   }
   return result;
@@ -146,11 +193,11 @@ Nef_polyhedron_3 ConstructRegion3(const hypo::MinkowskiSum3& x) {
 
 }  // namespace
 
-Nef_polyhedron_3 ConstructRegion3(const hypo::Region3& x) {
+FutureRegion3 ConstructRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::Region3& x) {
   return std::visit(
-      [](const auto& y) -> Nef_polyhedron_3 {
-        return reify::pure_cpp::ConstructMemoized<Nef_polyhedron_3>(
-            y, &ConstructRegion3);
+      [runner](const auto& y) {
+        return runner->MakeFuture<Nef_polyhedron_3>(&ConstructRegion3, y);
       },
       static_cast<const hypo::Region3::AsVariant&>(x));
 }

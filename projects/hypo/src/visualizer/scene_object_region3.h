@@ -9,6 +9,7 @@
 #include "cgal/types_nef_polyhedron_3.h"
 #include "reify/pure_cpp/scene_visualizer.h"
 #include "reify/pure_cpp/scene_visualizer_camera_3d_arcball.h"
+#include "reify/pure_cpp/thread_pool_cache_runner.h"
 #include "reify/purecpp/hypo.h"
 #include "src/visualizer/vulkan/flat_shaded_triangle_renderer3.h"
 
@@ -22,13 +23,14 @@ namespace hypo {
 namespace visualizer {
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
-CreateSceneObjectRegion3(const hypo::Region3& data);
+CreateSceneObjectRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                         const hypo::Region3& data);
 
 class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
                            public reify::pure_cpp::ImGuiVisualizer {
  public:
   SceneObjectRegion3(
-      hypo::cgal::Nef_polyhedron_3&& polyhedron3,
+      const std::shared_ptr<const hypo::cgal::Nef_polyhedron_3>& polyhedron3,
       const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>&
           triangle_soup);
   ~SceneObjectRegion3();
@@ -48,7 +50,7 @@ class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
   void RenderImGuiWindow() override;
 
  private:
-  const hypo::cgal::Nef_polyhedron_3 polyhedron3_;
+  const std::shared_ptr<const hypo::cgal::Nef_polyhedron_3> polyhedron3_;
   const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>
       triangle_soup_;
 

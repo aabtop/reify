@@ -94,3 +94,11 @@ def reify_deps1():
         sha256 = "70e5f85834e136d5d9e48261b90a0e360d557dc1d482dd138e307e9ef4a9cc40",
         build_file = "@reify//:third_party/BLAKE3/BLAKE3.BUILD",
     )
+
+    http_archive(
+        name = "ebb",
+        strip_prefix = "ebb-589d00b076400ae7f1b4ebaa15dc1a6774bfaf35",
+        urls = ["https://github.com/aabtop/ebb/archive/589d00b076400ae7f1b4ebaa15dc1a6774bfaf35.zip"],
+        sha256 = "b3b51e9528e324d77e55793eb3b1a0aeb31189c8289336cd73f556c0169432ed",
+        build_file = "@reify//:third_party/ebb/ebb.BUILD",
+    )

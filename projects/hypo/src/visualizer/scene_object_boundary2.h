@@ -9,6 +9,7 @@
 
 #include "cgal/types_polygons.h"
 #include "reify/pure_cpp/scene_visualizer.h"
+#include "reify/pure_cpp/thread_pool_cache_runner.h"
 #include "reify/purecpp/hypo.h"
 #include "src/visualizer/vulkan/simple_simplex_renderer2.h"
 
@@ -22,14 +23,15 @@ namespace hypo {
 namespace visualizer {
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
-CreateSceneObjectBoundary2(const hypo::Boundary2& data);
+CreateSceneObjectBoundary2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                           const hypo::Boundary2& data);
 
 class SceneObjectBoundary2 : public reify::pure_cpp::SceneObject<glm::mat3>,
                              public reify::pure_cpp::ImGuiVisualizer {
  public:
   using LineSegmentSoup = SimpleSimplexRenderer2::SimplexSoup<2, 1>;
   SceneObjectBoundary2(
-      hypo::cgal::Polygon_set_2&& polygon_set,
+      const std::shared_ptr<const hypo::cgal::Polygon_set_2>& polygon_set,
       const std::shared_ptr<const LineSegmentSoup>& line_segment_soup);
   ~SceneObjectBoundary2();
 
@@ -48,7 +50,7 @@ class SceneObjectBoundary2 : public reify::pure_cpp::SceneObject<glm::mat3>,
   void RenderImGuiWindow() override;
 
  private:
-  const hypo::cgal::Polygon_set_2 polygon_set_;
+  const std::shared_ptr<const hypo::cgal::Polygon_set_2> polygon_set_;
   const std::shared_ptr<const LineSegmentSoup> line_segment_soup_;
 
   std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
