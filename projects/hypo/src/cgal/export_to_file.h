@@ -28,13 +28,13 @@ struct BuildAndExportResults {
 
 template <typename T>
 auto BuildObject(const T& object) {
-    reify::pure_cpp::ThreadPoolCacheRunner runner(
-        std::make_unique<ebb::ThreadPool>(
-            std::thread::hardware_concurrency(), 256 * 1024,
-            ebb::ThreadPool::SchedulingPolicy::LIFO));
+  reify::pure_cpp::ThreadPoolCacheRunner runner(
+      std::make_unique<ebb::ThreadPool>(
+          std::thread::hardware_concurrency(), 256 * 1024,
+          ebb::ThreadPool::SchedulingPolicy::LIFO));
   if constexpr (std::is_same<T, hypo::Region2>::value) {
-    auto polygon_set_2_future = hypo::cgal::CallCgalAndCatchExceptions(&hypo::cgal::ConstructRegion2,
-                                                  &runner, object);
+    auto polygon_set_2_future = hypo::cgal::CallCgalAndCatchExceptions(
+        &hypo::cgal::ConstructRegion2, &runner, object);
     return reify::utils::ErrorOr<Polygon_set_2>(
         *std::get<1>(polygon_set_2_future).Get());
   } else if constexpr (std::is_same<T, hypo::Boundary2>::value) {
