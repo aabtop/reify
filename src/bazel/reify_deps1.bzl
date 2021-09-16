@@ -97,8 +97,8 @@ def reify_deps1():
 
     http_archive(
         name = "ebb",
-        strip_prefix = "ebb-589d00b076400ae7f1b4ebaa15dc1a6774bfaf35",
-        urls = ["https://github.com/aabtop/ebb/archive/589d00b076400ae7f1b4ebaa15dc1a6774bfaf35.zip"],
-        sha256 = "b3b51e9528e324d77e55793eb3b1a0aeb31189c8289336cd73f556c0169432ed",
+        strip_prefix = "ebb-2fd86f68aab9f48f65c3653c20a163f7b88c43c3",
+        urls = ["https://github.com/aabtop/ebb/archive/2fd86f68aab9f48f65c3653c20a163f7b88c43c3.zip"],
+        sha256 = "a55b3cda23bb49f13a8cadbfa5cce98eb21537d889fcfcc739ed550fefe392ae",
         build_file = "@reify//:third_party/ebb/ebb.BUILD",
     )
