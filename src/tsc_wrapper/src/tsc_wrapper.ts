@@ -4,6 +4,10 @@ import lib_es2015_generator from 'raw-loader!typescript/lib/lib.es2015.generator
 import lib_es2015_iterable from 'raw-loader!typescript/lib/lib.es2015.iterable.d.ts'
 import lib_es2015_symbol from 'raw-loader!typescript/lib/lib.es2015.symbol.d.ts'
 import lib_es5 from 'raw-loader!typescript/lib/lib.es5.d.ts'
+import lib_es2019_array from 'raw-loader!typescript/lib/lib.es2019.array.d.ts'
+import lib_es2019_object from 'raw-loader!typescript/lib/lib.es2019.object.d.ts'
+import lib_es2019_string from 'raw-loader!typescript/lib/lib.es2019.string.d.ts'
+import lib_es2019_symbol from 'raw-loader!typescript/lib/lib.es2019.symbol.d.ts'
 import * as ts from 'typescript';
 
 // Injected by the embedder.
@@ -27,6 +31,10 @@ const LIB_MODULES = [
   ['/lib.es2015.symbol.d.ts', lib_es2015_symbol],
   ['/lib.es2015.iterable.d.ts', lib_es2015_iterable],
   ['/lib.es2015.generator.d.ts', lib_es2015_generator],
+  ['/lib.es2019.array.d.ts', lib_es2019_array],
+  ['/lib.es2019.object.d.ts', lib_es2019_object],
+  ['/lib.es2019.string.d.ts', lib_es2019_string],
+  ['/lib.es2019.symbol.d.ts', lib_es2019_symbol],
 ];
 
 const LIB_SOURCE_FILES = LIB_MODULES.map(x => {
