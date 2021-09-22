@@ -136,10 +136,11 @@ void SceneVisualizerCamera3dArcball::AccumulateKeyboardEvent(int key,
 glm::mat4 SceneVisualizerCamera3dArcball::ProjectionViewMatrix(
     int viewport_width_in_pixels, int viewport_height_in_pixels) const {
   const glm::mat4 perspective_projection_matrix =
-      glm::perspective(45.0f,
-                       (viewport_width_in_pixels) /
-                           static_cast<float>(viewport_height_in_pixels),
-                       0.0001f, 10000.0f)
+      glm::infinitePerspective(
+          45.0f,
+          (viewport_width_in_pixels) /
+              static_cast<float>(viewport_height_in_pixels),
+          0.1f)
       // Flip the y and z axes so that positive y is up and positive z is
       // away.
       * glm::scale(glm::mat4(1), glm::vec3(1.0f, -1.0f, -1.0f));
