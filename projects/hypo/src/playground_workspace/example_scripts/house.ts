@@ -294,7 +294,7 @@ export function SingleHouse() {
   house.addWindow(3, 1);
   house.addWindow(3, 6);
 
-  return h.Transform3({ source: house.build(), transform: h.Rotate3X(-90) });
+  return h.Transform3({ source: house.build(), transform: h.Rotate3X(0) });
 }
 
 export function RowOfHouses() {

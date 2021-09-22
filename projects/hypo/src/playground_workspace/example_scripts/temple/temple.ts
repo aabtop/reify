@@ -86,8 +86,5 @@ export function Temple() {
 
   // Flip the temple upside down because the (fixed :( ) lighting is better
   // that way.
-  return h.Transform3({
-    source: temple,
-    transform: h.MMul4(h.Translate3([0, 0, TEMPLE_HEIGHT]), h.Rotate3X(180)),
-  });
+  return temple;
 }

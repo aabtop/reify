@@ -19,8 +19,9 @@ SceneVisualizerCamera3dArcball::SceneVisualizerCamera3dArcball(
 
 void SceneVisualizerCamera3dArcball::Reset() {
   focus_position_ = glm::vec3(0.0f, 0.0f, 0.0f);
-  camera_distance_from_focus_ = 8.0;
-  camera_orientation_ = glm::quat(0, 0, 0, 1.0);
+  camera_distance_from_focus_ = 20.0;
+  camera_orientation_ =
+      glm::quat(0.490635, glm::vec3(-0.758228f, 0.364142f, 0.227527f));
 }
 
 void SceneVisualizerCamera3dArcball::AccumulateViewportResize(
