@@ -72,17 +72,31 @@ Nef_polyhedron_3 ConstructRegion3(
 
 Nef_polyhedron_3 ConstructRegion3(
     reify::pure_cpp::ThreadPoolCacheRunner* runner, const hypo::Union3& x) {
-  std::vector<FutureRegion3> children;
-  children.reserve(x.regions.size());
-  for (const auto& region : x.regions) {
-    children.push_back(ConstructRegion3(runner, region));
-  }
+  if (x.regions.size() <= 3) {
+    std::vector<FutureRegion3> children;
+    children.reserve(x.regions.size());
+    for (const auto& region : x.regions) {
+      children.push_back(ConstructRegion3(runner, region));
+    }
 
-  Nef_polyhedron_3 result;
-  for (auto& child : children) {
-    result += *child.Get();
+    if (x.regions.size() == 2) {
+      return *children[0].Get() + *children[1].Get();
+    } else if (x.regions.size() == 3) {
+      return *children[0].Get() + *children[1].Get() + *children[2].Get();
+    }
+  } else {
+    auto region3_half_1 = reify::New(hypo::Union3{std::vector<Region3>{
+        x.regions.begin(), x.regions.begin() + x.regions.size() / 2}});
+    auto region3_half_2 = reify::New(hypo::Union3{std::vector<Region3>{
+        x.regions.begin() + x.regions.size() / 2, x.regions.end()}});
+
+    auto built_half_1 = runner->MakeFutureWithoutCaching<Nef_polyhedron_3>(
+        ConstructRegion3, region3_half_1);
+    auto built_half_2 = runner->MakeFutureWithoutCaching<Nef_polyhedron_3>(
+        ConstructRegion3, region3_half_2);
+
+    return *built_half_1.Get() + *built_half_2.Get();
   }
-  return result;
 }
 
 Nef_polyhedron_3 ConstructRegion3(

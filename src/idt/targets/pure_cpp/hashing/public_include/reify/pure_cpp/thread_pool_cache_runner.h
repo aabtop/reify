@@ -86,6 +86,22 @@ class ThreadPoolCacheRunner {
     });
   }
 
+  template <typename R, typename T>
+  Future<std::shared_ptr<const R>> MakeFutureWithoutCaching(
+      R (*compute)(ThreadPoolCacheRunner*, const T&), const T& x) {
+    return Future<std::shared_ptr<const R>>(this, [this, compute, x]() {
+      return std::make_shared<const R>(compute(this, x));
+    });
+  }
+  template <typename R, typename T>
+  Future<std::shared_ptr<const R>> MakeFutureWithoutCaching(
+      R (*compute)(ThreadPoolCacheRunner*, const T&),
+      const reify::CachedHashReference<T>& x) {
+    return Future<std::shared_ptr<const R>>(this, [this, compute, x]() {
+      return std::make_shared<const R>(compute(this, *x));
+    });
+  }
+
  private:
   std::unique_ptr<ebb::ThreadPool> thread_pool_;
   Cache cache_;
