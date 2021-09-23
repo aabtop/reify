@@ -203,7 +203,9 @@ glm::vec3 SceneVisualizerCamera3dArcball::ToArcballPoint(
     const glm::vec2& viewport_point) const {
   float length = glm::length(viewport_point);
 
-  constexpr float ARCBALL_RADIUS = 1.0f;
+  // A little less than 1.0f so that if the user moves their mouse inside the
+  // viewport but near its extremities, they can still rotate the roll.
+  constexpr float ARCBALL_RADIUS = 0.8f;
   if (length > ARCBALL_RADIUS) {
     // We're outside of our virtual sphere, so project onto the edge of it.
     return glm::vec3(viewport_point.x / length, viewport_point.y / length, 0);
@@ -211,15 +213,26 @@ glm::vec3 SceneVisualizerCamera3dArcball::ToArcballPoint(
 
   // Project the 2D point onto the surface of the virtual arcball sphere
   // centered at the origin.
-  return glm::vec3(viewport_point.x, viewport_point.y,
-                   -glm::sqrt(1 - viewport_point.x * viewport_point.x -
-                              viewport_point.y * viewport_point.y));
+  return glm::vec3(viewport_point.x / ARCBALL_RADIUS,
+                   viewport_point.y / ARCBALL_RADIUS,
+                   -glm::sqrt(1 - (viewport_point.x * viewport_point.x +
+                                   viewport_point.y * viewport_point.y) /
+                                      (ARCBALL_RADIUS * ARCBALL_RADIUS)));
 }
 
 glm::vec2 SceneVisualizerCamera3dArcball::ToViewportPoint(int x, int y) const {
-  return glm::vec2(
-      (x / static_cast<float>(viewport_width_in_pixels_) - 0.5f) * 2.0f,
-      (y / static_cast<float>(viewport_height_in_pixels_) - 0.5f) * -2.0f);
+  const float x_multiplier = static_cast<float>(
+      viewport_width_in_pixels_ < viewport_height_in_pixels_
+          ? 1
+          : viewport_width_in_pixels_ / viewport_height_in_pixels_);
+  const float y_multiplier = static_cast<float>(
+      viewport_width_in_pixels_ > viewport_height_in_pixels_
+          ? 1
+          : viewport_height_in_pixels_ / viewport_width_in_pixels_);
+  return glm::vec2((x / static_cast<float>(viewport_width_in_pixels_) - 0.5f) *
+                       2.0f * x_multiplier,
+                   (y / static_cast<float>(viewport_height_in_pixels_) - 0.5f) *
+                       -2.0f * y_multiplier);
 }
 
 }  // namespace pure_cpp
