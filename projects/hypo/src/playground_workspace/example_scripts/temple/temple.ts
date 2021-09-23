@@ -84,7 +84,5 @@ export function Temple() {
     ]
   });
 
-  // Flip the temple upside down because the (fixed :( ) lighting is better
-  // that way.
   return temple;
 }
