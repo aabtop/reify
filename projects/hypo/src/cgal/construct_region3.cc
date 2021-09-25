@@ -1,5 +1,6 @@
 #include "cgal/construct_region3.h"
 
+#include <CGAL/Nef_nary_union_3.h>
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 #include <CGAL/aff_transformation_tags.h>
 #include <CGAL/minkowski_sum_3.h>
@@ -81,8 +82,12 @@ Nef_polyhedron_3 ConstructRegion3(
 
     if (x.regions.size() == 2) {
       return *children[0].Get() + *children[1].Get();
-    } else if (x.regions.size() == 3) {
-      return *children[0].Get() + *children[1].Get() + *children[2].Get();
+    } else {
+      CGAL::Nef_nary_union_3<Nef_polyhedron_3> nef_nary_union;
+      for (auto& child : children) {
+        nef_nary_union.add_polyhedron(*child.Get());
+      }
+      return nef_nary_union.get_union();
     }
   } else {
     auto region3_half_1 = reify::New(hypo::Union3{std::vector<Region3>{
