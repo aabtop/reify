@@ -49,7 +49,7 @@ glm::quat ArcballRotation(const glm::vec3& new_arcball_point,
   // one.
   glm::vec3 axis = glm::cross(previous_arcball_point, new_arcball_point);
   float cos_angle = glm::dot(previous_arcball_point, new_arcball_point);
-  glm::quat rotation = glm::normalize(glm::quat(cos_angle, axis));
+  glm::quat rotation = glm::normalize(glm::quat(cos_angle * 2, axis));
 
   // Finally apply the rotation from/two the specified amounts.
   return rotation;
