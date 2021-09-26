@@ -17,6 +17,21 @@ class ThreadPoolCacheRunner {
   template <typename R>
   class Future {
    public:
+    Future(Future&&) = default;
+    ~Future() {
+      if (auto task_data_ptr = std::get_if<1>(&result_)) {
+        const auto& task_data = *task_data_ptr;
+        // Check if we got moved or not.
+        if (task_data) {
+          // Wait for the future to complete, but do nothing with the results.
+          std::unique_lock<std::mutex> lock(task_data->mutex);
+          while (!task_data->result) {
+            task_data->cond.wait(lock);
+          }
+        }
+      }
+    }
+
     // Waits for the processing to finish and returns the result.
     const R& Get() {
       if (auto result = std::get_if<0>(&result_)) {
@@ -28,7 +43,13 @@ class ThreadPoolCacheRunner {
         while (!task_data->result) {
           task_data->cond.wait(lock);
         }
-        return *task_data->result;
+        if (auto exception =
+                std::get_if<std::exception_ptr>(&(*task_data->result))) {
+          // Rethrow the exception in the parent context.
+          std::rethrow_exception(*exception);
+        } else {
+          return std::get<R>(*task_data->result);
+        }
       }
     }
 
@@ -39,15 +60,24 @@ class ThreadPoolCacheRunner {
       TaskData(ThreadPoolCacheRunner* runner, const std::function<R()>& f)
           : cond(runner->thread_pool_.get()),
             task(runner->thread_pool_.get(), [this, f]() {
-              R computed_result = f();
-              std::lock_guard<std::mutex> lock(mutex);
-              result = std::move(computed_result);
-              cond.notify_one();
+              try {
+                R computed_result = f();
+                std::lock_guard<std::mutex> lock(mutex);
+                result = std::move(computed_result);
+                cond.notify_one();
+              } catch (...) {
+                // Save the exception so that we can forward it on to anyone
+                // trying to get the data out of the Future.
+                std::exception_ptr ep = std::current_exception();
+                std::lock_guard<std::mutex> lock(mutex);
+                result = std::move(ep);
+                cond.notify_one();
+              }
             }) {}
 
       std::mutex mutex;
       ebb::FiberConditionVariable cond;
-      std::optional<R> result;
+      std::optional<std::variant<R, std::exception_ptr>> result;
       ebb::ThreadPool::Task task;
     };
 

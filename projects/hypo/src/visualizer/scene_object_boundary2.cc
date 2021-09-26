@@ -95,10 +95,9 @@ SceneObjectBoundary2::LineSegmentSoup ConvertToLineSegmentSoup(
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
 CreateSceneObjectBoundary2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                            const hypo::Boundary2& data) {
-  REIFY_UTILS_ASSIGN_OR_RETURN(polygon_set_future,
-                               cgal::CallCgalAndCatchExceptions(
-                                   &cgal::ConstructBoundary2, runner, data));
-  auto polygon_set = polygon_set_future.Get();
+  REIFY_UTILS_ASSIGN_OR_RETURN(
+      polygon_set, cgal::CallCgalAndCatchExceptions(&cgal::ConstructBoundary2,
+                                                    runner, data));
   const std::shared_ptr<const SceneObjectBoundary2::LineSegmentSoup>
       line_segment_soup(new SceneObjectBoundary2::LineSegmentSoup(
           ConvertToLineSegmentSoup(*polygon_set)));

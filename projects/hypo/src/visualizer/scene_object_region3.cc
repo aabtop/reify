@@ -70,9 +70,8 @@ reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
 CreateSceneObjectRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                          const hypo::Region3& data) {
   REIFY_UTILS_ASSIGN_OR_RETURN(
-      polyhedron3_future, hypo::cgal::CallCgalAndCatchExceptions(
-                              &hypo::cgal::ConstructRegion3, runner, data));
-  auto polyhedron3 = polyhedron3_future.Get();
+      polyhedron3, hypo::cgal::CallCgalAndCatchExceptions(
+                       &hypo::cgal::ConstructRegion3, runner, data));
   const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>
       triangle_soup(new FlatShadedTriangleRenderer3::TriangleSoup(
           ConvertToTriangleSoup(*polyhedron3)));

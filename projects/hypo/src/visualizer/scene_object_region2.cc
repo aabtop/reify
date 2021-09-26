@@ -62,11 +62,11 @@ reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
 CreateSceneObjectRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                          const hypo::Region2& data) {
   REIFY_UTILS_ASSIGN_OR_RETURN(
-      polygon_set_future, hypo::cgal::CallCgalAndCatchExceptions(
-                              &hypo::cgal::ConstructRegion2, runner, data));
-  auto polygon_set = polygon_set_future.Get();
+      polygon_set, hypo::cgal::CallCgalAndCatchExceptions(
+                       &hypo::cgal::ConstructRegion2, runner, data));
   const std::shared_ptr<const SceneObjectRegion2::TriangleSoup> triangle_soup(
-      new SceneObjectRegion2::TriangleSoup(ConvertToTriangleSoup(*polygon_set)));
+      new SceneObjectRegion2::TriangleSoup(
+          ConvertToTriangleSoup(*polygon_set)));
 
   REIFY_UTILS_ASSIGN_OR_RETURN(
       scene_object_boundary2,

@@ -22,9 +22,11 @@ inline reify::utils::Error CgalExceptionToError(
 
 template <typename T, typename... Args>
 auto CallCgalAndCatchExceptions(const T& function, Args&&... params)
-    -> reify::utils::ErrorOr<typename std::result_of<T(Args...)>::type> {
+    -> reify::utils::ErrorOr<std::remove_reference_t<
+        decltype(std::declval<typename std::result_of<T(Args...)>::type>()
+                     .Get())>> {
   try {
-    return function(std::forward<Args>(params)...);
+    return function(std::forward<Args>(params)...).Get();
   } catch (const CGAL::Failure_exception& e) {
     return CgalExceptionToError(e);
   }

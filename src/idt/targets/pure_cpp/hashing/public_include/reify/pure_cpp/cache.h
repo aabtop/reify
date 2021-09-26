@@ -26,25 +26,41 @@ class Cache {
       auto [inserted, _] = cache_per_type.insert({hash, wait_list});
 
       monitor_mutex_.unlock();
-      auto result = std::make_shared<const R>(compute());
+      std::shared_ptr<const R> maybe_result;
+      std::any result_or_exception;
+      try {
+        maybe_result = std::make_shared<const R>(compute());
+        result_or_exception = maybe_result;
+      } catch (...) {
+        result_or_exception = std::current_exception();
+      }
       monitor_mutex_.lock();
 
       // Replace the wait list in the cache table with the final results.
-      inserted->second = ResultOrWaitList(std::in_place_index<0>, result);
+      inserted->second =
+          ResultOrWaitList(std::in_place_index<0>, result_or_exception);
 
       // And for all our friends who were waiting on the results, make it
       // directly available to them.
-      wait_list->result = result;
+      wait_list->result = result_or_exception;
 
       // And wake up our friends.
       for (int i = 0; i < wait_list->num_waiters; ++i) {
         wait_list->cond.notify_one();
       }
 
-      // And return the result.
-      return result;
+      if (maybe_result) {
+        // And finally return the result or throw the exception.
+        return maybe_result;
+      } else {
+        std::rethrow_exception(
+            std::any_cast<std::exception_ptr>(result_or_exception));
+      }
     } else {
       if (auto result = std::get_if<0>(&cache_hit->second)) {
+        if (auto e = std::any_cast<std::exception_ptr>(&(*result))) {
+          std::rethrow_exception(*e);
+        }
         // We got a cache hit, return it, we're done!
         return std::any_cast<std::shared_ptr<const R>>(*result);
       } else {
@@ -54,12 +70,15 @@ class Cache {
         ++wait_list->num_waiters;
         wait_list->cond.wait(lock);
 
+        if (auto e = std::any_cast<std::exception_ptr>(&wait_list->result)) {
+          std::rethrow_exception(*e);
+        }
+
         // Since we were waiting in line, we get a special direct delivery
         // of the results waiting for us, so just return that.
         return std::any_cast<std::shared_ptr<const R>>(wait_list->result);
       }
     }
-    return std::any_cast<std::shared_ptr<const R>>(cache_hit->second);
   }
 
   template <typename R, typename T>
@@ -74,6 +93,10 @@ class Cache {
       return nullptr;
     }
     if (auto cache_hit = std::get_if<0>(&cache_hit_or_wait_list->second)) {
+      if (auto e = std::any_cast<std::exception_ptr>(&(*cache_hit))) {
+        std::rethrow_exception(*e);
+      }
+
       return std::any_cast<std::shared_ptr<const R>>(*cache_hit);
     } else {
       return nullptr;
