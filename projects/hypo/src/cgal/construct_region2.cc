@@ -269,7 +269,18 @@ FutureRegion2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                                const hypo::Region2& x) {
   return std::visit(
       [runner](const auto& y) {
-        return runner->MakeFuture<Polygon_set_2>(&ConstructRegion2, y);
+        auto future = runner->MakeFutureWithoutCaching<Polygon_set_2>(
+            &ConstructRegion2, y);
+        future.Get();  // Unfortunately there appears to be race conditions in
+                       // CGAL for 2D operations. I think. So adding this in
+                       // makes all 2D operations single threaded. Check back in
+                       // with CGAL when they update their code, if it's fixed
+                       // remove this Get() and change
+                       // "MakeFutureWithoutCaching" to "MakeFuture". I was able
+                       // to reproduce by checking if all the circles appear in
+                       // the twist_ring.ts CrossSection function. Same for
+                       // Boundary below.
+        return std::move(future);
       },
       static_cast<const hypo::Region2::AsVariant&>(x));
 }
@@ -278,7 +289,10 @@ FutureBoundary2 ConstructBoundary2(
     reify::pure_cpp::ThreadPoolCacheRunner* runner, const hypo::Boundary2& x) {
   return std::visit(
       [runner](const auto& y) {
-        return runner->MakeFuture<Polygon_set_2>(&ConstructBoundary2, y);
+        auto future = runner->MakeFutureWithoutCaching<Polygon_set_2>(
+            &ConstructBoundary2, y);
+        future.Get();
+        return std::move(future);
       },
       static_cast<const hypo::Boundary2::AsVariant&>(x));
 }

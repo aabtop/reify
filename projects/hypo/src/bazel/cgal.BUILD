@@ -24,9 +24,9 @@ cc_library(
         "include/CGAL/**/*.hpp",
         "include/CGAL/**/*.tcc",
     ]),
-    # We actually want assertion errors, even in release mode, so that we can
-    # let users know if their data is causing errors (e.g. degenerate polygons).
     defines = [
+        # We actually want assertion errors, even in release mode, so that we can
+        # let users know if their data is causing errors (e.g. degenerate polygons).
         "CGAL_DEBUG",
         "CGAL_HAS_THREADS",
     ],
