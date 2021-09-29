@@ -1,1 +1,6 @@
 src/bazel/v8/build_win
+src/monaco_wrapper/node_modules
+src/tsc_wrapper/node_modules
+projects/hypo
+bazel-reify
+src/idt/BUILD

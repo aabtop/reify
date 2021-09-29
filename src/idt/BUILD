@@ -32,4 +32,5 @@ haskell_library(
         "@stackage//:stache",
         "@stackage//:text",
     ],
+    tags = ["manual"],
 )

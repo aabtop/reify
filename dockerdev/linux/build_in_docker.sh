@@ -10,6 +10,9 @@ export OUTPUT_DIR="/out"
 cd /src
 
 cd projects/hypo
+
+bazel test //... -c $BUILD_CONFIG --symlink_prefix=/bazel- --verbose_failures
+
 bazel build //:hypo //:ide //:visualizer -c $BUILD_CONFIG --symlink_prefix=/bazel- --verbose_failures
 
 rm -rf ${OUTPUT_DIR}/*

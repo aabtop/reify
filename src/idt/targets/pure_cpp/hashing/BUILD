@@ -1,3 +1,5 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
 cc_library(
     name = "hashing",
     srcs = [],
@@ -12,7 +14,22 @@ cc_library(
     visibility = ["//visibility:public"],
     # We use BLAKE3 for hashing:
     # https://github.com/BLAKE3-team/BLAKE3
-    deps = ["@BLAKE3"],
+    deps = [
+        "@BLAKE3",
+        "@ebb//:thread_pool",
+    ],
+)
+
+cc_test(
+    name = "test_cache",
+    srcs = [
+      "src/cache_test.cc",
+    ],
+    deps = [
+        ":hashing",
+        "@com_google_googletest//:gtest_main",
+    ],
+    size="small",
 )
 
 cc_library(

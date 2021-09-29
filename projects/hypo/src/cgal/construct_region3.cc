@@ -14,6 +14,16 @@
 #include "reify/pure_cpp/cache.h"
 #include "reify/purecpp/hypo.h"
 
+namespace reify {
+namespace pure_cpp {
+
+int64_t EstimatedMemoryUsageInBytes(const hypo::cgal::Nef_polyhedron_3& x) {
+  return 0;
+}
+
+}  // namespace pure_cpp
+}  // namespace reify
+
 namespace hypo {
 namespace cgal {
 

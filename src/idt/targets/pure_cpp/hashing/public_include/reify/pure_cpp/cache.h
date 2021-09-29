@@ -9,6 +9,14 @@
 namespace reify {
 namespace pure_cpp {
 
+template <typename T>
+int64_t EstimatedMemoryUsageInBytes(T x) {
+  struct Foo {};
+  static_assert(std::is_same<T, Foo>::value,
+                "You must define a customization of this function, "
+                "EstimatedMemoryUsageInBytes() for your type T.");
+}
+
 class Cache {
  public:
   Cache(ebb::ThreadPool* thread_pool) : thread_pool_(thread_pool) {}
@@ -30,11 +38,19 @@ class Cache {
       std::any result_or_exception;
       try {
         maybe_result = std::make_shared<const R>(compute());
-        result_or_exception = maybe_result;
+        result_or_exception =
+            maybe_result;  // At this point it's actually a "for_sure_result".
       } catch (...) {
         result_or_exception = std::current_exception();
       }
       monitor_mutex_.lock();
+
+      // If we successfully computed a new object to cache, update the number
+      // of cached bytes we're currently storing.
+      if (maybe_result) {
+        approximate_cache_usage_ +=
+            reify::pure_cpp::EstimatedMemoryUsageInBytes(*maybe_result);
+      }
 
       // Replace the wait list in the cache table with the final results.
       inserted->second =
@@ -82,7 +98,7 @@ class Cache {
   }
 
   template <typename R, typename T>
-  std::shared_ptr<const R> LookupOnly(uint64_t hash) {
+  std::shared_ptr<const R> LookupOnly(uint64_t hash) const {
     std::lock_guard<std::mutex> lock(monitor_mutex_);
     auto cache_per_type = cache_.find(TypeId<T>());
     if (cache_per_type == cache_.end()) {
@@ -103,6 +119,11 @@ class Cache {
     }
   }
 
+  int64_t MemoryUsageInBytes() const {
+    std::lock_guard<std::mutex> lock(monitor_mutex_);
+    return approximate_cache_usage_;
+  }
+
  private:
   template <typename T>
   static intptr_t TypeId() {
@@ -113,7 +134,7 @@ class Cache {
   // Needed to instantiate condition variables.
   ebb::ThreadPool* thread_pool_;
   // Wraps all public method calls.
-  std::mutex monitor_mutex_;
+  mutable std::mutex monitor_mutex_;
 
   struct WaitList {
     WaitList(ebb::ThreadPool* thread_pool) : cond(thread_pool) {}
@@ -132,6 +153,8 @@ class Cache {
   using CacheMap = std::unordered_map<intptr_t, CachePerType>;
 
   CacheMap cache_;
+
+  int64_t approximate_cache_usage_ = 0;
 };
 
 }  // namespace pure_cpp

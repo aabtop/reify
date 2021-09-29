@@ -2,6 +2,7 @@
 #define _REIFY_IDT_TARGETS_PURE_CPP_HASHING_H_
 
 #include <memory>
+#include <variant>
 
 #include "blake3.h"
 

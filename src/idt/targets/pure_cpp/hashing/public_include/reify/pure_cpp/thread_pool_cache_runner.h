@@ -132,6 +132,8 @@ class ThreadPoolCacheRunner {
     });
   }
 
+  int CacheMemoryUsageInBytes() const { return cache_.MemoryUsageInBytes(); }
+
  private:
   std::unique_ptr<ebb::ThreadPool> thread_pool_;
   Cache cache_;
