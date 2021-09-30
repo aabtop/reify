@@ -10,7 +10,7 @@ export OUTPUT_DIR="/out"
 cd /src
 
 echo "Running reify tests..."
-bazel test //... -c $BUILD_CONFIG --symlink_prefix=/bazel- --verbose_failures
+bazel test //... -c $BUILD_CONFIG --symlink_prefix=/bazel- --verbose_failures --test_output=errors
 
 echo "Running hypo tests..."
 cd projects/hypo
