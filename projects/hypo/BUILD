@@ -81,7 +81,7 @@ cc_binary(
         ":hypo-typescript_cpp_v8",
         "@cgal",
         "@reify//src/idt/targets/typescript_cpp_v8:command_line_tool",
-        "@reify//third_party:CLI11",
+        "@CLI11",
     ],
 )
 

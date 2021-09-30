@@ -1,11 +1,11 @@
 cc_library(
     name = "CLI11",
     hdrs = glob([
-        "CLI11/include/**/*.h",
-        "CLI11/include/**/*.hpp",
+        "include/**/*.h",
+        "include/**/*.hpp",
     ]),
     includes = [
-        "CLI11/include",
+        "include",
     ],
     visibility = ["//visibility:public"],
 )

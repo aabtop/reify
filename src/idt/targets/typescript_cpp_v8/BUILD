@@ -84,7 +84,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":core",
-        "//third_party:CLI11",
+        "@CLI11",
     ],
 )
 

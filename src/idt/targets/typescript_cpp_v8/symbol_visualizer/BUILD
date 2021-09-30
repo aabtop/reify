@@ -175,7 +175,7 @@ cc_library(
         "//src/window:window_utils",
         "//src/window:platform_window_wrapper",
         "//src/utils",
-        "//third_party:CLI11",
+        "@CLI11",
         "@fmtlib",
     ],
 )

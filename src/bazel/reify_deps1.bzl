@@ -102,3 +102,12 @@ def reify_deps1():
         sha256 = "a55b3cda23bb49f13a8cadbfa5cce98eb21537d889fcfcc739ed550fefe392ae",
         build_file = "@reify//:third_party/ebb/ebb.BUILD",
     )
+
+    http_archive(
+        name = "CLI11",
+        # Version 2.1.1
+        urls = ["https://github.com/CLIUtils/CLI11/archive/5ce8958c7e3d2c871d1ba3180a4e4f1543eece4a.zip"],
+        strip_prefix = "CLI11-5ce8958c7e3d2c871d1ba3180a4e4f1543eece4a",
+        sha256 = "dd6559815314ac49f333d2ce69fe231f74cd48bde90630f508f2ccf8f1486cb6",
+        build_file = "@reify//:third_party/CLI11/CLI11.BUILD",
+    )
