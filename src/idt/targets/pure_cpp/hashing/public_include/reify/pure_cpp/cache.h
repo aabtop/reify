@@ -10,7 +10,7 @@ namespace reify {
 namespace pure_cpp {
 
 template <typename T>
-int64_t EstimatedMemoryUsageInBytes(T x) {
+int64_t EstimatedMemoryUsageInBytes(const T& x) {
   struct Foo {};
   static_assert(std::is_same<T, Foo>::value,
                 "You must define a customization of this function, "

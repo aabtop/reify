@@ -5,7 +5,7 @@
 namespace reify {
 namespace pure_cpp {
 template <>
-int64_t EstimatedMemoryUsageInBytes(int x) {
+int64_t EstimatedMemoryUsageInBytes(const int& x) {
   return x * 100;
 }
 }  // namespace pure_cpp

@@ -17,6 +17,7 @@
 namespace reify {
 namespace pure_cpp {
 
+template <>
 int64_t EstimatedMemoryUsageInBytes(const hypo::cgal::Nef_polyhedron_3& x) {
   return 0;
 }

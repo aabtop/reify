@@ -6,13 +6,13 @@ echo "In container..."
 
 cd %SRC_DIR%
 
-cd projects\hypo
-
-echo "Running tests..."
+echo "Running reify tests..."
 REM It would be nice to just test `//...`, but our "idt" `haskell_library`
 REM target tries to build, and it seems to not do so well when it's built on
 REM its own, attempting to use gcc flags on msvc.
 bazel --output_user_root=C:/_bzl test //src/idt/targets/pure_cpp/... //src/utils/... -c %BUILD_CONFIG% --symlink_prefix=/ --verbose_failures
+cd projects\hypo
+echo "Running hypo tests..."
 
 echo "Building executables..."
 bazel --output_user_root=C:/_bzl build //:hypo //:ide //:visualizer -c %BUILD_CONFIG% --symlink_prefix=/ --verbose_failures

@@ -9,14 +9,18 @@ export OUTPUT_DIR="/out"
 
 cd /src
 
-cd projects/hypo
-
+echo "Running reify tests..."
 bazel test //... -c $BUILD_CONFIG --symlink_prefix=/bazel- --verbose_failures
 
+echo "Running hypo tests..."
+cd projects/hypo
+
+echo "Building..."
 bazel build //:hypo //:ide //:visualizer -c $BUILD_CONFIG --symlink_prefix=/bazel- --verbose_failures
 
 rm -rf ${OUTPUT_DIR}/*
 
+echo "Stripping symbols..."
 # Strip symbols from the output executable and place the results in the
 # output directory.
 strip -s /bazel-bin/hypo -o ${OUTPUT_DIR}/hypo
