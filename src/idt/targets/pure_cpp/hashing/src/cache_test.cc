@@ -95,7 +95,7 @@ TEST(CacheTest, TestPurging) {
 
   int computations = 0;
   auto increment_computations_and_return = [&computations](int x) {
-    return [&computations, &x]() {
+    return [&computations, x]() {
       ++computations;
       return x;
     };
