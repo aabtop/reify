@@ -1,6 +1,6 @@
 #include "platform_specific/system_memory.h"
 
-#include <Windows.h>
+#include <windows.h>
 
 #include <cassert>
 
