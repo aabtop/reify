@@ -2,6 +2,7 @@
 #define _REIFY_IDT_TARGETS_PURE_CPP_THREAD_POOL_CACHE_RUNNER_H_
 
 #include "fiber_condition_variable.h"
+#include "platform_specific/system_memory.h"
 #include "reify/pure_cpp/cache.h"
 #include "reify/pure_cpp/hashing.h"
 #include "thread_pool.h"
@@ -12,7 +13,12 @@ namespace pure_cpp {
 class ThreadPoolCacheRunner {
  public:
   ThreadPoolCacheRunner(std::unique_ptr<ebb::ThreadPool> thread_pool)
-      : thread_pool_(std::move(thread_pool)), cache_(thread_pool_.get()) {}
+      : thread_pool_(std::move(thread_pool)),
+        // By default we initialize the cache with a capacity of half of the
+        // total system memory. This is arbitrarily chosen.
+        cache_(
+            thread_pool_.get(),
+            reify::platform_specific::TotalSystemMemoryCapacityInBytes() / 2) {}
 
   template <typename R>
   class Future {
@@ -132,7 +138,9 @@ class ThreadPoolCacheRunner {
     });
   }
 
-  int CacheMemoryUsageInBytes() const { return cache_.MemoryUsageInBytes(); }
+  int CacheEstimatedMemoryUsageInBytes() const {
+    return cache_.EstimatedMemoryUsageInBytes();
+  }
 
  private:
   std::unique_ptr<ebb::ThreadPool> thread_pool_;

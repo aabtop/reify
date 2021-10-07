@@ -2,7 +2,7 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 cc_library(
     name = "hashing",
-    srcs = [],
+    srcs = ["src/cache.cc"],
     hdrs = [
         "public_include/reify/pure_cpp/cache.h",
         "public_include/reify/pure_cpp/hashing.h",
@@ -22,14 +22,14 @@ cc_library(
 
 cc_test(
     name = "test_cache",
+    size = "small",
     srcs = [
-      "src/cache_test.cc",
+        "src/cache_test.cc",
     ],
     deps = [
         ":hashing",
         "@com_google_googletest//:gtest_main",
     ],
-    size="small",
 )
 
 cc_library(
@@ -44,6 +44,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":hashing",
+        "//src/platform_specific:system_memory",
         "@ebb//:thread_pool",
     ],
 )

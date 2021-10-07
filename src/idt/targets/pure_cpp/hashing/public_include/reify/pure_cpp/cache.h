@@ -2,6 +2,7 @@
 #define _REIFY_IDT_TARGETS_PURE_CPP_CACHE_H_
 
 #include <any>
+#include <list>
 
 #include "fiber_condition_variable.h"
 #include "reify/pure_cpp/hashing.h"
@@ -19,7 +20,8 @@ int64_t EstimatedMemoryUsageInBytes(const T& x) {
 
 class Cache {
  public:
-  Cache(ebb::ThreadPool* thread_pool) : thread_pool_(thread_pool) {}
+  Cache(ebb::ThreadPool* thread_pool, int64_t capacity)
+      : thread_pool_(thread_pool), capacity_(capacity) {}
 
   template <typename R, typename T>
   std::shared_ptr<const R> LookupOrCompute(uint64_t hash,
@@ -45,13 +47,6 @@ class Cache {
       }
       monitor_mutex_.lock();
 
-      // If we successfully computed a new object to cache, update the number
-      // of cached bytes we're currently storing.
-      if (maybe_result) {
-        approximate_cache_usage_ +=
-            reify::pure_cpp::EstimatedMemoryUsageInBytes(*maybe_result);
-      }
-
       // Replace the wait list in the cache table with the final results.
       inserted->second =
           ResultOrWaitList(std::in_place_index<0>, result_or_exception);
@@ -66,6 +61,16 @@ class Cache {
       }
 
       if (maybe_result) {
+        // If we successfully computed a new object to cache, update the number
+        // of cached bytes we're currently storing, and maybe purge cache items
+        // if we've gone over our capacity.
+        int64_t estimated_memory_usage_in_bytes =
+            reify::pure_cpp::EstimatedMemoryUsageInBytes(*maybe_result);
+        ordering_.push_front(
+            {&cache_per_type, hash, estimated_memory_usage_in_bytes});
+        approximate_cache_usage_ += estimated_memory_usage_in_bytes;
+        PurgeToCapacity();
+
         // And finally return the result or throw the exception.
         return maybe_result;
       } else {
@@ -119,22 +124,26 @@ class Cache {
     }
   }
 
-  int64_t MemoryUsageInBytes() const {
+  int64_t EstimatedMemoryUsageInBytes() const {
     std::lock_guard<std::mutex> lock(monitor_mutex_);
     return approximate_cache_usage_;
   }
 
- private:
-  template <typename T>
-  static intptr_t TypeId() {
-    static int foo;
-    return reinterpret_cast<intptr_t>(&foo);
+  int64_t Capacity() const {
+    std::lock_guard<std::mutex> lock(monitor_mutex_);
+    return capacity_;
   }
 
-  // Needed to instantiate condition variables.
-  ebb::ThreadPool* thread_pool_;
-  // Wraps all public method calls.
-  mutable std::mutex monitor_mutex_;
+  void SetCapacity(int64_t capacity) {
+    assert(capacity >= 0);
+    std::lock_guard<std::mutex> lock(monitor_mutex_);
+    capacity_ = capacity;
+    // In case capacity has been reduced here, start purging.
+    PurgeToCapacity();
+  }
+
+ private:
+  using CacheItemTypeId = intptr_t;
 
   struct WaitList {
     WaitList(ebb::ThreadPool* thread_pool) : cond(thread_pool) {}
@@ -150,9 +159,47 @@ class Cache {
   };
   using ResultOrWaitList = std::variant<std::any, std::shared_ptr<WaitList>>;
   using CachePerType = std::unordered_map<uint64_t, ResultOrWaitList>;
-  using CacheMap = std::unordered_map<intptr_t, CachePerType>;
+  using CacheMap = std::unordered_map<CacheItemTypeId, CachePerType>;
+
+  struct OrderingInfo {
+    // We need to maintain references back to the hash map it's stored in, so
+    // we can find it in case we need to purge it.
+    CachePerType* cache;
+    uint64_t hash;
+    int64_t estimated_memory_usage_in_bytes;
+  };
+
+  // This container keeps track of the order that elements should be purged...
+  // It is maintained as a least recently used (LRU) container.
+  using OrderingContainer = std::list<OrderingInfo>;
+
+  template <typename T>
+  static CacheItemTypeId TypeId() {
+    static int foo;
+    return reinterpret_cast<CacheItemTypeId>(&foo);
+  }
+
+  // Remove elements from the cache until we have a total approximate cache
+  // usage of less than or equal to the capacity.
+  void PurgeToCapacity();
+
+  // Needed to instantiate condition variables.
+  ebb::ThreadPool* thread_pool_;
+  // Wraps all public method calls.
+  mutable std::mutex monitor_mutex_;
 
   CacheMap cache_;
+
+  // We will make sure that the cache (but not everything else, no magic here)
+  // never exceeds this set capacity. This essentially dictates when and how
+  // much we purge elements from the cache.
+  int64_t capacity_;
+
+  // This datastructure keeps track of the LRU order of the cache elements.
+  // Each element in it keeps a reference to the elements in the CacheMap above
+  // so that it can remove the least recently used elements from it during a
+  // purge if it needs to.
+  OrderingContainer ordering_;
 
   int64_t approximate_cache_usage_ = 0;
 };
