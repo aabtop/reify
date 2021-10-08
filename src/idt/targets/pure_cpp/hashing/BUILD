@@ -48,3 +48,15 @@ cc_library(
         "@ebb//:thread_pool",
     ],
 )
+
+cc_test(
+    name = "test_thread_pool_cache_runner",
+    size = "small",
+    srcs = [
+        "src/thread_pool_cache_runner_test.cc",
+    ],
+    deps = [
+        ":thread_pool_cache_runner",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

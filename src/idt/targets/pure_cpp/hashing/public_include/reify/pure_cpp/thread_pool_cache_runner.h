@@ -20,6 +20,8 @@ class ThreadPoolCacheRunner {
             thread_pool_.get(),
             reify::platform_specific::TotalSystemMemoryCapacityInBytes() / 2) {}
 
+  ebb::ThreadPool* thread_pool() const { return thread_pool_.get(); }
+
   template <typename R>
   class Future {
    public:
@@ -100,6 +102,14 @@ class ThreadPoolCacheRunner {
   template <typename R, typename T>
   Future<std::shared_ptr<const R>> MakeFuture(
       R (*compute)(ThreadPoolCacheRunner*, const T&),
+      const reify::CachedHashReference<T>& x) {
+    return MakeFuture<R, T>(
+        std::function<R(ThreadPoolCacheRunner*, const T&)>(compute), x);
+  }
+
+  template <typename R, typename T>
+  Future<std::shared_ptr<const R>> MakeFuture(
+      const std::function<R(ThreadPoolCacheRunner*, const T&)>& compute,
       const reify::CachedHashReference<T>& x) {
     // Before spawning a new task, quickly see if we have it cached already
     // and just return that.
