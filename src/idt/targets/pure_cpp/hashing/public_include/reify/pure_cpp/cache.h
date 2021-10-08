@@ -69,7 +69,7 @@ class Cache {
         ordering_.push_front(
             {&cache_per_type, hash, estimated_memory_usage_in_bytes});
         approximate_cache_usage_ += estimated_memory_usage_in_bytes;
-        PurgeToCapacity();
+        PurgeToCapacity(std::move(lock));
 
         // And finally return the result or throw the exception.
         return maybe_result;
@@ -136,10 +136,10 @@ class Cache {
 
   void SetCapacity(int64_t capacity) {
     assert(capacity >= 0);
-    std::lock_guard<std::mutex> lock(monitor_mutex_);
+    std::unique_lock<std::mutex> lock(monitor_mutex_);
     capacity_ = capacity;
     // In case capacity has been reduced here, start purging.
-    PurgeToCapacity();
+    PurgeToCapacity(std::move(lock));
   }
 
  private:
@@ -180,8 +180,10 @@ class Cache {
   }
 
   // Remove elements from the cache until we have a total approximate cache
-  // usage of less than or equal to the capacity.
-  void PurgeToCapacity();
+  // usage of less than or equal to the capacity. The lock moved into this
+  // function will be released before the function returns, so that we can
+  // call the destructors of the released elements without holding the lock.
+  void PurgeToCapacity(std::unique_lock<std::mutex> lock_to_release);
 
   // Needed to instantiate condition variables.
   ebb::ThreadPool* thread_pool_;
