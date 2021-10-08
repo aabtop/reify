@@ -10,7 +10,8 @@ echo "Running reify tests..."
 REM It would be nice to just test `//...`, but our "idt" `haskell_library`
 REM target tries to build, and it seems to not do so well when it's built on
 REM its own, attempting to use gcc flags on msvc.
-bazel --output_user_root=C:/_bzl test //src/idt/targets/pure_cpp/... //src/utils/... //src/platform_specific/... -c %BUILD_CONFIG% --symlink_prefix=/ --verbose_failures --test_output=errors
+bazel --output_user_root=C:/_bzl test //src/idt/targets/pure_cpp/hashing/... //src/utils/... //src/platform_specific/... -c %BUILD_CONFIG% --symlink_prefix=/ --verbose_failures --test_output=errors
+if %errorlevel% neq 0 exit /b %errorlevel%
 cd projects\hypo
 echo "Running hypo tests..."
 
