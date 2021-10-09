@@ -1,6 +1,7 @@
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
 
 #include <fmt/format.h>
+#include <inttypes.h>
 
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -14,11 +15,13 @@ namespace imgui {
 RuntimeLayer::RuntimeLayer(
     const std::function<void(std::function<void()>)>& enqueue_task_function,
     DockingLayer* docking_layer, StatusLayer* status_layer,
-    SymbolVisualizer* symbol_visualizer)
+    SymbolVisualizer* symbol_visualizer,
+    const pure_cpp::ThreadPoolCacheRunner& thread_pool_cache_runner)
     : docking_layer_(docking_layer),
       status_layer_(status_layer),
       symbol_visualizer_(symbol_visualizer),
-      self_work_queue_(enqueue_task_function) {}
+      self_work_queue_(enqueue_task_function),
+      thread_pool_cache_runner_(thread_pool_cache_runner) {}
 
 RuntimeLayer::PreviewableSymbols
 RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
@@ -140,6 +143,24 @@ RuntimeLayer::SymbolTreeNode RuntimeLayer::VirtualPathSetToComponentTrie(
 }
 
 void RuntimeLayer::ExecuteImGuiCommands() {
+  {
+    const char* SYSTEM_WINDOW_NAME = "System";
+
+    if (!ImGui::FindWindowByName(SYSTEM_WINDOW_NAME)) {
+      // If this is the first time we're seeing this window, default it into
+      // the docked content menu.
+      ImGui::SetNextWindowDockID(docking_layer_->GetDockedContentNodeId());
+    }
+
+    ImGui::Begin(SYSTEM_WINDOW_NAME);
+    if (ImGui::TreeNodeEx("Cache", ImGuiTreeNodeFlags_DefaultOpen)) {
+      ImGui::Text("Total System Memory: %" PRId64,
+                  thread_pool_cache_runner_.max_cache_capacity());
+      ImGui::TreePop();
+    }
+    ImGui::End();
+  }
+
   // Place this window within the right dock ID by default.
   const char* SELECT_SYMBOL_WINDOW_NAME = "Select Symbol";
   if (!ImGui::FindWindowByName(SELECT_SYMBOL_WINDOW_NAME)) {

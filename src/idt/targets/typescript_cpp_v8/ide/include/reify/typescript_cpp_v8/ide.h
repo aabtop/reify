@@ -12,7 +12,8 @@ namespace reify {
 namespace typescript_cpp_v8 {
 
 int StartIdeWindow(const std::string& window_title,
-                   SymbolVisualizer* symbol_visualizer);
+                   SymbolVisualizer* symbol_visualizer,
+                   const reify::pure_cpp::ThreadPoolCacheRunner& runner);
 
 }  // namespace typescript_cpp_v8
 }  // namespace reify

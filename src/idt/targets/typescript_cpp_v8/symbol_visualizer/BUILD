@@ -99,6 +99,7 @@ cc_library(
         ":imgui_widgets",
         ":imgui_status_layer",
         ":imgui_docking_layer",
+        "//src/platform_specific:system_memory",
         "@imgui//:frontend",
         "@fmtlib",
     ],

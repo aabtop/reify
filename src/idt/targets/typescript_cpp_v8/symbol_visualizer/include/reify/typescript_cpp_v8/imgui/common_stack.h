@@ -23,14 +23,15 @@ namespace imgui {
 struct CommonLayers {
   CommonLayers(
       const std::function<void(std::function<void()>)>& enqueue_task_function,
-      SymbolVisualizer* symbol_visualizer)
+      SymbolVisualizer* symbol_visualizer,
+      const reify::pure_cpp::ThreadPoolCacheRunner& runner)
       : symbol_visualizer_viewport(symbol_visualizer),
         docking_layer(ImGuiDir_Right, 0.2f),
         docking_freespace_to_window_viewport_layer(&symbol_visualizer_viewport,
                                                    &docking_layer),
         status_layer(&docking_layer),
         runtime_layer(enqueue_task_function, &docking_layer, &status_layer,
-                      symbol_visualizer) {}
+                      symbol_visualizer, runner) {}
 
   window::WindowViewport symbol_visualizer_viewport;
   DockingLayer docking_layer;

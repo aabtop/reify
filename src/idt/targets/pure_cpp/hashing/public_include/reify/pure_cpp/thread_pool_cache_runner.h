@@ -14,11 +14,11 @@ class ThreadPoolCacheRunner {
  public:
   ThreadPoolCacheRunner(std::unique_ptr<ebb::ThreadPool> thread_pool)
       : thread_pool_(std::move(thread_pool)),
+        max_cache_capacity_(
+            reify::platform_specific::TotalSystemMemoryCapacityInBytes()),
         // By default we initialize the cache with a capacity of half of the
         // total system memory. This is arbitrarily chosen.
-        cache_(
-            thread_pool_.get(),
-            reify::platform_specific::TotalSystemMemoryCapacityInBytes() / 2) {}
+        cache_(thread_pool_.get(), max_cache_capacity_ / 2) {}
 
   ebb::ThreadPool* thread_pool() const { return thread_pool_.get(); }
 
@@ -152,8 +152,11 @@ class ThreadPoolCacheRunner {
     return cache_.EstimatedMemoryUsageInBytes();
   }
 
+  int64_t max_cache_capacity() const { return max_cache_capacity_; }
+
  private:
   std::unique_ptr<ebb::ThreadPool> thread_pool_;
+  const int64_t max_cache_capacity_;
   Cache cache_;
 };
 

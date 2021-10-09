@@ -19,7 +19,9 @@ namespace typescript_cpp_v8 {
 namespace ide {
 
 MainWindow::MainWindow(const std::string& window_title,
-                       SymbolVisualizer* symbol_visualizer, QWidget* parent)
+                       SymbolVisualizer* symbol_visualizer,
+                       const reify::pure_cpp::ThreadPoolCacheRunner& runner,
+                       QWidget* parent)
     : QMainWindow(parent),
       ui_(new Ui::MainWindow),
       default_title_(QString(window_title.c_str())),
@@ -28,7 +30,7 @@ MainWindow::MainWindow(const std::string& window_title,
           [this](std::function<void()> x) {
             QMetaObject::invokeMethod(this, x);
           },
-          symbol_visualizer_),
+          symbol_visualizer_, runner),
       visualizer_imgui_stack_(
           MergeCommonAndCustomLayers(&visualizer_imgui_common_layers_)),
       visualizer_window_(

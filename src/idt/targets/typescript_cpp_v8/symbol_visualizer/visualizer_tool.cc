@@ -40,14 +40,15 @@ std::variant<int, VisualizerToolOptions> ParseVisualizerToolOptions(
   return options;
 }
 
-utils::MaybeError RunVisualizerTool(const std::string& window_title,
-                                    SymbolVisualizer* symbol_visualizer,
-                                    const VisualizerToolOptions& options) {
+utils::MaybeError RunVisualizerTool(
+    const std::string& window_title, SymbolVisualizer* symbol_visualizer,
+    const reify::pure_cpp::ThreadPoolCacheRunner& runner,
+    const VisualizerToolOptions& options) {
   utils::ThreadWithWorkQueue visualizer_thread;
 
   imgui::CommonLayers imgui_common_layers(
       [&visualizer_thread](auto x) { visualizer_thread.Enqueue(x); },
-      symbol_visualizer);
+      symbol_visualizer, runner);
   imgui::ProjectLayer project_layer(
       &visualizer_thread, &imgui_common_layers.status_layer,
       &imgui_common_layers.runtime_layer, options.project_path);
