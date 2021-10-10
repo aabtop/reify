@@ -30,7 +30,7 @@ class MainWindow : public QMainWindow {
  public:
   MainWindow(const std::string& window_title,
              SymbolVisualizer* symbol_visualizer,
-             const reify::pure_cpp::ThreadPoolCacheRunner& runner,
+             reify::pure_cpp::ThreadPoolCacheRunner* runner,
              QWidget* parent = nullptr);
   ~MainWindow();
 

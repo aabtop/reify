@@ -36,7 +36,7 @@ QPalette DarkModePalette() {
 
 int StartIdeWindow(const std::string& window_title,
                    SymbolVisualizer* symbol_visualizer,
-                   const reify::pure_cpp::ThreadPoolCacheRunner& runner) {
+                   reify::pure_cpp::ThreadPoolCacheRunner* runner) {
   QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   int argc;
   QApplication a(argc, nullptr);

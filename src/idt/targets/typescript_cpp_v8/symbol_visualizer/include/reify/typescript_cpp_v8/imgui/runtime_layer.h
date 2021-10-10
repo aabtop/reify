@@ -22,7 +22,7 @@ class RuntimeLayer {
       const std::function<void(std::function<void()>)>& enqueue_task_function,
       DockingLayer* docking_layer, StatusLayer* status_layer,
       SymbolVisualizer* symbol_visualizer,
-      const pure_cpp::ThreadPoolCacheRunner& thread_pool_cache_runner);
+      pure_cpp::ThreadPoolCacheRunner* thread_pool_cache_runner);
 
   void ExecuteImGuiCommands();
 
@@ -60,7 +60,7 @@ class RuntimeLayer {
   DockingLayer* docking_layer_;
   StatusLayer* status_layer_;
   SymbolVisualizer* symbol_visualizer_;
-  const pure_cpp::ThreadPoolCacheRunner& thread_pool_cache_runner_;
+  pure_cpp::ThreadPoolCacheRunner* thread_pool_cache_runner_;
 
   CompilerEnvironmentThreadSafe::MultiCompileResults compile_results_;
 

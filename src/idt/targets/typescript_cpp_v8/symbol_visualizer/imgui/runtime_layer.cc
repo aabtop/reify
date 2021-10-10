@@ -16,7 +16,7 @@ RuntimeLayer::RuntimeLayer(
     const std::function<void(std::function<void()>)>& enqueue_task_function,
     DockingLayer* docking_layer, StatusLayer* status_layer,
     SymbolVisualizer* symbol_visualizer,
-    const pure_cpp::ThreadPoolCacheRunner& thread_pool_cache_runner)
+    pure_cpp::ThreadPoolCacheRunner* thread_pool_cache_runner)
     : docking_layer_(docking_layer),
       status_layer_(status_layer),
       symbol_visualizer_(symbol_visualizer),
@@ -154,8 +154,41 @@ void RuntimeLayer::ExecuteImGuiCommands() {
 
     ImGui::Begin(SYSTEM_WINDOW_NAME);
     if (ImGui::TreeNodeEx("Cache", ImGuiTreeNodeFlags_DefaultOpen)) {
-      ImGui::Text("Total System Memory: %" PRId64,
-                  thread_pool_cache_runner_.max_cache_capacity());
+      int64_t max_cache_capacity =
+          thread_pool_cache_runner_->MaxCacheCapacity();
+      ImGui::Text("Total System Memory: %" PRId64, max_cache_capacity);
+      int64_t current_cache_capacity =
+          thread_pool_cache_runner_->CurrentCacheCapacity();
+      ImGui::Text("Current Cache Capacity: %" PRId64, current_cache_capacity);
+
+      // Switching to a float here so that the ImGui slider widget can at least
+      // cover the range of numbers here.
+      float current_cache_capacity_float =
+          static_cast<float>(current_cache_capacity);
+      ImGui::SliderFloat("cache capacity float", &current_cache_capacity_float,
+                         0.0f, max_cache_capacity, "cache capacity = %.0f",
+                         ImGuiSliderFlags_AlwaysClamp);
+      int64_t new_cache_capacity =
+          static_cast<int64_t>(current_cache_capacity_float);
+      if (current_cache_capacity != new_cache_capacity) {
+        // The cache capacity has been modified by the user, adjust it
+        // internally.
+        thread_pool_cache_runner_->SetCacheCapacity(new_cache_capacity);
+      }
+
+      int64_t current_cache_usage =
+          thread_pool_cache_runner_->CacheEstimatedMemoryUsageInBytes();
+      ImGui::Text("Current Cache Usage: %" PRId64, current_cache_usage);
+
+      // Switching to a float here so that the ImGui slider widget can at least
+      // cover the range of numbers here.
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      float current_cache_usage_float = static_cast<float>(current_cache_usage);
+      ImGui::SliderFloat("cache usage float", &current_cache_usage_float, 0.0f,
+                         max_cache_capacity, "cache usage = %.0f",
+                         ImGuiSliderFlags_AlwaysClamp);
+      ImGui::PopItemFlag();
+
       ImGui::TreePop();
     }
     ImGui::End();

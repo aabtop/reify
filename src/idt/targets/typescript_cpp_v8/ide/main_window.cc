@@ -20,7 +20,7 @@ namespace ide {
 
 MainWindow::MainWindow(const std::string& window_title,
                        SymbolVisualizer* symbol_visualizer,
-                       const reify::pure_cpp::ThreadPoolCacheRunner& runner,
+                       reify::pure_cpp::ThreadPoolCacheRunner* runner,
                        QWidget* parent)
     : QMainWindow(parent),
       ui_(new Ui::MainWindow),

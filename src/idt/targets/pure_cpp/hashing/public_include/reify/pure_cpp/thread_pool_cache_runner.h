@@ -152,7 +152,9 @@ class ThreadPoolCacheRunner {
     return cache_.EstimatedMemoryUsageInBytes();
   }
 
-  int64_t max_cache_capacity() const { return max_cache_capacity_; }
+  int64_t MaxCacheCapacity() const { return max_cache_capacity_; }
+  int64_t CurrentCacheCapacity() const { return cache_.Capacity(); }
+  void SetCacheCapacity(int64_t capacity) { cache_.SetCapacity(capacity); }
 
  private:
   std::unique_ptr<ebb::ThreadPool> thread_pool_;

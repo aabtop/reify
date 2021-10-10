@@ -42,7 +42,7 @@ std::variant<int, VisualizerToolOptions> ParseVisualizerToolOptions(
 
 utils::MaybeError RunVisualizerTool(
     const std::string& window_title, SymbolVisualizer* symbol_visualizer,
-    const reify::pure_cpp::ThreadPoolCacheRunner& runner,
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
     const VisualizerToolOptions& options) {
   utils::ThreadWithWorkQueue visualizer_thread;
 
