@@ -162,6 +162,8 @@ void RuntimeLayer::ExecuteImGuiCommands() {
       int64_t current_cache_capacity =
           thread_pool_cache_runner_->CurrentCacheCapacity();
 
+      ImGui::PushItemWidth(100);
+
       // Switching to a float here so that the ImGui slider widget can at least
       // cover the range of numbers here.
       float current_cache_capacity_gb_float = current_cache_capacity / GBf;
@@ -181,17 +183,19 @@ void RuntimeLayer::ExecuteImGuiCommands() {
       // Switching to a float here so that the ImGui slider widget can at least
       // cover the range of numbers here.
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.8f);
       float current_cache_usage_gb_float = current_cache_usage / GBf;
-      ImGui::SliderFloat("cache usage", &current_cache_usage_gb_float, 0.0f,
-                         current_cache_capacity_gb_float, "%.2fGB",
+      ImGui::SliderFloat("estimated cache usage", &current_cache_usage_gb_float,
+                         0.0f, current_cache_capacity_gb_float, "%.2fGB",
                          ImGuiSliderFlags_AlwaysClamp);
+      ImGui::PopStyleVar();
       ImGui::PopItemFlag();
-
-      ImGui::TreePop();
+      ImGui::PopItemWidth();
 
       ImGui::Text(
-          "Total memory used by this process: %.2fGB",
+          "Process Memory Usage: %.2fGB",
           reify::platform_specific::MemoryResidentForCurrentProcess() / GBf);
+      ImGui::TreePop();
     }
     ImGui::End();
   }

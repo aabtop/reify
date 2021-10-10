@@ -22,9 +22,9 @@ int64_t MemoryResidentForCurrentProcess() {
   buffer >> size >> resident >> share;
   buffer.close();
 
-  long page_size_kb = sysconf(_SC_PAGE_SIZE) /
-                      1024;  // in case x86-64 is configured to use 2MB pages
-  int64_t rss = resident * page_size_kb;
+  long page_size_in_bytes = sysconf(_SC_PAGE_SIZE);
+  int64_t rss = resident * page_size_in_bytes;
+
   return rss;
 }
 
