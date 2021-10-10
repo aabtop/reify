@@ -21,8 +21,8 @@ RuntimeLayer::RuntimeLayer(
     : docking_layer_(docking_layer),
       status_layer_(status_layer),
       symbol_visualizer_(symbol_visualizer),
-      self_work_queue_(enqueue_task_function),
-      thread_pool_cache_runner_(thread_pool_cache_runner) {}
+      thread_pool_cache_runner_(thread_pool_cache_runner),
+      self_work_queue_(enqueue_task_function) {}
 
 RuntimeLayer::PreviewableSymbols
 RuntimeLayer::ComputePreviewableSymbolsFromCompileResults(
