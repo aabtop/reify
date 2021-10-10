@@ -36,6 +36,8 @@ void Cache::PurgeToCapacity(std::unique_lock<std::mutex> lock_to_release) {
 
       approximate_cache_usage_ -=
           oldest_element_info.estimated_memory_usage_in_bytes;
+      assert(approximate_cache_usage_ >= 0);
+
       ordering_.pop_back();
     }
   }

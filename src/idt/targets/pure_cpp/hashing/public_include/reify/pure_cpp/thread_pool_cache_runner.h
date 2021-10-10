@@ -148,7 +148,7 @@ class ThreadPoolCacheRunner {
     });
   }
 
-  int CacheEstimatedMemoryUsageInBytes() const {
+  int64_t CacheEstimatedMemoryUsageInBytes() const {
     return cache_.EstimatedMemoryUsageInBytes();
   }
 

@@ -5,6 +5,7 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "platform_specific/system_memory.h"
 #include "reify/typescript_cpp_v8/imgui/utils.h"
 #include "reify/typescript_cpp_v8/imgui/widgets.h"
 
@@ -154,22 +155,21 @@ void RuntimeLayer::ExecuteImGuiCommands() {
 
     ImGui::Begin(SYSTEM_WINDOW_NAME);
     if (ImGui::TreeNodeEx("Cache", ImGuiTreeNodeFlags_DefaultOpen)) {
+      constexpr float GBf = 1024 * 1024 * 1024.0f;
       int64_t max_cache_capacity =
           thread_pool_cache_runner_->MaxCacheCapacity();
-      ImGui::Text("Total System Memory: %" PRId64, max_cache_capacity);
+      ImGui::Text("Total System Memory: %.2fGB", max_cache_capacity / GBf);
       int64_t current_cache_capacity =
           thread_pool_cache_runner_->CurrentCacheCapacity();
-      ImGui::Text("Current Cache Capacity: %" PRId64, current_cache_capacity);
 
       // Switching to a float here so that the ImGui slider widget can at least
       // cover the range of numbers here.
-      float current_cache_capacity_float =
-          static_cast<float>(current_cache_capacity);
-      ImGui::SliderFloat("cache capacity float", &current_cache_capacity_float,
-                         0.0f, max_cache_capacity, "cache capacity = %.0f",
+      float current_cache_capacity_gb_float = current_cache_capacity / GBf;
+      ImGui::SliderFloat("cache capacity", &current_cache_capacity_gb_float,
+                         0.0f, max_cache_capacity / GBf, "%.02fGB",
                          ImGuiSliderFlags_AlwaysClamp);
       int64_t new_cache_capacity =
-          static_cast<int64_t>(current_cache_capacity_float);
+          static_cast<int64_t>(current_cache_capacity_gb_float * GBf);
       if (current_cache_capacity != new_cache_capacity) {
         // The cache capacity has been modified by the user, adjust it
         // internally.
@@ -178,18 +178,20 @@ void RuntimeLayer::ExecuteImGuiCommands() {
 
       int64_t current_cache_usage =
           thread_pool_cache_runner_->CacheEstimatedMemoryUsageInBytes();
-      ImGui::Text("Current Cache Usage: %" PRId64, current_cache_usage);
-
       // Switching to a float here so that the ImGui slider widget can at least
       // cover the range of numbers here.
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-      float current_cache_usage_float = static_cast<float>(current_cache_usage);
-      ImGui::SliderFloat("cache usage float", &current_cache_usage_float, 0.0f,
-                         max_cache_capacity, "cache usage = %.0f",
+      float current_cache_usage_gb_float = current_cache_usage / GBf;
+      ImGui::SliderFloat("cache usage", &current_cache_usage_gb_float, 0.0f,
+                         current_cache_capacity_gb_float, "%.2fGB",
                          ImGuiSliderFlags_AlwaysClamp);
       ImGui::PopItemFlag();
 
       ImGui::TreePop();
+
+      ImGui::Text(
+          "Total memory used by this process: %.2fGB",
+          reify::platform_specific::MemoryResidentForCurrentProcess() / GBf);
     }
     ImGui::End();
   }

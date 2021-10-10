@@ -9,6 +9,9 @@ namespace platform_specific {
 // Returns the total available system memory in bytes.
 int64_t TotalSystemMemoryCapacityInBytes();
 
+// Returns the total memory in resident use by the process.
+int64_t MemoryResidentForCurrentProcess();
+
 }  // namespace platform_specific
 }  // namespace reify
 

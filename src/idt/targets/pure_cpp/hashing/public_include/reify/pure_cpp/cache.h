@@ -66,11 +66,14 @@ class Cache {
         // if we've gone over our capacity.
         int64_t estimated_memory_usage_in_bytes =
             reify::pure_cpp::EstimatedMemoryUsageInBytes(*maybe_result);
-        ordering_.push_front(
-            {&cache_per_type, hash, estimated_memory_usage_in_bytes});
-        approximate_cache_usage_ += estimated_memory_usage_in_bytes;
-        PurgeToCapacity(std::move(lock));
-
+        // Don't cache something that requires more memory than the cache's
+        // capacity.
+        if (estimated_memory_usage_in_bytes <= capacity_) {
+          ordering_.push_front(
+              {&cache_per_type, hash, estimated_memory_usage_in_bytes});
+          approximate_cache_usage_ += estimated_memory_usage_in_bytes;
+          PurgeToCapacity(std::move(lock));
+        }
         // And finally return the result or throw the exception.
         return maybe_result;
       } else {
@@ -198,9 +201,9 @@ class Cache {
   int64_t capacity_;
 
   // This datastructure keeps track of the LRU order of the cache elements.
-  // Each element in it keeps a reference to the elements in the CacheMap above
-  // so that it can remove the least recently used elements from it during a
-  // purge if it needs to.
+  // Each element in it keeps a reference to the elements in the CacheMap
+  // above so that it can remove the least recently used elements from it
+  // during a purge if it needs to.
   OrderingContainer ordering_;
 
   int64_t approximate_cache_usage_ = 0;

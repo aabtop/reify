@@ -19,7 +19,12 @@ namespace pure_cpp {
 
 template <>
 int64_t EstimatedMemoryUsageInBytes(const hypo::cgal::Nef_polyhedron_3& x) {
-  return 0;
+  // Empirically discovered by recording before/after memory usage, but probably
+  // wrong.
+  int64_t estimated_memory_usage = 110851 * x.number_of_vertices();
+
+  assert(estimated_memory_usage >= 0);
+  return estimated_memory_usage;
 }
 
 }  // namespace pure_cpp
