@@ -143,4 +143,72 @@ TEST(CacheTest, TestPurging) {
   EXPECT_EQ(computations, 6);
 }
 
+TEST(CacheTest, TestCacheWithZeroCapacity) {
+  ebb::ThreadPool thread_pool(1, DEFAULT_STACK_SIZE,
+                              ebb::ThreadPool::SchedulingPolicy::LIFO);
+  reify::pure_cpp::Cache cache(&thread_pool, 0);
+
+  int computations = 0;
+  auto compute_function = [&computations] {
+    ++computations;
+    return 10;
+  };
+
+  cache.LookupOrCompute<int, int>(1, compute_function);
+  EXPECT_EQ(cache.EstimatedMemoryUsageInBytes(), 0);
+  EXPECT_EQ(computations, 1);
+
+  cache.LookupOrCompute<int, int>(1, compute_function);
+  EXPECT_EQ(cache.EstimatedMemoryUsageInBytes(), 0);
+  EXPECT_EQ(computations, 2);
+
+  cache.LookupOrCompute<int, int>(1, compute_function);
+  EXPECT_EQ(cache.EstimatedMemoryUsageInBytes(), 0);
+  EXPECT_EQ(computations, 3);
+
+  cache.LookupOrCompute<int, int>(2, compute_function);
+  EXPECT_EQ(cache.EstimatedMemoryUsageInBytes(), 0);
+  EXPECT_EQ(computations, 4);
+
+  cache.LookupOrCompute<int, int>(1, compute_function);
+  EXPECT_EQ(cache.EstimatedMemoryUsageInBytes(), 0);
+  EXPECT_EQ(computations, 5);
+}
+
+TEST(CacheTest, TestCacheExceptions) {
+  ebb::ThreadPool thread_pool(1, DEFAULT_STACK_SIZE,
+                              ebb::ThreadPool::SchedulingPolicy::LIFO);
+  reify::pure_cpp::Cache cache(&thread_pool, 1000000);
+
+  struct MyCoolException {};
+
+  int computations = 0;
+  auto compute_function = [&computations]() -> int {
+    ++computations;
+    throw MyCoolException();
+  };
+
+  // To avoid putting template argument angle brackets inside the EXPECT_THROW
+  // invocation, some compilers don't like that.
+  auto lookup_or_compute = [&]() {
+    return cache.LookupOrCompute<int, int>(1, compute_function);
+  };
+
+  EXPECT_THROW(lookup_or_compute(), MyCoolException);
+  int64_t first_cache_usage = cache.EstimatedMemoryUsageInBytes();
+  EXPECT_GT(first_cache_usage, 0);
+  EXPECT_EQ(computations, 1);
+
+  // We expect the exception to now be cached, and that if we were to look it
+  // up it would get rethrown without executing the compute function.
+  EXPECT_THROW(lookup_or_compute(), MyCoolException);
+  EXPECT_EQ(cache.EstimatedMemoryUsageInBytes(), first_cache_usage);
+  EXPECT_EQ(computations, 1);
+
+  auto lookup_only = [&]() { return cache.LookupOnly<int, int>(1); };
+  EXPECT_THROW(lookup_only(), MyCoolException);
+  EXPECT_EQ(cache.EstimatedMemoryUsageInBytes(), first_cache_usage);
+  EXPECT_EQ(computations, 1);
+}
+
 }  // namespace

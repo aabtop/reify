@@ -47,9 +47,34 @@ class Cache {
       }
       monitor_mutex_.lock();
 
-      // Replace the wait list in the cache table with the final results.
-      inserted->second =
-          ResultOrWaitList(std::in_place_index<0>, result_or_exception);
+      int64_t estimated_memory_usage_in_bytes = [&maybe_result]() -> int64_t {
+        if (maybe_result) {
+          // If we successfully computed a new object to cache, update the
+          // number of cached bytes we're currently storing, and maybe purge
+          // cache items if we've gone over our capacity.
+          return reify::pure_cpp::EstimatedMemoryUsageInBytes(*maybe_result);
+        } else {
+          // If this is just an exception, return a very small (though somewhat
+          // arbitrary) amount of memory usage.
+          return 16;
+        }
+      }();
+      // Don't cache something that requires more memory than the cache's
+      // capacity.
+      bool should_cache = estimated_memory_usage_in_bytes <= capacity_;
+
+      if (should_cache) {
+        // Replace the wait list in the cache table with the final results.
+        inserted->second =
+            ResultOrWaitList(std::in_place_index<0>, result_or_exception);
+        ordering_.push_front(
+            {&cache_per_type, hash, estimated_memory_usage_in_bytes});
+        approximate_cache_usage_ += estimated_memory_usage_in_bytes;
+      } else {
+        // Get rid of the cached waitlist, this entry is too big to fit in the
+        // cache.
+        cache_per_type.erase(inserted);
+      }
 
       // And for all our friends who were waiting on the results, make it
       // directly available to them.
@@ -61,19 +86,9 @@ class Cache {
       }
 
       if (maybe_result) {
-        // If we successfully computed a new object to cache, update the number
-        // of cached bytes we're currently storing, and maybe purge cache items
-        // if we've gone over our capacity.
-        int64_t estimated_memory_usage_in_bytes =
-            reify::pure_cpp::EstimatedMemoryUsageInBytes(*maybe_result);
-        // Don't cache something that requires more memory than the cache's
-        // capacity.
-        if (estimated_memory_usage_in_bytes <= capacity_) {
-          ordering_.push_front(
-              {&cache_per_type, hash, estimated_memory_usage_in_bytes});
-          approximate_cache_usage_ += estimated_memory_usage_in_bytes;
-          PurgeToCapacity(std::move(lock));
-        }
+        // We may have added an entry to the cache, so check if we need to purge
+        // it down or not now.
+        PurgeToCapacity(std::move(lock));
         // And finally return the result or throw the exception.
         return maybe_result;
       } else {
