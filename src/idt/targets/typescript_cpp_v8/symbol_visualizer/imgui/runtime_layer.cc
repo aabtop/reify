@@ -144,6 +144,37 @@ RuntimeLayer::SymbolTreeNode RuntimeLayer::VirtualPathSetToComponentTrie(
 }
 
 void RuntimeLayer::ExecuteImGuiCommands() {
+  // Place this window within the right dock ID by default.
+  const char* SELECT_SYMBOL_WINDOW_NAME = "Select Symbol";
+  if (!ImGui::FindWindowByName(SELECT_SYMBOL_WINDOW_NAME)) {
+    // If this is the first time we're seeing this window, default it into
+    // the docked content menu.
+    ImGui::SetNextWindowDockID(docking_layer_->GetDockedContentNodeId());
+  }
+
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 250));
+  ImGui::Begin(SELECT_SYMBOL_WINDOW_NAME);
+
+  if (!previewable_symbols_.empty()) {
+    DisableIf disable_if_pending_preview_results(!!pending_preview_results_);
+    ImGui::PushItemWidth(-1);
+
+    std::set<VirtualFilesystem::AbsolutePath> module_path_set;
+    for (const auto& previewable_symbol : previewable_symbols_) {
+      module_path_set.insert(previewable_symbol.second.module_path);
+    }
+    RenderSymbolTree({}, VirtualPathSetToComponentTrie(module_path_set));
+    ImGui::PopItemWidth();
+  }
+
+  ImGui::End();
+  ImGui::PopStyleVar();
+
+  if (visualizer_window_newly_opened_) {
+    visualizer_window_newly_opened_ = false;
+    ImGui::SetWindowFocus(SELECT_SYMBOL_WINDOW_NAME);
+  }
+
   {
     const char* SYSTEM_WINDOW_NAME = "System";
 
@@ -196,39 +227,13 @@ void RuntimeLayer::ExecuteImGuiCommands() {
           "Process Memory Usage: %.2fGB",
           reify::platform_specific::MemoryResidentForCurrentProcess() / GBf);
       ImGui::TreePop();
+
+      if (ImGui::IsWindowAppearing()) {
+        visualizer_window_newly_opened_ = true;
+      }
     }
     ImGui::End();
   }
-
-  // Place this window within the right dock ID by default.
-  const char* SELECT_SYMBOL_WINDOW_NAME = "Select Symbol";
-  if (!ImGui::FindWindowByName(SELECT_SYMBOL_WINDOW_NAME)) {
-    // If this is the first time we're seeing this window, default it into
-    // the docked content menu.
-    ImGui::SetNextWindowDockID(docking_layer_->GetDockedContentNodeId());
-  }
-
-  if (visualizer_window_newly_opened_) {
-    visualizer_window_newly_opened_ = false;
-    ImGui::SetNextWindowFocus();
-  }
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 250));
-  ImGui::Begin(SELECT_SYMBOL_WINDOW_NAME);
-
-  if (!previewable_symbols_.empty()) {
-    DisableIf disable_if_pending_preview_results(!!pending_preview_results_);
-    ImGui::PushItemWidth(-1);
-
-    std::set<VirtualFilesystem::AbsolutePath> module_path_set;
-    for (const auto& previewable_symbol : previewable_symbols_) {
-      module_path_set.insert(previewable_symbol.second.module_path);
-    }
-    RenderSymbolTree({}, VirtualPathSetToComponentTrie(module_path_set));
-    ImGui::PopItemWidth();
-  }
-
-  ImGui::End();
-  ImGui::PopStyleVar();
 
   if (CompileResultsContainErrors(compile_results_)) {
     const char* ERROR_COMPILER_ERROR_WINDOW_NAME = "Compile Errors";
