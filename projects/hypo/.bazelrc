@@ -4,6 +4,8 @@ build --enable_platform_specific_config
 build --experimental_scale_timeouts=2.0
 
 build:windows --cxxopt=/std:c++17
+build:asan --cxxopt="-fsanitize=address"
+build:asan --linkopt="-fsanitize=address"
 build:windows --features=static_link_msvcrt
 
 build:windows --host_crosstool_top=@rules_haskell_ghc_windows_amd64//:cc_toolchain

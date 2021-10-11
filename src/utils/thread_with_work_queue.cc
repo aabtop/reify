@@ -10,12 +10,15 @@ ThreadWithWorkQueue::ThreadWithWorkQueue()
         while (true) {
           auto next_task = [this]() {
             std::unique_lock lock(mutex_);
+            if (queue_.empty()) {
+              // We potentially signal for an empty queue only *after* we've
+              // finished executing a task, in case that task plans to spawn
+              // additional tasks within it.
+              queue_empty_.notify_all();
+            }
             queue_not_empty_.wait(lock, [this] { return !queue_.empty(); });
             auto next_task = queue_.front();
             queue_.pop();
-            if (queue_.empty()) {
-              queue_empty_.notify_all();
-            }
             return next_task;
           }();
 

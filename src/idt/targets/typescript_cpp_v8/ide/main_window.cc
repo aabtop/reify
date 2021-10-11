@@ -19,39 +19,23 @@ namespace typescript_cpp_v8 {
 namespace ide {
 
 MainWindow::MainWindow(const std::string& window_title,
-                       SymbolVisualizer* symbol_visualizer, QWidget* parent)
+                       SymbolVisualizer* symbol_visualizer,
+                       reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                       QWidget* parent)
     : QMainWindow(parent),
       ui_(new Ui::MainWindow),
       default_title_(QString(window_title.c_str())),
       symbol_visualizer_(symbol_visualizer),
-      visualizer_window_viewport_(symbol_visualizer_),
-      visualizer_imgui_docking_layer_(ImGuiDir_Right, 0.2f),
-      visualizer_imgui_docking_freespace_to_window_viewport_layer_(
-          &visualizer_window_viewport_, &visualizer_imgui_docking_layer_),
-      visualizer_imgui_status_layer_(&visualizer_imgui_docking_layer_),
-      visualizer_imgui_runtime_layer_(
+      visualizer_imgui_common_layers_(
           [this](std::function<void()> x) {
             QMetaObject::invokeMethod(this, x);
           },
-          &visualizer_imgui_docking_layer_, &visualizer_imgui_status_layer_,
-          symbol_visualizer_),
-      visualizer_imgui_stack_({
-          [docking_layer = &visualizer_imgui_docking_layer_]() {
-            docking_layer->ExecuteImGuiCommands();
-          },
-          [status_layer = &visualizer_imgui_status_layer_]() {
-            status_layer->ExecuteImGuiCommands();
-          },
-          [runtime_layer = &visualizer_imgui_runtime_layer_]() {
-            runtime_layer->ExecuteImGuiCommands();
-          },
-          [docking_freespace_to_window_viewport_layer =
-               &visualizer_imgui_docking_freespace_to_window_viewport_layer_]() {
-            docking_freespace_to_window_viewport_layer->ExecuteImGuiCommands();
-          },
-      }),
+          symbol_visualizer_, runner),
+      visualizer_imgui_stack_(
+          MergeCommonAndCustomLayers(&visualizer_imgui_common_layers_)),
       visualizer_window_(
-          {&visualizer_window_viewport_, &visualizer_imgui_stack_}) {
+          {&visualizer_imgui_common_layers_.symbol_visualizer_viewport,
+           &visualizer_imgui_stack_}) {
   ui_->setupUi(this);
 
   ui_->visualizer->setAutoFillBackground(false);
@@ -365,7 +349,7 @@ bool MainWindow::Build(const std::function<void()>& build_complete_callback) {
   auto compile_complete_callback =
       [this, build_complete_callback](
           std::shared_ptr<CompiledModule> compiled_module) {
-        visualizer_imgui_runtime_layer_.SetCompileResults(
+        visualizer_imgui_common_layers_.runtime_layer.SetCompileResults(
             {{*VirtualFilesystem::AbsolutePath::FromComponents(
                   {file_project_ ? file_project_->filepath.filename().string()
                                  : "untitled"}),

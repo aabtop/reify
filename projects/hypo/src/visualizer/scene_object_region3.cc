@@ -67,23 +67,24 @@ FlatShadedTriangleRenderer3::TriangleSoup ConvertToTriangleSoup(
 }  // namespace
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
-CreateSceneObjectRegion3(const hypo::Region3& data) {
-  REIFY_UTILS_ASSIGN_OR_RETURN(polyhedron3,
-                               hypo::cgal::CallCgalAndCatchExceptions(
-                                   &hypo::cgal::ConstructRegion3, data));
+CreateSceneObjectRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                         const hypo::Region3& data) {
+  REIFY_UTILS_ASSIGN_OR_RETURN(
+      polyhedron3, hypo::cgal::CallCgalAndCatchExceptions(
+                       &hypo::cgal::ConstructRegion3, runner, data));
   const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>
       triangle_soup(new FlatShadedTriangleRenderer3::TriangleSoup(
-          ConvertToTriangleSoup(polyhedron3)));
+          ConvertToTriangleSoup(*polyhedron3)));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>(
-      new SceneObjectRegion3(std::move(polyhedron3), triangle_soup));
+      new SceneObjectRegion3(polyhedron3, triangle_soup));
 }
 
 SceneObjectRegion3::SceneObjectRegion3(
-    hypo::cgal::Nef_polyhedron_3&& polyhedron3,
+    const std::shared_ptr<const hypo::cgal::Nef_polyhedron_3>& polyhedron3,
     const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>&
         triangle_soup)
-    : polyhedron3_(std::move(polyhedron3)), triangle_soup_(triangle_soup) {}
+    : polyhedron3_(polyhedron3), triangle_soup_(triangle_soup) {}
 
 SceneObjectRegion3::~SceneObjectRegion3() {}
 
@@ -110,7 +111,7 @@ void SceneObjectRegion3::RenderImGuiWindow() {
         selected_path.replace_extension("stl");
       }
 
-      hypo::cgal::ExportToSTL(polyhedron3_,
+      hypo::cgal::ExportToSTL(*polyhedron3_,
                               std::filesystem::absolute(selected_path));
       export_file_selector_->Close();
     }

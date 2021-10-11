@@ -53,9 +53,11 @@ vcpkg(
 http_archive(
     name = "cgal",
     build_file = "@//:src/bazel/cgal.BUILD",
-    sha256 = "2c242e3f27655bc80b34e2fa5e32187a46003d2d9cd7dbec8fbcbc342cea2fb6",
-    strip_prefix = "/CGAL-5.3",
-    urls = ["https://github.com/CGAL/cgal/releases/download/v5.3/CGAL-5.3.tar.xz"],
+    sha256 = "221f9b894c2d6ab5cf95905f4ad6d87a647517464703e96125e2f316d1eeb695",
+    # This is an internal build of CGAL but we need the bleeding edge because
+    # it contains thread-safety fixes.
+    strip_prefix = "/CGAL-5.4-I-54",
+    urls = ["https://cgal.geometryfactory.com/CGAL/Releases/CGAL-5.4-I-54.tar.gz"],
 )
 
 git_repository(

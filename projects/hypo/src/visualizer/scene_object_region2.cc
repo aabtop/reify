@@ -59,28 +59,31 @@ SceneObjectRegion2::TriangleSoup ConvertToTriangleSoup(
 }  // namespace
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
-CreateSceneObjectRegion2(const hypo::Region2& data) {
-  REIFY_UTILS_ASSIGN_OR_RETURN(polygon_set,
-                               hypo::cgal::CallCgalAndCatchExceptions(
-                                   &hypo::cgal::ConstructRegion2, data));
+CreateSceneObjectRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                         const hypo::Region2& data) {
+  REIFY_UTILS_ASSIGN_OR_RETURN(
+      polygon_set, hypo::cgal::CallCgalAndCatchExceptions(
+                       &hypo::cgal::ConstructRegion2, runner, data));
   const std::shared_ptr<const SceneObjectRegion2::TriangleSoup> triangle_soup(
-      new SceneObjectRegion2::TriangleSoup(ConvertToTriangleSoup(polygon_set)));
+      new SceneObjectRegion2::TriangleSoup(
+          ConvertToTriangleSoup(*polygon_set)));
 
   REIFY_UTILS_ASSIGN_OR_RETURN(
       scene_object_boundary2,
-      CreateSceneObjectBoundary2(reify::New(hypo::BoundaryOfRegion2{data})));
+      CreateSceneObjectBoundary2(runner,
+                                 reify::New(hypo::BoundaryOfRegion2{data})));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>(
-      new SceneObjectRegion2(std::move(polygon_set), triangle_soup,
+      new SceneObjectRegion2(polygon_set, triangle_soup,
                              std::move(scene_object_boundary2)));
 }
 
 SceneObjectRegion2::SceneObjectRegion2(
-    hypo::cgal::Polygon_set_2&& polygon_set,
+    const std::shared_ptr<const hypo::cgal::Polygon_set_2>& polygon_set,
     const std::shared_ptr<const TriangleSoup>& triangle_soup,
     const std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>&
         scene_object_boundary2)
-    : polygon_set_(std::move(polygon_set)),
+    : polygon_set_(polygon_set),
       triangle_soup_(triangle_soup),
       scene_object_boundary2_(scene_object_boundary2) {}
 
@@ -111,7 +114,7 @@ void SceneObjectRegion2::RenderImGuiWindow() {
         selected_path.replace_extension("svg");
       }
 
-      hypo::cgal::ExportRegionToSVG(polygon_set_,
+      hypo::cgal::ExportRegionToSVG(*polygon_set_,
                                     std::filesystem::absolute(selected_path));
       export_file_selector_->Close();
     }

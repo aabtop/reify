@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "reify/pure_cpp/thread_pool_cache_runner.h"
 #include "reify/typescript_cpp_v8/symbol_visualizer.h"
 #include "reify/utils/error.h"
 
@@ -20,6 +21,7 @@ std::variant<int, VisualizerToolOptions> ParseVisualizerToolOptions(
 
 utils::MaybeError RunVisualizerTool(
     const std::string& window_title, SymbolVisualizer* symbol_visualizer,
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
     const VisualizerToolOptions& options = VisualizerToolOptions());
 
 }  // namespace typescript_cpp_v8

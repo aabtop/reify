@@ -7,10 +7,8 @@
 #include <string>
 #include <thread>
 
-#include "reify/typescript_cpp_v8/imgui/docking_freespace_to_window_viewport_layer.h"
+#include "reify/typescript_cpp_v8/imgui/common_stack.h"
 #include "reify/typescript_cpp_v8/imgui/layer_stack.h"
-#include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
-#include "reify/typescript_cpp_v8/imgui/status_layer.h"
 #include "reify/typescript_cpp_v8/symbol_visualizer.h"
 #include "reify/window/window_stack.h"
 #include "src/idt/targets/typescript_cpp_v8/ide/compilation.h"
@@ -31,7 +29,9 @@ class MainWindow : public QMainWindow {
 
  public:
   MainWindow(const std::string& window_title,
-             SymbolVisualizer* symbol_visualizer, QWidget* parent = nullptr);
+             SymbolVisualizer* symbol_visualizer,
+             reify::pure_cpp::ThreadPoolCacheRunner* runner,
+             QWidget* parent = nullptr);
   ~MainWindow();
 
  protected:
@@ -93,13 +93,8 @@ class MainWindow : public QMainWindow {
   QString default_title_;
 
   SymbolVisualizer* symbol_visualizer_;
-  window::WindowViewport visualizer_window_viewport_;
 
-  imgui::DockingLayer visualizer_imgui_docking_layer_;
-  imgui::DockingFreespaceToWindowViewportLayer
-      visualizer_imgui_docking_freespace_to_window_viewport_layer_;
-  imgui::StatusLayer visualizer_imgui_status_layer_;
-  imgui::RuntimeLayer visualizer_imgui_runtime_layer_;
+  imgui::CommonLayers visualizer_imgui_common_layers_;
   imgui::LayerStack visualizer_imgui_stack_;
   window::WindowStack visualizer_window_;
 

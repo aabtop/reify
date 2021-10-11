@@ -7,13 +7,20 @@
 
 #include "cgal/conversions.h"
 #include "cgal/types_polygons.h"
+#include "reify/pure_cpp/cache.h"
 #include "reify/purecpp/hypo.h"
 
 namespace hypo {
 namespace cgal {
 
+using FutureRegion2 = reify::pure_cpp::ThreadPoolCacheRunner::Future<
+    std::shared_ptr<const Polygon_set_2>>;
+using FutureBoundary2 = reify::pure_cpp::ThreadPoolCacheRunner::Future<
+    std::shared_ptr<const Polygon_set_2>>;
+
 namespace {
-Polygon_set_2 ConstructRegion2(const hypo::Polygon& polygon) {
+Polygon_set_2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::Polygon& polygon) {
   Polygon_2 polygon_out;
   polygon_out.container().reserve(polygon.path.size());
 
@@ -28,7 +35,8 @@ Polygon_set_2 ConstructRegion2(const hypo::Polygon& polygon) {
   return Polygon_set_2(polygon_out);
 }
 
-Polygon_set_2 ConstructRegion2(const hypo::CircleAsPolygon& circle_as_polygon) {
+Polygon_set_2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::CircleAsPolygon& circle_as_polygon) {
   Polygon_2 polygon;
   polygon.container().reserve(circle_as_polygon.num_points);
 
@@ -44,7 +52,8 @@ Polygon_set_2 ConstructRegion2(const hypo::CircleAsPolygon& circle_as_polygon) {
   return Polygon_set_2(polygon);
 }
 
-Polygon_set_2 ConstructRegion2(const hypo::Box2& rectangle) {
+Polygon_set_2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::Box2& rectangle) {
   Polygon_2 polygon;
   polygon.container().reserve(3);
 
@@ -65,15 +74,17 @@ Polygon_set_2 ConstructRegion2(const hypo::Box2& rectangle) {
   return Polygon_set_2(polygon);
 }
 
-Polygon_set_2 ConstructRegion2(const hypo::Transform2& x) {
+Polygon_set_2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::Transform2& x) {
   Aff_transformation_2 transform = ToAff_transformation_2(x.transform);
 
-  Polygon_set_2 input_polygon_set(cgal::ConstructRegion2(x.source));
+  std::shared_ptr<const Polygon_set_2> input_polygon_set =
+      cgal::ConstructRegion2(runner, x.source).Get();
 
   std::vector<Polygon_with_holes_2> polygons_with_holes;
   polygons_with_holes.reserve(
-      input_polygon_set.number_of_polygons_with_holes());
-  input_polygon_set.polygons_with_holes(
+      input_polygon_set->number_of_polygons_with_holes());
+  input_polygon_set->polygons_with_holes(
       std::back_inserter(polygons_with_holes));
 
   Polygon_set_2 output;
@@ -95,29 +106,46 @@ Polygon_set_2 ConstructRegion2(const hypo::Transform2& x) {
   return output;
 }
 
-Polygon_set_2 ConstructRegion2(const hypo::Union2& x) {
-  Polygon_set_2 result;
+Polygon_set_2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::Union2& x) {
+  std::vector<FutureRegion2> children;
+  children.reserve(x.regions.size());
   for (const auto& region : x.regions) {
-    result.join(cgal::ConstructRegion2(region));
+    children.push_back(cgal::ConstructRegion2(runner, region));
+  }
+
+  Polygon_set_2 result;
+  for (auto& child : children) {
+    result.join(*child.Get());
   }
   return result;
 }
 
-Polygon_set_2 ConstructRegion2(const hypo::Intersection2& x) {
+Polygon_set_2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::Intersection2& x) {
   if (x.regions.empty()) {
     return Polygon_set_2();
   }
 
-  Polygon_set_2 result(cgal::ConstructRegion2(x.regions[0]));
-  for (auto iter = x.regions.begin() + 1; iter != x.regions.end(); ++iter) {
-    result.intersection(cgal::ConstructRegion2(*iter));
+  std::vector<FutureRegion2> children;
+  children.reserve(x.regions.size());
+  for (const auto& region : x.regions) {
+    children.push_back(cgal::ConstructRegion2(runner, region));
+  }
+
+  Polygon_set_2 result(*children[0].Get());
+  for (auto iter = children.begin() + 1; iter != children.end(); ++iter) {
+    result.intersection(*iter->Get());
   }
   return result;
 }
 
-Polygon_set_2 ConstructRegion2(const hypo::Difference2& x) {
+Polygon_set_2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::Difference2& x) {
+  auto a = cgal::ConstructRegion2(runner, x.a);
+  auto b = cgal::ConstructRegion2(runner, x.b);
   Polygon_set_2 result;
-  result.difference(cgal::ConstructRegion2(x.a), cgal::ConstructRegion2(x.b));
+  result.difference(*a.Get(), *b.Get());
   return result;
 }
 
@@ -141,20 +169,28 @@ Polygon_set_2 MinkowskiSum(const Polygon_set_2& a, const Polygon_set_2& b) {
   return result;
 }
 
-Polygon_set_2 ConstructRegion2(const hypo::MinkowskiSum2& x) {
+Polygon_set_2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::MinkowskiSum2& x) {
   if (x.regions.empty()) {
     return Polygon_set_2();
   }
 
-  Polygon_set_2 result = cgal::ConstructRegion2(x.regions[0]);
-  for (size_t i = 1; i < x.regions.size(); ++i) {
-    result = MinkowskiSum(result, cgal::ConstructRegion2(x.regions[i]));
+  std::vector<FutureRegion2> children;
+  children.reserve(x.regions.size());
+  for (const auto& region : x.regions) {
+    children.push_back(cgal::ConstructRegion2(runner, region));
+  }
+
+  Polygon_set_2 result = *children[0].Get();
+  for (size_t i = 1; i < children.size(); ++i) {
+    result = MinkowskiSum(result, *children[i].Get());
   }
   return result;
 }
 
-Polygon_set_2 ConstructRegion2(const hypo::WidenBoundary2& x) {
-  Polygon_set_2 contours = ConstructBoundary2(x.boundary);
+Polygon_set_2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::WidenBoundary2& x) {
+  Polygon_set_2 contours = *ConstructBoundary2(runner, x.boundary).Get();
   std::vector<Polygon_with_holes_2> contour_polygons_with_holes;
   contour_polygons_with_holes.reserve(contours.number_of_polygons_with_holes());
   contours.polygons_with_holes(std::back_inserter(contour_polygons_with_holes));
@@ -222,21 +258,42 @@ Polygon_set_2 ConstructRegion2(const hypo::WidenBoundary2& x) {
   return result;
 }
 
-Polygon_set_2 ConstructBoundary2(const hypo::BoundaryOfRegion2& x) {
-  return hypo::cgal::ConstructRegion2(x.region);
+Polygon_set_2 ConstructBoundary2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                                 const hypo::BoundaryOfRegion2& x) {
+  return *hypo::cgal::ConstructRegion2(runner, x.region).Get();
 }
 
 }  // namespace
 
-Polygon_set_2 ConstructRegion2(const hypo::Region2& x) {
+FutureRegion2 ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::Region2& x) {
   return std::visit(
-      [](const auto& x) -> Polygon_set_2 { return ConstructRegion2(*x); },
+      [runner](const auto& y) {
+        auto future = runner->MakeFutureWithoutCaching<Polygon_set_2>(
+            &ConstructRegion2, y);
+        future.Get();  // Unfortunately there appears to be race conditions in
+                       // CGAL for 2D operations. I think. So adding this in
+                       // makes all 2D operations single threaded. Check back in
+                       // with CGAL when they update their code, if it's fixed
+                       // remove this Get() and change
+                       // "MakeFutureWithoutCaching" to "MakeFuture". I was able
+                       // to reproduce by checking if all the circles appear in
+                       // the twist_ring.ts CrossSection function. Same for
+                       // Boundary below.
+        return std::move(future);
+      },
       static_cast<const hypo::Region2::AsVariant&>(x));
 }
 
-Polygon_set_2 ConstructBoundary2(const hypo::Boundary2& x) {
+FutureBoundary2 ConstructBoundary2(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner, const hypo::Boundary2& x) {
   return std::visit(
-      [](const auto& x) -> Polygon_set_2 { return ConstructBoundary2(*x); },
+      [runner](const auto& y) {
+        auto future = runner->MakeFutureWithoutCaching<Polygon_set_2>(
+            &ConstructBoundary2, y);
+        future.Get();
+        return std::move(future);
+      },
       static_cast<const hypo::Boundary2::AsVariant&>(x));
 }
 

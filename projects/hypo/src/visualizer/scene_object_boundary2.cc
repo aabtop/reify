@@ -93,23 +93,23 @@ SceneObjectBoundary2::LineSegmentSoup ConvertToLineSegmentSoup(
 }  // namespace
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
-CreateSceneObjectBoundary2(const hypo::Boundary2& data) {
+CreateSceneObjectBoundary2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                           const hypo::Boundary2& data) {
   REIFY_UTILS_ASSIGN_OR_RETURN(
-      polygon_set,
-      cgal::CallCgalAndCatchExceptions(&cgal::ConstructBoundary2, data));
+      polygon_set, cgal::CallCgalAndCatchExceptions(&cgal::ConstructBoundary2,
+                                                    runner, data));
   const std::shared_ptr<const SceneObjectBoundary2::LineSegmentSoup>
       line_segment_soup(new SceneObjectBoundary2::LineSegmentSoup(
-          ConvertToLineSegmentSoup(polygon_set)));
+          ConvertToLineSegmentSoup(*polygon_set)));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>(
-      new SceneObjectBoundary2(std::move(polygon_set), line_segment_soup));
+      new SceneObjectBoundary2(polygon_set, line_segment_soup));
 }
 
 SceneObjectBoundary2::SceneObjectBoundary2(
-    cgal::Polygon_set_2&& polygon_set,
+    const std::shared_ptr<const cgal::Polygon_set_2>& polygon_set,
     const std::shared_ptr<const LineSegmentSoup>& line_segment_soup)
-    : polygon_set_(std::move(polygon_set)),
-      line_segment_soup_(line_segment_soup) {}
+    : polygon_set_(polygon_set), line_segment_soup_(line_segment_soup) {}
 
 SceneObjectBoundary2::~SceneObjectBoundary2() {}
 
@@ -136,7 +136,7 @@ void SceneObjectBoundary2::RenderImGuiWindow() {
         selected_path.replace_extension("svg");
       }
 
-      hypo::cgal::ExportBoundaryToSVG(polygon_set_,
+      hypo::cgal::ExportBoundaryToSVG(*polygon_set_,
                                       std::filesystem::absolute(selected_path));
       export_file_selector_->Close();
     }

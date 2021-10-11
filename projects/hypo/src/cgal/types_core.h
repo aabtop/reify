@@ -8,6 +8,12 @@
 namespace hypo {
 namespace cgal {
 
+// Note that Exact_predicates_exact_constructions_kernel is *not* thread-safe.
+// See
+// https://stackoverflow.com/questions/68086180/problem-with-multi-threaded-construction-of-nef-polyhedrons-from-a-same-polyhedr
+//   - A fix was merged into master on July 27th:
+//   https://github.com/CGAL/cgal/pull/5402
+// For this reason we're using an internal release of CGAL.
 using Kernel = CGAL::Exact_predicates_exact_constructions_kernel;
 
 using Point_2 = Kernel::Point_2;

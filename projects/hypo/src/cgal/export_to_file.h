@@ -13,6 +13,7 @@
 #include "cgal/errors.h"
 #include "export_to_stl.h"
 #include "export_to_svg.h"
+#include "reify/pure_cpp/thread_pool_cache_runner.h"
 #include "reify/purecpp/hypo.h"
 #include "reify/utils/error.h"
 
@@ -27,15 +28,19 @@ struct BuildAndExportResults {
 
 template <typename T>
 auto BuildObject(const T& object) {
+  reify::pure_cpp::ThreadPoolCacheRunner runner(
+      std::make_unique<ebb::ThreadPool>(
+          std::thread::hardware_concurrency(), 256 * 1024,
+          ebb::ThreadPool::SchedulingPolicy::LIFO));
   if constexpr (std::is_same<T, hypo::Region2>::value) {
     return hypo::cgal::CallCgalAndCatchExceptions(&hypo::cgal::ConstructRegion2,
-                                                  object);
+                                                  &runner, object);
   } else if constexpr (std::is_same<T, hypo::Boundary2>::value) {
     return hypo::cgal::CallCgalAndCatchExceptions(
-        &hypo::cgal::ConstructBoundary2, object);
+        &hypo::cgal::ConstructBoundary2, &runner, object);
   } else if constexpr (std::is_same<T, hypo::Region3>::value) {
     return hypo::cgal::CallCgalAndCatchExceptions(&hypo::cgal::ConstructRegion3,
-                                                  object);
+                                                  &runner, object);
   } else {
     assert(false);
   }
@@ -58,16 +63,16 @@ reify::utils::ErrorOr<BuildAndExportResults> BuildAndExportToFile(
   bool export_success = false;
   if constexpr (std::is_same<T, hypo::Region2>::value) {
     results.output_filepath = output_base_filepath + ".svg";
-    export_success = hypo::cgal::ExportRegionToSVG(std::move(built_region),
-                                                   results.output_filepath);
+    export_success =
+        hypo::cgal::ExportRegionToSVG(*built_region, results.output_filepath);
   } else if constexpr (std::is_same<T, hypo::Boundary2>::value) {
     results.output_filepath = output_base_filepath + ".svg";
-    export_success = hypo::cgal::ExportBoundaryToSVG(std::move(built_region),
-                                                     results.output_filepath);
+    export_success =
+        hypo::cgal::ExportBoundaryToSVG(*built_region, results.output_filepath);
   } else if constexpr (std::is_same<T, hypo::Region3>::value) {
     results.output_filepath = output_base_filepath + ".stl";
-    export_success = hypo::cgal::ExportToSTL(std::move(built_region),
-                                             results.output_filepath);
+    export_success =
+        hypo::cgal::ExportToSTL(*built_region, results.output_filepath);
   } else {
     assert(false);
     return reify::utils::Error{"Unexpected build object type."};

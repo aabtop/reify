@@ -99,6 +99,8 @@ cc_library(
         ":imgui_widgets",
         ":imgui_status_layer",
         ":imgui_docking_layer",
+        "//src/idt/targets/pure_cpp/hashing:thread_pool_cache_runner",
+        "//src/platform_specific:system_memory",
         "@imgui//:frontend",
         "@fmtlib",
     ],
@@ -155,11 +157,11 @@ cc_library(
 )
 
 cc_library(
-    name = "visualizer_tool",
+    name = "imgui_common_stack",
     srcs = [
-        "visualizer_tool.cc",
+        "imgui/common_stack.cc",
     ],
-    hdrs = ["include/reify/typescript_cpp_v8/visualizer_tool.h"],
+    hdrs = ["include/reify/typescript_cpp_v8/imgui/common_stack.h"],
     includes = [
         "include",
     ],
@@ -172,10 +174,28 @@ cc_library(
         ":imgui_status_layer",
         ":imgui_docking_layer",
         ":imgui_docking_freespace_to_window_viewport_layer",
+    ],
+)
+
+cc_library(
+    name = "visualizer_tool",
+    srcs = [
+        "visualizer_tool.cc",
+    ],
+    hdrs = ["include/reify/typescript_cpp_v8/visualizer_tool.h"],
+    includes = [
+        "include",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":imgui_common_stack",
+        ":imgui_layer_stack",
+        ":imgui_project_layer",
+        "//src/idt/targets/pure_cpp/hashing:thread_pool_cache_runner",
         "//src/window:window_utils",
         "//src/window:platform_window_wrapper",
         "//src/utils",
-        "//third_party:CLI11",
+        "@CLI11",
         "@fmtlib",
     ],
 )

@@ -142,15 +142,18 @@ int main(int argc, char* argv[]) {
   }
   auto results = std::move(std::get<1>(maybe_result));
 
-  auto build_results = BuildOutputAndSaveToFile(&(*results->runtime_env),
-                                                results->entry_point_symbol,
-                                                output_file_basepath);
+  try {
+    auto build_results = BuildOutputAndSaveToFile(&(*results->runtime_env),
+                                                  results->entry_point_symbol,
+                                                  output_file_basepath);
+    if (!build_results) {
+      return 1;
+    }
 
-  if (!build_results) {
-    return 1;
+    PrintResultsInformation(std::cerr, results->compile_time, *build_results);
+  } catch (...) {
+    std::cerr << "Top level catch. " << std::endl;
   }
-
-  PrintResultsInformation(std::cerr, results->compile_time, *build_results);
 
   return 0;
 }

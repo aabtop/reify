@@ -33,4 +33,5 @@ cc_test(
         ":utils",
         "@com_google_googletest//:gtest_main",
     ],
+    size="small",
 )

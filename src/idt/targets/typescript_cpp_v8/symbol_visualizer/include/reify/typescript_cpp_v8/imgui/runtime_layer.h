@@ -4,6 +4,7 @@
 #include <map>
 #include <optional>
 
+#include "reify/pure_cpp/thread_pool_cache_runner.h"
 #include "reify/typescript_cpp_v8/imgui/docking_layer.h"
 #include "reify/typescript_cpp_v8/imgui/status_layer.h"
 #include "reify/typescript_cpp_v8/symbol_visualizer.h"
@@ -20,7 +21,8 @@ class RuntimeLayer {
   RuntimeLayer(
       const std::function<void(std::function<void()>)>& enqueue_task_function,
       DockingLayer* docking_layer, StatusLayer* status_layer,
-      SymbolVisualizer* symbol_visualizer);
+      SymbolVisualizer* symbol_visualizer,
+      pure_cpp::ThreadPoolCacheRunner* thread_pool_cache_runner);
 
   void ExecuteImGuiCommands();
 
@@ -58,6 +60,8 @@ class RuntimeLayer {
   DockingLayer* docking_layer_;
   StatusLayer* status_layer_;
   SymbolVisualizer* symbol_visualizer_;
+  pure_cpp::ThreadPoolCacheRunner* thread_pool_cache_runner_;
+
   CompilerEnvironmentThreadSafe::MultiCompileResults compile_results_;
 
   std::optional<utils::Error> preview_error_;

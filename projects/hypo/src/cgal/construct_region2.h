@@ -4,14 +4,21 @@
 #include <memory>
 
 #include "cgal/types_polygons.h"
+#include "reify/pure_cpp/thread_pool_cache_runner.h"
 #include "reify/purecpp/hypo.h"
 
 namespace hypo {
 namespace cgal {
 
-Polygon_set_2 ConstructRegion2(const hypo::Region2& x);
+reify::pure_cpp::ThreadPoolCacheRunner::Future<
+    std::shared_ptr<const Polygon_set_2>>
+ConstructRegion2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                 const hypo::Region2& x);
 
-Polygon_set_2 ConstructBoundary2(const hypo::Boundary2& x);
+reify::pure_cpp::ThreadPoolCacheRunner::Future<
+    std::shared_ptr<const Polygon_set_2>>
+ConstructBoundary2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                   const hypo::Boundary2& x);
 
 }  // namespace cgal
 }  // namespace hypo

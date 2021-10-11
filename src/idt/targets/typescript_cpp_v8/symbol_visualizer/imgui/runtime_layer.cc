@@ -1,9 +1,11 @@
 #include "reify/typescript_cpp_v8/imgui/runtime_layer.h"
 
 #include <fmt/format.h>
+#include <inttypes.h>
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "platform_specific/system_memory.h"
 #include "reify/typescript_cpp_v8/imgui/utils.h"
 #include "reify/typescript_cpp_v8/imgui/widgets.h"
 
@@ -14,10 +16,12 @@ namespace imgui {
 RuntimeLayer::RuntimeLayer(
     const std::function<void(std::function<void()>)>& enqueue_task_function,
     DockingLayer* docking_layer, StatusLayer* status_layer,
-    SymbolVisualizer* symbol_visualizer)
+    SymbolVisualizer* symbol_visualizer,
+    pure_cpp::ThreadPoolCacheRunner* thread_pool_cache_runner)
     : docking_layer_(docking_layer),
       status_layer_(status_layer),
       symbol_visualizer_(symbol_visualizer),
+      thread_pool_cache_runner_(thread_pool_cache_runner),
       self_work_queue_(enqueue_task_function) {}
 
 RuntimeLayer::PreviewableSymbols
@@ -148,10 +152,6 @@ void RuntimeLayer::ExecuteImGuiCommands() {
     ImGui::SetNextWindowDockID(docking_layer_->GetDockedContentNodeId());
   }
 
-  if (visualizer_window_newly_opened_) {
-    visualizer_window_newly_opened_ = false;
-    ImGui::SetNextWindowFocus();
-  }
   ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 250));
   ImGui::Begin(SELECT_SYMBOL_WINDOW_NAME);
 
@@ -169,6 +169,71 @@ void RuntimeLayer::ExecuteImGuiCommands() {
 
   ImGui::End();
   ImGui::PopStyleVar();
+
+  if (visualizer_window_newly_opened_) {
+    visualizer_window_newly_opened_ = false;
+    ImGui::SetWindowFocus(SELECT_SYMBOL_WINDOW_NAME);
+  }
+
+  {
+    const char* SYSTEM_WINDOW_NAME = "System";
+
+    if (!ImGui::FindWindowByName(SYSTEM_WINDOW_NAME)) {
+      // If this is the first time we're seeing this window, default it into
+      // the docked content menu.
+      ImGui::SetNextWindowDockID(docking_layer_->GetDockedContentNodeId());
+    }
+
+    ImGui::Begin(SYSTEM_WINDOW_NAME);
+    if (ImGui::TreeNodeEx("Cache", ImGuiTreeNodeFlags_DefaultOpen)) {
+      constexpr float GBf = 1024 * 1024 * 1024.0f;
+      int64_t max_cache_capacity =
+          thread_pool_cache_runner_->MaxCacheCapacity();
+      ImGui::Text("Total System Memory: %.2fGB", max_cache_capacity / GBf);
+      int64_t current_cache_capacity =
+          thread_pool_cache_runner_->CurrentCacheCapacity();
+
+      ImGui::PushItemWidth(100);
+
+      // Switching to a float here so that the ImGui slider widget can at least
+      // cover the range of numbers here.
+      float current_cache_capacity_gb_float = current_cache_capacity / GBf;
+      ImGui::SliderFloat("cache capacity", &current_cache_capacity_gb_float,
+                         0.0f, max_cache_capacity / GBf, "%.02fGB",
+                         ImGuiSliderFlags_AlwaysClamp);
+      int64_t new_cache_capacity =
+          static_cast<int64_t>(current_cache_capacity_gb_float * GBf);
+      if (current_cache_capacity != new_cache_capacity) {
+        // The cache capacity has been modified by the user, adjust it
+        // internally.
+        thread_pool_cache_runner_->SetCacheCapacity(new_cache_capacity);
+      }
+
+      int64_t current_cache_usage =
+          thread_pool_cache_runner_->CacheEstimatedMemoryUsageInBytes();
+      // Switching to a float here so that the ImGui slider widget can at least
+      // cover the range of numbers here.
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.8f);
+      float current_cache_usage_gb_float = current_cache_usage / GBf;
+      ImGui::SliderFloat("estimated cache usage", &current_cache_usage_gb_float,
+                         0.0f, current_cache_capacity_gb_float, "%.2fGB",
+                         ImGuiSliderFlags_AlwaysClamp);
+      ImGui::PopStyleVar();
+      ImGui::PopItemFlag();
+      ImGui::PopItemWidth();
+
+      ImGui::Text(
+          "Process Memory Usage: %.2fGB",
+          reify::platform_specific::MemoryResidentForCurrentProcess() / GBf);
+      ImGui::TreePop();
+
+      if (ImGui::IsWindowAppearing()) {
+        visualizer_window_newly_opened_ = true;
+      }
+    }
+    ImGui::End();
+  }
 
   if (CompileResultsContainErrors(compile_results_)) {
     const char* ERROR_COMPILER_ERROR_WINDOW_NAME = "Compile Errors";
