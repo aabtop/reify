@@ -6,7 +6,7 @@
 #include <optional>
 #include <string>
 
-#include "cgal/types_nef_polyhedron_3.h"
+#include "cgal/types_surface_mesh.h"
 #include "reify/pure_cpp/scene_visualizer.h"
 #include "reify/pure_cpp/scene_visualizer_camera_3d_arcball.h"
 #include "reify/pure_cpp/thread_pool_cache_runner.h"
@@ -30,7 +30,7 @@ class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
                            public reify::pure_cpp::ImGuiVisualizer {
  public:
   SceneObjectRegion3(
-      const std::shared_ptr<const hypo::cgal::Nef_polyhedron_3>& polyhedron3,
+      const std::shared_ptr<const hypo::cgal::Surface_mesh>& surface_mesh,
       const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>&
           triangle_soup);
   ~SceneObjectRegion3();
@@ -50,7 +50,7 @@ class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
   void RenderImGuiWindow() override;
 
  private:
-  const std::shared_ptr<const hypo::cgal::Nef_polyhedron_3> polyhedron3_;
+  const std::shared_ptr<const hypo::cgal::Surface_mesh> surface_mesh_;
   const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>
       triangle_soup_;
 

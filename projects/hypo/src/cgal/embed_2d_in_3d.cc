@@ -140,7 +140,7 @@ Constrained_Delaunay_triangulation_2 TriangulatePolygonSet(
   return cdt;
 }
 
-Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
+Surface_mesh EmbedPolygonSetAs3DSurfaceMesh(
     const Polygon_set_2& polygon_set,
     const std::vector<hypo::Matrix43>& transforms, bool closed) {
   Constrained_Delaunay_triangulation_2 cdt = TriangulatePolygonSet(polygon_set);
@@ -151,8 +151,7 @@ Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
 
   ExtrudeMeshWithTransformList(input_as_mesh, extruded_mesh, transforms,
                                closed);
-
-  return Nef_polyhedron_3(extruded_mesh);
+  return extruded_mesh;
 }
 
 }  // namespace cgal

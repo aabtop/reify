@@ -1,6 +1,6 @@
 #include "cgal/export_to_stl.h"
 
-#include <CGAL/boost/graph/convert_nef_polyhedron_to_polygon_mesh.h>
+#include <CGAL/Polygon_mesh_processing/polygon_mesh_to_polygon_soup.h>
 
 #include <filesystem>
 #include <fstream>
@@ -10,12 +10,12 @@
 namespace hypo {
 namespace cgal {
 
-bool ExportToSTL(const Nef_polyhedron_3& polyhedron,
+bool ExportToSTL(const Surface_mesh& mesh,
                  const std::filesystem::path& output_filepath) {
   std::vector<Point_3> vertices;
   std::vector<std::vector<size_t>> faces;
-  CGAL::convert_nef_polyhedron_to_polygon_soup(polyhedron, vertices, faces,
-                                               true);
+  CGAL::Polygon_mesh_processing::polygon_mesh_to_polygon_soup(mesh, vertices,
+                                                              faces);
 
   std::ostringstream out;
 

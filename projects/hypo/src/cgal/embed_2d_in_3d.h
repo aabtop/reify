@@ -32,7 +32,7 @@ using Constrained_Delaunay_triangulation_2 =
 
 Constrained_Delaunay_triangulation_2 TriangulatePolygonSet(
     const Polygon_set_2& polygon_set);
-Nef_polyhedron_3 EmbedPolygonSetAs3DSurfaceMesh(
+Surface_mesh EmbedPolygonSetAs3DSurfaceMesh(
     const Polygon_set_2& polygon_set,
     const std::vector<hypo::Matrix43>& transforms, bool closed);
 

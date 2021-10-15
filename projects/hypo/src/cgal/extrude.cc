@@ -1,6 +1,7 @@
 #include "cgal/extrude.h"
 
 #include <CGAL/Polygon_mesh_processing/extrude.h>
+#include <CGAL/Polygon_mesh_processing/orientation.h>
 #include <CGAL/boost/graph/Euler_operations.h>
 #include <CGAL/boost/graph/named_params_helper.h>
 
@@ -270,6 +271,7 @@ void ExtrudeMeshWithTransformList(const Surface_mesh& input,
 
   CGAL_assertion(output.is_valid());
   CGAL_assertion(CGAL::is_closed(output));
+  CGAL::Polygon_mesh_processing::orient_to_bound_a_volume(output);
 }  // namespace cgal
 
 }  // namespace cgal

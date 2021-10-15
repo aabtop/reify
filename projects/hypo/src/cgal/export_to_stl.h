@@ -3,12 +3,12 @@
 
 #include <filesystem>
 
-#include "cgal/types_nef_polyhedron_3.h"
+#include "cgal/types_surface_mesh.h"
 
 namespace hypo {
 namespace cgal {
 
-bool ExportToSTL(const Nef_polyhedron_3& polyhedron,
+bool ExportToSTL(const Surface_mesh& mesh,
                  const std::filesystem::path& output_filepath);
 
 }  // namespace cgal

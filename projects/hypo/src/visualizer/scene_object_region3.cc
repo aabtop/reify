@@ -1,6 +1,7 @@
 #include "src/visualizer/scene_object_region3.h"
 
-#include <CGAL/boost/graph/convert_nef_polyhedron_to_polygon_mesh.h>
+#include <CGAL/Polygon_mesh_processing/polygon_mesh_to_polygon_soup.h>
+#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
 
 #include <thread>
 
@@ -13,6 +14,7 @@
 #include "cgal/errors.h"
 #include "cgal/export_to_stl.h"
 #include "cgal/types_nef_polyhedron_3.h"
+#include "cgal/types_surface_mesh.h"
 #include "reify/purecpp/hypo.h"
 
 namespace hypo {
@@ -20,11 +22,21 @@ namespace visualizer {
 
 namespace {
 FlatShadedTriangleRenderer3::TriangleSoup ConvertToTriangleSoup(
-    const hypo::cgal::Nef_polyhedron_3& polyhedron) {
+    const hypo::cgal::Surface_mesh& mesh) {
   std::vector<hypo::cgal::Point_3> cgal_vertices;
   std::vector<std::vector<size_t>> cgal_faces;
-  CGAL::convert_nef_polyhedron_to_polygon_soup(polyhedron, cgal_vertices,
-                                               cgal_faces, true);
+  try {
+    hypo::cgal::Surface_mesh triangulated_mesh = mesh;
+    CGAL::Polygon_mesh_processing::triangulate_faces(triangulated_mesh);
+    CGAL::Polygon_mesh_processing::polygon_mesh_to_polygon_soup(
+        triangulated_mesh, cgal_vertices, cgal_faces);
+
+  } catch (const CGAL::Failure_exception& e) {
+    std::cerr << "Error while converting mesh to polygon soup." << std::endl;
+    return FlatShadedTriangleRenderer3::TriangleSoup{
+        std::vector<FlatShadedTriangleRenderer3::TriangleSoup::Vertex>(),
+        std::vector<FlatShadedTriangleRenderer3::TriangleSoup::Triangle>()};
+  }
 
   std::vector<FlatShadedTriangleRenderer3::TriangleSoup::Triangle> triangles;
   triangles.reserve(cgal_faces.size());
@@ -70,21 +82,21 @@ reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
 CreateSceneObjectRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                          const hypo::Region3& data) {
   REIFY_UTILS_ASSIGN_OR_RETURN(
-      polyhedron3, hypo::cgal::CallCgalAndCatchExceptions(
-                       &hypo::cgal::ConstructRegion3, runner, data));
+      surface_mesh, hypo::cgal::CallCgalAndCatchExceptions(
+                        &hypo::cgal::ConstructRegion3, runner, data));
   const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>
       triangle_soup(new FlatShadedTriangleRenderer3::TriangleSoup(
-          ConvertToTriangleSoup(*polyhedron3)));
+          ConvertToTriangleSoup(*surface_mesh)));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>(
-      new SceneObjectRegion3(polyhedron3, triangle_soup));
+      new SceneObjectRegion3(surface_mesh, triangle_soup));
 }
 
 SceneObjectRegion3::SceneObjectRegion3(
-    const std::shared_ptr<const hypo::cgal::Nef_polyhedron_3>& polyhedron3,
+    const std::shared_ptr<const hypo::cgal::Surface_mesh>& surface_mesh,
     const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>&
         triangle_soup)
-    : polyhedron3_(polyhedron3), triangle_soup_(triangle_soup) {}
+    : surface_mesh_(surface_mesh), triangle_soup_(triangle_soup) {}
 
 SceneObjectRegion3::~SceneObjectRegion3() {}
 
@@ -111,7 +123,7 @@ void SceneObjectRegion3::RenderImGuiWindow() {
         selected_path.replace_extension("stl");
       }
 
-      hypo::cgal::ExportToSTL(*polyhedron3_,
+      hypo::cgal::ExportToSTL(*surface_mesh_,
                               std::filesystem::absolute(selected_path));
       export_file_selector_->Close();
     }

@@ -11,10 +11,9 @@
 namespace hypo {
 namespace cgal {
 
-Nef_polyhedron_3 Subdivide(const Nef_polyhedron_3& src,
-                           hypo::SubdivideMethod method, int iterations) {
-  Surface_mesh work_mesh;
-  CGAL::convert_nef_polyhedron_to_polygon_mesh(src, work_mesh);
+Surface_mesh Subdivide(const Surface_mesh& src, hypo::SubdivideMethod method,
+                       int iterations) {
+  Surface_mesh work_mesh(src);
 
   switch (method) {
     case hypo::SubdivideMethod::Loop: {
@@ -30,7 +29,7 @@ Nef_polyhedron_3 Subdivide(const Nef_polyhedron_3& src,
     } break;
   }
 
-  return Nef_polyhedron_3(work_mesh);
+  return work_mesh;
 }
 
 class SphereProjection_mask_3 {
@@ -74,16 +73,15 @@ class SphereProjection_mask_3 {
   Vertex_pmap vpm_;
 };
 
-Nef_polyhedron_3 SubdivideSphere(const Nef_polyhedron_3& src,
-                                 const hypo::Sphere& sphere, int iterations) {
-  Surface_mesh work_mesh;
-  CGAL::convert_nef_polyhedron_to_polygon_mesh(src, work_mesh);
+Surface_mesh SubdivideSphere(const Surface_mesh& src,
+                             const hypo::Sphere& sphere, int iterations) {
+  Surface_mesh work_mesh(src);
 
   CGAL::Subdivision_method_3::PTQ(
       work_mesh, SphereProjection_mask_3(sphere, &work_mesh),
       CGAL::parameters::number_of_iterations(iterations));
 
-  return Nef_polyhedron_3(work_mesh);
+  return work_mesh;
 }
 
 }  // namespace cgal
