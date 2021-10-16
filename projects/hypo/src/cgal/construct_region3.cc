@@ -2,6 +2,7 @@
 
 #include <CGAL/Nef_2/debug.h>  // This is needed because I think CGAL's Sphere_circle.h mistakenly forgets to include this file, and if you're not coincidentally pre-including the right things before including this one it causes compiler errors.
 #include <CGAL/Polygon_mesh_processing/corefinement.h>
+#include <CGAL/Polygon_mesh_processing/orientation.h>
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 #include <CGAL/Polygon_mesh_processing/transform.h>
 #include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
@@ -112,6 +113,10 @@ const Surface_mesh& MaybeTriangulateAndGetReference(
 
 Surface_mesh ConstructRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                               const hypo::Union3& x) {
+  if (x.regions.empty()) {
+    return Surface_mesh();
+  }
+
   if (x.regions.size() <= 3) {
     std::vector<FutureRegion3> children;
     children.reserve(x.regions.size());

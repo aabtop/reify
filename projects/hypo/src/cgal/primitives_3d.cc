@@ -1,5 +1,6 @@
 #include "cgal/primitives_3d.h"
 
+#include <CGAL/Polygon_mesh_processing/orientation.h>
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 
 #include <array>
@@ -33,6 +34,11 @@ Surface_mesh MakeUnitIcosahedronMesh() {
   Surface_mesh mesh;
   CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(
       icosahedron_points, icosahedron_triangles, mesh);
+
+  assert(CGAL::is_closed(mesh));
+  assert(CGAL::Polygon_mesh_processing::is_outward_oriented(mesh));
+  assert(CGAL::Polygon_mesh_processing::does_bound_a_volume(mesh));
+
   return mesh;
 }
 
@@ -61,6 +67,11 @@ Surface_mesh MakeUnitOctahedronMesh() {
   Surface_mesh mesh;
   CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(
       octahedron_points, octahedron_triangles, mesh);
+
+  assert(CGAL::is_closed(mesh));
+  assert(CGAL::Polygon_mesh_processing::is_outward_oriented(mesh));
+  assert(CGAL::Polygon_mesh_processing::does_bound_a_volume(mesh));
+
   return mesh;
 }
 
@@ -94,6 +105,11 @@ Surface_mesh MakeUnitBoxMesh() {
   Surface_mesh mesh;
   CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(
       box_points, box_triangles, mesh);
+
+  assert(CGAL::is_closed(mesh));
+  assert(CGAL::Polygon_mesh_processing::is_outward_oriented(mesh));
+  assert(CGAL::Polygon_mesh_processing::does_bound_a_volume(mesh));
+
   return mesh;
 }
 
