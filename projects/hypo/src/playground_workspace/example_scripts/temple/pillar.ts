@@ -32,14 +32,14 @@ export function Base() {
 export function CoreCrossSection() {
   const RADIUS = 4;
   const NUM_POINTS = 20;
-  const NUM_DIVETS = 30;
+  const NUM_DIVETS = 20;
 
-  const NUM_POINTS_IN_DIVET = 20;
-  const DIVET_RADIUS = 0.45;
-  const DIVET_OFFSET = 0.15;
+  const NUM_POINTS_IN_DIVET = 10;
+  const DIVET_RADIUS = 0.68;
+  const DIVET_OFFSET = 0.23;
 
-  const SMOOTHING_CIRCLE_RADIUS = 0.05;
-  const SMOOTHING_CIRCLE_NUM_POINTS = 20;
+  const SMOOTHING_CIRCLE_RADIUS = 0.15;
+  const SMOOTHING_CIRCLE_NUM_POINTS = 5;
 
   const base = h.CircleAsPolygon({
     circle: h.Circle({
@@ -51,28 +51,21 @@ export function CoreCrossSection() {
 
   const divets = [...Array(NUM_DIVETS).keys()].map((i) => {
     const divetAngleInRadians = (i / NUM_DIVETS) * Math.PI * 2;
-    const divetX = Math.cos(divetAngleInRadians) * (RADIUS + DIVET_OFFSET);
-    const divetY = Math.sin(divetAngleInRadians) * (RADIUS + DIVET_OFFSET);
-    return h.CircleAsPolygon({
-      circle: {
-        radius: DIVET_RADIUS,
-        center: [divetX, divetY],
-      },
-      num_points: NUM_POINTS_IN_DIVET,
+    return h.Transform2({
+      source: h.CircleAsPolygon({
+        circle: {
+          radius: DIVET_RADIUS,
+          center: [0, 0],
+        },
+        num_points: NUM_POINTS_IN_DIVET,
+      }),
+      transform: h.MMul3(h.Rotate2(divetAngleInRadians * 180.0 / Math.PI), h.Translate2([RADIUS + DIVET_OFFSET, 0]))
     });
   });
 
   const sharp = h.Difference2({ a: base, b: h.Union2({ regions: divets }) });
 
-  return h.MinkowskiSum2({
-    regions: [
-      sharp,
-      h.CircleAsPolygon({
-        circle: { radius: SMOOTHING_CIRCLE_RADIUS, center: [0, 0] },
-        num_points: SMOOTHING_CIRCLE_NUM_POINTS,
-      })
-    ],
-  });
+  return sharp;
 }
 
 function Core(height: number) {
