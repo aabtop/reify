@@ -161,18 +161,6 @@ void ProjectLayer::ExecuteImGuiCommands() {
 
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 8));
   if (ImGui::BeginMainMenuBar()) {
-    Action create_project_directory_action(
-        "Create project directory",
-        [this] {
-          file_dialog_ =
-              FileDialog{FileDialog::Action::CreateProjectDirectory,
-                         std::make_unique<ImGui::FileBrowser>(
-                             ImGuiFileBrowserFlags_CloseOnEsc |
-                             ImGuiFileBrowserFlags_EnterNewFilename)};
-          file_dialog_->file_browser->SetTitle("Create project directory");
-          file_dialog_->file_browser->Open();
-        },
-        !file_dialog_);
     Action open_file_action(
         "Open file",
         [this] {
@@ -195,11 +183,24 @@ void ProjectLayer::ExecuteImGuiCommands() {
           file_dialog_->file_browser->Open();
         },
         !file_dialog_);
+    Action create_project_directory_action(
+        "Create project directory",
+        [this] {
+          file_dialog_ =
+              FileDialog{FileDialog::Action::CreateProjectDirectory,
+                         std::make_unique<ImGui::FileBrowser>(
+                             ImGuiFileBrowserFlags_CloseOnEsc |
+                             ImGuiFileBrowserFlags_EnterNewFilename)};
+          file_dialog_->file_browser->SetTitle("Create project directory");
+          file_dialog_->file_browser->Open();
+        },
+        !file_dialog_);
 
     if (ImGui::BeginMenu("File")) {
-      create_project_directory_action.MenuItem(true);
       open_file_action.MenuItem(true);
       open_dir_action.MenuItem(true);
+      ImGui::Separator();
+      create_project_directory_action.MenuItem(true);
       ImGui::EndMenu();
     }
 
