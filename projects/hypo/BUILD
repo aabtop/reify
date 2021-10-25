@@ -36,10 +36,14 @@ idt_as_typescript_cpp_v8(
 cc_library(
     name = "hypo_lib",
     srcs = [
+        "src/cgal/construct_mesh3.cc",
+        "src/cgal/construct_mesh3.h",
         "src/cgal/construct_region2.cc",
         "src/cgal/construct_region2.h",
         "src/cgal/construct_region3.cc",
         "src/cgal/construct_region3.h",
+        "src/cgal/construct_trianglesoup3.cc",
+        "src/cgal/construct_trianglesoup3.h",
         "src/cgal/conversions.h",
         "src/cgal/embed_2d_in_3d.cc",
         "src/cgal/embed_2d_in_3d.h",
@@ -58,6 +62,7 @@ cc_library(
         "src/cgal/types_nef_polyhedron_3.h",
         "src/cgal/types_polygons.h",
         "src/cgal/types_surface_mesh.h",
+        "src/cgal/types_triangle_soup.h",
         "src/cgal/errors.h",
     ],
     includes = [
@@ -67,6 +72,7 @@ cc_library(
         ":hypo-purecpp",
         "@cgal",
         "@reify//src/idt/targets/pure_cpp/hashing:thread_pool_cache_runner",
+        "@glm",
     ]
 )
 cc_binary(

@@ -8,10 +8,11 @@
 namespace hypo {
 namespace cgal {
 
-reify::pure_cpp::ThreadPoolCacheRunner::Future<
-    std::shared_ptr<const Nef_polyhedron_3>>
-ConstructRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
-                 const hypo::Region3& region3);
+using FutureRegion3 = reify::pure_cpp::ThreadPoolCacheRunner::Future<
+    std::shared_ptr<const Nef_polyhedron_3>>;
+
+FutureRegion3 ConstructRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                               const hypo::Region3& region3);
 
 }  // namespace cgal
 }  // namespace hypo

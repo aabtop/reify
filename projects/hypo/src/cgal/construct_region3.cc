@@ -33,9 +33,6 @@ int64_t EstimatedMemoryUsageInBytes(const hypo::cgal::Nef_polyhedron_3& x) {
 namespace hypo {
 namespace cgal {
 
-using FutureRegion3 = reify::pure_cpp::ThreadPoolCacheRunner::Future<
-    std::shared_ptr<const Nef_polyhedron_3>>;
-
 namespace {
 // Just a convenience function to avoid having to qualify the namespace.
 FutureRegion3 ConstructRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
