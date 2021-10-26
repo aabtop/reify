@@ -29,15 +29,16 @@ int64_t EstimatedMemoryUsageInBytes(const ::hypo::cgal::Surface_mesh& x) {
 namespace hypo {
 namespace cgal {
 
+namespace internal {
 namespace {
+
 Surface_mesh ConstructMesh3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                             const hypo::ClosedMesh3& x) {
   return *hypo::cgal::ConstructClosedMesh3(runner, x).Get();
 }
 
-Surface_mesh ConstructClosedMesh3(
-    reify::pure_cpp::ThreadPoolCacheRunner* runner,
-    const hypo::MeshFromRegion3& x) {
+Surface_mesh ConstructMesh3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                            const hypo::MeshFromRegion3& x) {
   auto region(ConstructRegion3(runner, x.region));
 
   Surface_mesh surface_mesh_result;
@@ -48,12 +49,13 @@ Surface_mesh ConstructClosedMesh3(
 }
 
 }  // namespace
+}  // namespace internal
 
 FutureMesh3 ConstructMesh3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                            const hypo::Mesh3& x) {
   return std::visit(
       [runner](const auto& y) {
-        return runner->MakeFuture<Surface_mesh>(&ConstructMesh3, y);
+        return runner->MakeFuture<Surface_mesh>(&internal::ConstructMesh3, y);
       },
       static_cast<const hypo::Mesh3::AsVariant&>(x));
 }
@@ -62,7 +64,7 @@ FutureMesh3 ConstructClosedMesh3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                                  const hypo::ClosedMesh3& x) {
   return std::visit(
       [runner](const auto& y) {
-        return runner->MakeFuture<Surface_mesh>(&ConstructClosedMesh3, y);
+        return runner->MakeFuture<Surface_mesh>(&internal::ConstructMesh3, y);
       },
       static_cast<const hypo::ClosedMesh3::AsVariant&>(x));
 }

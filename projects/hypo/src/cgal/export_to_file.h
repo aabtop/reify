@@ -38,10 +38,17 @@ auto BuildObject(const T& object) {
   } else if constexpr (std::is_same<T, hypo::Boundary2>::value) {
     return hypo::cgal::CallCgalAndCatchExceptions(
         &hypo::cgal::ConstructBoundary2, &runner, object);
+  } else if constexpr (std::is_same<T, hypo::Mesh3>::value) {
+    return hypo::cgal::CallCgalAndCatchExceptions(
+        &hypo::cgal::ConstructTriangleSoup3, &runner,
+        hypo::TriangleSoupFromMesh3({object}));
   } else if constexpr (std::is_same<T, hypo::Region3>::value) {
     return hypo::cgal::CallCgalAndCatchExceptions(
         &hypo::cgal::ConstructTriangleSoup3, &runner,
         hypo::TriangleSoupFromRegion3({object}));
+  } else if constexpr (std::is_same<T, hypo::TriangleSoup3>::value) {
+    return hypo::cgal::CallCgalAndCatchExceptions(
+        &hypo::cgal::ConstructTriangleSoup3, &runner, object);
   } else {
     assert(false);
   }
@@ -70,7 +77,9 @@ reify::utils::ErrorOr<BuildAndExportResults> BuildAndExportToFile(
     results.output_filepath = output_base_filepath + ".svg";
     export_success = hypo::cgal::ExportBoundaryToSVG(*built_triangle_soup,
                                                      results.output_filepath);
-  } else if constexpr (std::is_same<T, hypo::Region3>::value) {
+  } else if constexpr (std::is_same<T, hypo::Mesh3>::value ||
+                       std::is_same<T, hypo::Region3>::value ||
+                       std::is_same<T, hypo::TriangleSoup3>::value) {
     results.output_filepath = output_base_filepath + ".stl";
     export_success = hypo::geometry::ExportToSTL(*built_triangle_soup,
                                                  results.output_filepath);

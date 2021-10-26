@@ -2,12 +2,14 @@ cc_library(
     name = "object_visualizers",
     srcs = [
         "scene_object_boundary2.cc",
+        "scene_object_mesh3.cc",
         "scene_object_region2.cc",
         "scene_object_region3.cc",
         "scene_object_trianglesoup3.cc",
     ],
     hdrs = [
         "scene_object_boundary2.h",
+        "scene_object_mesh3.h",
         "scene_object_region2.h",
         "scene_object_region3.h",
         "scene_object_trianglesoup3.h",

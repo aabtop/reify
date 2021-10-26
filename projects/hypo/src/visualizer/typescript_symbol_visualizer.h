@@ -9,6 +9,7 @@
 #include "reify/typescript_cpp_v8/hypo.h"
 #include "reify/typescript_cpp_v8/symbol_visualizer.h"
 #include "src/visualizer/scene_object_boundary2.h"
+#include "src/visualizer/scene_object_mesh3.h"
 #include "src/visualizer/scene_object_region2.h"
 #include "src/visualizer/scene_object_region3.h"
 #include "src/visualizer/scene_object_trianglesoup3.h"
@@ -28,6 +29,10 @@ class TypeScriptSymbolVisualizer {
                               [runner = &this->runner](const auto& x) {
                                 return CreateSceneObjectBoundary2(runner, x);
                               }),
+        mesh_3_visualizer(&camera_3d,
+                          [runner = &this->runner](const auto& x) {
+                            return CreateSceneObjectMesh3(runner, x);
+                          }),
         region_2_visualizer(&camera_2d,
                             [runner = &this->runner](const auto& x) {
                               return CreateSceneObjectRegion2(runner, x);
@@ -47,6 +52,8 @@ class TypeScriptSymbolVisualizer {
                 *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
                     &boundary_2_visualizer),
                 *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
+                    &mesh_3_visualizer),
+                *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
                     &region_2_visualizer),
                 *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
                     &region_3_visualizer),
@@ -61,6 +68,7 @@ class TypeScriptSymbolVisualizer {
 
   reify::pure_cpp::SceneVisualizer<hypo::Boundary2, glm::mat3>
       boundary_2_visualizer;
+  reify::pure_cpp::SceneVisualizer<hypo::Mesh3, glm::mat4> mesh_3_visualizer;
   reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat3>
       region_2_visualizer;
   reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>

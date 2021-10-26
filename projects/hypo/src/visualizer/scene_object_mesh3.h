@@ -1,5 +1,5 @@
-#ifndef _HYPO_VISUALIZER_OBJECT_VISUALIZER_REGION3_H
-#define _HYPO_VISUALIZER_OBJECT_VISUALIZER_REGION3_H
+#ifndef _HYPO_VISUALIZER_OBJECT_VISUALIZER_MESH3_H
+#define _HYPO_VISUALIZER_OBJECT_VISUALIZER_MESH3_H
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -12,10 +12,10 @@ namespace hypo {
 namespace visualizer {
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
-CreateSceneObjectRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
-                         const hypo::Region3& data);
+CreateSceneObjectMesh3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
+                       const hypo::Mesh3& data);
 
 }  // namespace visualizer
 }  // namespace hypo
 
-#endif  // _HYPO_VISUALIZER_OBJECT_VISUALIZER_REGION3_H
+#endif  // _HYPO_VISUALIZER_OBJECT_VISUALIZER_MESH3_H

@@ -8,6 +8,8 @@ export declare type Matrix44 = [number, number, number, number, number, number, 
 export declare type Matrix43 = [number, number, number, number, number, number, number, number, number, number, number, number];
 /** A 3x3 matrix. */
 export declare type Matrix33 = [number, number, number, number, number, number, number, number, number];
+/** A color in the sRGB colorspace. */
+export declare type sRGB = Vec3;
 /** A sequence of connected line segments in 2 dimensions. */
 export declare type Polyline2 = Vec2[];
 /** A closed polygon. */
@@ -320,6 +322,91 @@ export declare function SubdivideSphere(x: {
 }): SubdivideSphere;
 /** An arbitrary shape representing a 3D volume. */
 export declare type Region3 = TriangleList3 | Box3 | Extrude | Transform3 | Union3 | Intersection3 | Difference3 | MinkowskiSum3 | Icosahedron | Octahedron | Subdivide | SubdivideSphere;
+/** Returns a closed mesh representing the surface of the volume region. */
+export declare type MeshFromRegion3Params = {
+    /** The region whose boundary will be extracted. */
+    region: Region3;
+};
+interface MeshFromRegion3WithKind extends MeshFromRegion3Params {
+    __kind: 'MeshFromRegion3';
+}
+export interface MeshFromRegion3 extends Readonly<MeshFromRegion3WithKind> {
+}
+/** Returns a closed mesh representing the surface of the volume region. */
+export declare function MeshFromRegion3(x: {
+    /** The region whose boundary will be extracted. */
+    region: Region3;
+}): MeshFromRegion3;
+/** A Mesh3 instance, but it is closed, i.e. it encloses a volume. */
+export declare type ClosedMesh3 = MeshFromRegion3;
+/** A set of connected polygons representing a piecewise linear 2D manifold in 3D. Polygon/edge/vertex connectivity information is preserved and stored. */
+export declare type Mesh3 = ClosedMesh3;
+/** Converts a Mesh3 into an unstructured TriangleSoup3, which is just a set of triangles and vertices, with out any structural or connectivity information. */
+export declare type TriangleSoupFromMesh3Params = {
+    /** The Mesh3 which is to be converted into a triangle soup. */
+    mesh: Mesh3;
+};
+interface TriangleSoupFromMesh3WithKind extends TriangleSoupFromMesh3Params {
+    __kind: 'TriangleSoupFromMesh3';
+}
+export interface TriangleSoupFromMesh3 extends Readonly<TriangleSoupFromMesh3WithKind> {
+}
+/** Converts a Mesh3 into an unstructured TriangleSoup3, which is just a set of triangles and vertices, with out any structural or connectivity information. */
+export declare function TriangleSoupFromMesh3(x: {
+    /** The Mesh3 which is to be converted into a triangle soup. */
+    mesh: Mesh3;
+}): TriangleSoupFromMesh3;
+/** Converts a Region3's boundary into an unstructured TriangleSoup3, which is just a set of triangles and vertices, with out any structural or connectivity information. */
+export declare type TriangleSoupFromRegion3Params = {
+    /** The Region3 which is to be converted into a triangle soup. */
+    region: Region3;
+};
+interface TriangleSoupFromRegion3WithKind extends TriangleSoupFromRegion3Params {
+    __kind: 'TriangleSoupFromRegion3';
+}
+export interface TriangleSoupFromRegion3 extends Readonly<TriangleSoupFromRegion3WithKind> {
+}
+/** Converts a Region3's boundary into an unstructured TriangleSoup3, which is just a set of triangles and vertices, with out any structural or connectivity information. */
+export declare function TriangleSoupFromRegion3(x: {
+    /** The Region3 which is to be converted into a triangle soup. */
+    region: Region3;
+}): TriangleSoupFromRegion3;
+/** An unstructured collection of triangles and vertices, which is fast to render and export, but since it doesn't store any connectivity information it's not as flexible as other mesh formats. */
+export declare type TriangleSoup3 = TriangleSoupFromMesh3 | TriangleSoupFromRegion3 | AffineTransformTriangleSoup3 | TriangleSoupWithColor3;
+/** A set of triangle soups. Useful for expressing the desire to render a collection of meshes at the same time. */
+export declare type TriangleSoupSet3Params = {
+    /** The collection of triangle soups. */
+    triangle_soups: TriangleSoup3[];
+};
+interface TriangleSoupSet3WithKind extends TriangleSoupSet3Params {
+    __kind: 'TriangleSoupSet3';
+}
+export interface TriangleSoupSet3 extends Readonly<TriangleSoupSet3WithKind> {
+}
+/** A set of triangle soups. Useful for expressing the desire to render a collection of meshes at the same time. */
+export declare function TriangleSoupSet3(x: {
+    /** The collection of triangle soups. */
+    triangle_soups: TriangleSoup3[];
+}): TriangleSoupSet3;
+/** Applies an affine transform to a TriangleSoup3. */
+export declare type AffineTransformTriangleSoup3Params = {
+    /** The triangle soup which is to be transformed. */
+    triangle_soup: TriangleSoup3;
+    /** The affine transform that is to be applied to the input triangle soup. */
+    transform: Matrix44;
+};
+interface AffineTransformTriangleSoup3WithKind extends AffineTransformTriangleSoup3Params {
+    __kind: 'AffineTransformTriangleSoup3';
+}
+export interface AffineTransformTriangleSoup3 extends Readonly<AffineTransformTriangleSoup3WithKind> {
+}
+/** Applies an affine transform to a TriangleSoup3. */
+export declare function AffineTransformTriangleSoup3(x: {
+    /** The triangle soup which is to be transformed. */
+    triangle_soup: TriangleSoup3;
+    /** The affine transform that is to be applied to the input triangle soup. */
+    transform: Matrix44;
+}): AffineTransformTriangleSoup3;
 /** Returns an object representing the 1D polygonal boundary of a 2D polygonal region. This will be a closed polygon. */
 export declare type BoundaryOfRegion2Params = {
     /** The 2D region to find the boundary of. */
@@ -441,4 +528,23 @@ export declare function Transform3(x: {
     /** The linear affine transform to apply to the region. */
     transform: Matrix44;
 }): Transform3;
+/** Sets a color on the given TriangleSoup3, which it is expected to be rendered with. */
+export declare type TriangleSoupWithColor3Params = {
+    /** The triangle soup which will have a color set on it. */
+    triangle_soup: TriangleSoup3;
+    /** The color which the input triangle soup is to be set with. */
+    color: sRGB;
+};
+interface TriangleSoupWithColor3WithKind extends TriangleSoupWithColor3Params {
+    __kind: 'TriangleSoupWithColor3';
+}
+export interface TriangleSoupWithColor3 extends Readonly<TriangleSoupWithColor3WithKind> {
+}
+/** Sets a color on the given TriangleSoup3, which it is expected to be rendered with. */
+export declare function TriangleSoupWithColor3(x: {
+    /** The triangle soup which will have a color set on it. */
+    triangle_soup: TriangleSoup3;
+    /** The color which the input triangle soup is to be set with. */
+    color: sRGB;
+}): TriangleSoupWithColor3;
 export {};
