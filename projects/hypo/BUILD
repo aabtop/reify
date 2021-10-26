@@ -16,8 +16,8 @@ idt(
 
 idt_as_purecpp(
     name = "hypo-purecpp",
-    idt = ":hypo-idt",
     enable_hashes = True,
+    idt = ":hypo-idt",
 )
 
 idt_as_typescript(
@@ -47,9 +47,8 @@ cc_library(
         "src/cgal/conversions.h",
         "src/cgal/embed_2d_in_3d.cc",
         "src/cgal/embed_2d_in_3d.h",
+        "src/cgal/errors.h",
         "src/cgal/export_to_file.h",
-        "src/cgal/export_to_stl.cc",
-        "src/cgal/export_to_stl.h",
         "src/cgal/export_to_svg.cc",
         "src/cgal/export_to_svg.h",
         "src/cgal/extrude.cc",
@@ -62,19 +61,19 @@ cc_library(
         "src/cgal/types_nef_polyhedron_3.h",
         "src/cgal/types_polygons.h",
         "src/cgal/types_surface_mesh.h",
-        "src/cgal/types_triangle_soup.h",
-        "src/cgal/errors.h",
     ],
     includes = [
         "src/",
     ],
     deps = [
         ":hypo-purecpp",
+        "//src/geometry",
         "@cgal",
-        "@reify//src/idt/targets/pure_cpp/hashing:thread_pool_cache_runner",
         "@glm",
-    ]
+        "@reify//src/idt/targets/pure_cpp/hashing:thread_pool_cache_runner",
+    ],
 )
+
 cc_binary(
     name = "hypo",
     srcs = [
@@ -82,37 +81,37 @@ cc_binary(
     ],
     linkstatic = 1,
     deps = [
-        ":hypo_lib",
         ":hypo-purecpp",
         ":hypo-typescript_cpp_v8",
+        ":hypo_lib",
+        "@CLI11",
         "@cgal",
         "@reify//src/idt/targets/typescript_cpp_v8:command_line_tool",
-        "@CLI11",
     ],
 )
 
 qt_cc_binary(
-  name = "ide",
-  srcs = [
-    "src/main_ide.cc",
-  ],
-  deps = [
-    "//src/visualizer:typescript_symbol_visualizer",
-    "@reify//src/idt/targets/typescript_cpp_v8:ide",
-    "@reify//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_layer_stack",
-    "@reify//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_runtime_layer",
-    "@reify//src/window:window",
-    "@reify//src/window:window_utils",
-  ],
+    name = "ide",
+    srcs = [
+        "src/main_ide.cc",
+    ],
+    deps = [
+        "//src/visualizer:typescript_symbol_visualizer",
+        "@reify//src/idt/targets/typescript_cpp_v8:ide",
+        "@reify//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_layer_stack",
+        "@reify//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_runtime_layer",
+        "@reify//src/window",
+        "@reify//src/window:window_utils",
+    ],
 )
 
 cc_binary(
-  name = "visualizer",
-  srcs = [
-    "src/main_visualizer.cc",
-  ],
-  deps = [
-    "@reify//src/idt/targets/typescript_cpp_v8:visualizer_tool",
-    "//src/visualizer:typescript_symbol_visualizer",
-  ],
+    name = "visualizer",
+    srcs = [
+        "src/main_visualizer.cc",
+    ],
+    deps = [
+        "//src/visualizer:typescript_symbol_visualizer",
+        "@reify//src/idt/targets/typescript_cpp_v8:visualizer_tool",
+    ],
 )

@@ -11,6 +11,7 @@
 #include "src/visualizer/scene_object_boundary2.h"
 #include "src/visualizer/scene_object_region2.h"
 #include "src/visualizer/scene_object_region3.h"
+#include "src/visualizer/scene_object_trianglesoup3.h"
 
 namespace hypo {
 namespace visualizer {
@@ -35,6 +36,11 @@ class TypeScriptSymbolVisualizer {
                             [runner = &this->runner](const auto& x) {
                               return CreateSceneObjectRegion3(runner, x);
                             }),
+        triangle_soup_3_visualizer(&camera_3d,
+                                   [runner = &this->runner](const auto& x) {
+                                     return CreateSceneObjectTriangleSoup3(
+                                         runner, x);
+                                   }),
         visualizer(
             reify::typescript_cpp_v8::hypo::typescript_declarations(),
             {
@@ -44,6 +50,8 @@ class TypeScriptSymbolVisualizer {
                     &region_2_visualizer),
                 *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
                     &region_3_visualizer),
+                *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
+                    &triangle_soup_3_visualizer),
             }) {}
 
   reify::pure_cpp::SceneVisualizerCamera2d camera_2d;
@@ -57,6 +65,8 @@ class TypeScriptSymbolVisualizer {
       region_2_visualizer;
   reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>
       region_3_visualizer;
+  reify::pure_cpp::SceneVisualizer<hypo::TriangleSoup3, glm::mat4>
+      triangle_soup_3_visualizer;
 
   reify::typescript_cpp_v8::SymbolVisualizer visualizer;
 };

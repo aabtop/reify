@@ -1,5 +1,5 @@
-#ifndef _HYPO_CGAL_TYPES_TRIANGLE_SOUP_H_
-#define _HYPO_CGAL_TYPES_TRIANGLE_SOUP_H_
+#ifndef _HYPO_GEOMETRY_TRIANGLE_SOUP_H_
+#define _HYPO_GEOMETRY_TRIANGLE_SOUP_H_
 
 #include <array>
 #include <glm/glm.hpp>
@@ -10,7 +10,7 @@
 #include "reify/purecpp/hypo.h"
 
 namespace hypo {
-namespace cgal {
+namespace geometry {
 
 struct TriangleSoup {
   using Vector3 = Vec3;
@@ -28,7 +28,7 @@ struct TriangleSoup {
 
 using TriangleSoupSet = std::unordered_set<std::shared_ptr<const TriangleSoup>>;
 
-}  // namespace cgal
+}  // namespace geometry
 }  // namespace hypo
 
-#endif  // _HYPO_CGAL_TYPES_TRIANGLE_SOUP_H_
+#endif  // _HYPO_GEOMETRY_TRIANGLE_SOUP_H_

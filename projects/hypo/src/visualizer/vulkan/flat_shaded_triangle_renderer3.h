@@ -12,25 +12,13 @@
 #include <utility>
 #include <variant>
 
+#include "hypo/geometry/triangle_soup.h"
 #include "vulkan_utils/vulkan_utils.h"
 
 using vulkan_utils::WithDeleter;
 
 class FlatShadedTriangleRenderer3 {
  public:
-  struct TriangleSoup {
-    using Vector3 = std::array<float, 3>;
-    struct Vertex {
-      Vector3 position;
-      Vector3 normal;
-    };
-    using Index = uint32_t;
-    using Triangle = std::array<Index, 3>;
-
-    std::vector<Vertex> vertices;
-    std::vector<Triangle> triangles;
-  };
-
   static vulkan_utils::ErrorOr<FlatShadedTriangleRenderer3> Create(
       VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
       VkFormat output_image_format, VkRenderPass render_pass);
@@ -39,7 +27,7 @@ class FlatShadedTriangleRenderer3 {
   ~FlatShadedTriangleRenderer3();
 
   std::optional<vulkan_utils::Error> SetTriangleSoup(
-      std::shared_ptr<const TriangleSoup> triangle_soup);
+      std::shared_ptr<const hypo::geometry::TriangleSoup> triangle_soup);
 
   vulkan_utils::ErrorOr<vulkan_utils::FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, const glm::mat4& projection_view_matrix);
@@ -63,7 +51,7 @@ class FlatShadedTriangleRenderer3 {
 
   FlatShadedTriangleRenderer3ConstructorData data_;
 
-  std::shared_ptr<const TriangleSoup> triangle_soup_;
+  std::shared_ptr<const hypo::geometry::TriangleSoup> triangle_soup_;
 
   struct VulkanTriangleSoup {
     WithDeleter<VkBuffer> vertex_buffer;

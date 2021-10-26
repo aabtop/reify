@@ -11,14 +11,18 @@
 #include "cgal/conversions.h"
 #include "cgal/types_nef_polyhedron_3.h"
 #include "cgal/types_surface_mesh.h"
+#include "hypo/geometry/triangle_soup.h"
 #include "reify/pure_cpp/cache.h"
 #include "reify/purecpp/hypo.h"
+
+using hypo::geometry::TriangleSoup;
+using hypo::geometry::TriangleSoupSet;
 
 namespace reify {
 namespace pure_cpp {
 
 template <>
-int64_t EstimatedMemoryUsageInBytes(const ::hypo::cgal::TriangleSoup& x) {
+int64_t EstimatedMemoryUsageInBytes(const TriangleSoup& x) {
   // Empirically discovered by recording before/after memory usage, but probably
   // wrong.
   return x.vertices->size() * sizeof((*x.vertices)[0]) +
@@ -26,7 +30,7 @@ int64_t EstimatedMemoryUsageInBytes(const ::hypo::cgal::TriangleSoup& x) {
 }
 
 template <>
-int64_t EstimatedMemoryUsageInBytes(const ::hypo::cgal::TriangleSoupSet& x) {
+int64_t EstimatedMemoryUsageInBytes(const TriangleSoupSet& x) {
   // Empirically discovered by recording before/after memory usage, but probably
   // wrong.
   return x.size() * sizeof(**x.begin());

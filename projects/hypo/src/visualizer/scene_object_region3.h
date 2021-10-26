@@ -26,53 +26,6 @@ reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
 CreateSceneObjectRegion3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                          const hypo::Region3& data);
 
-class SceneObjectRegion3 : public reify::pure_cpp::SceneObject<glm::mat4>,
-                           public reify::pure_cpp::ImGuiVisualizer {
- public:
-  SceneObjectRegion3(
-      const std::shared_ptr<const hypo::cgal::Nef_polyhedron_3>& polyhedron3,
-      const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>&
-          triangle_soup);
-  ~SceneObjectRegion3();
-
-  reify::utils::ErrorOr<
-      std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>>
-  CreateSceneObjectRenderable(VkInstance instance,
-                              VkPhysicalDevice physical_device, VkDevice device,
-                              VkFormat output_image_format,
-                              VkRenderPass render_pass) override;
-
-  reify::pure_cpp::ImGuiVisualizer* GetImGuiVisualizer() const override {
-    return const_cast<SceneObjectRegion3*>(this);
-  }
-
-  std::string ImGuiWindowPanelTitle() const override;
-  void RenderImGuiWindow() override;
-
- private:
-  const std::shared_ptr<const hypo::cgal::Nef_polyhedron_3> polyhedron3_;
-  const std::shared_ptr<const FlatShadedTriangleRenderer3::TriangleSoup>
-      triangle_soup_;
-
-  std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
-};
-
-class SceneObjectRenderableRegion3
-    : public reify::pure_cpp::SceneObjectRenderable<glm::mat4> {
- public:
-  SceneObjectRenderableRegion3(std::unique_ptr<FlatShadedTriangleRenderer3>&&
-                                   flat_shaded_triangle_renderer)
-      : flat_shaded_triangle_renderer_(
-            std::move(flat_shaded_triangle_renderer)) {}
-
-  reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
-      VkCommandBuffer command_buffer,
-      const glm::mat4& view_projection_matrix) override;
-
- private:
-  std::unique_ptr<FlatShadedTriangleRenderer3> flat_shaded_triangle_renderer_;
-};
-
 }  // namespace visualizer
 }  // namespace hypo
 

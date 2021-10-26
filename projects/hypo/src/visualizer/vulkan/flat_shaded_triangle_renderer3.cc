@@ -140,7 +140,7 @@ auto FlatShadedTriangleRenderer3::RenderFrame(
 
     vkCmdDrawIndexed(
         command_buffer,
-        static_cast<uint32_t>(triangle_soup_->triangles.size() * 3), 1, 0, 0,
+        static_cast<uint32_t>(triangle_soup_->triangles->size() * 3), 1, 0, 0,
         0);
   }
 
@@ -154,7 +154,7 @@ auto FlatShadedTriangleRenderer3::RenderFrame(
 }
 
 std::optional<vulkan_utils::Error> FlatShadedTriangleRenderer3::SetTriangleSoup(
-    std::shared_ptr<const TriangleSoup> triangle_soup) {
+    std::shared_ptr<const hypo::geometry::TriangleSoup> triangle_soup) {
   triangle_soup_ = triangle_soup;
   if (!triangle_soup_) {
     vulkan_triangle_soup_ = nullptr;
@@ -162,7 +162,7 @@ std::optional<vulkan_utils::Error> FlatShadedTriangleRenderer3::SetTriangleSoup(
   }
 
   size_t vertex_buffer_size =
-      triangle_soup_->vertices.size() * sizeof(triangle_soup_->vertices[0]);
+      triangle_soup_->vertices->size() * sizeof((*triangle_soup_->vertices)[0]);
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       vertex_buffer,
@@ -172,11 +172,11 @@ std::optional<vulkan_utils::Error> FlatShadedTriangleRenderer3::SetTriangleSoup(
       vertex_buffer_memory,
       vulkan_utils::AllocateAndBindBufferMemory(
           data_.physical_device, data_.device, vertex_buffer.value(),
-          reinterpret_cast<const uint8_t*>(triangle_soup_->vertices.data()),
+          reinterpret_cast<const uint8_t*>(triangle_soup_->vertices->data()),
           vertex_buffer_size));
 
-  size_t index_buffer_size =
-      triangle_soup_->triangles.size() * sizeof(triangle_soup_->triangles[0]);
+  size_t index_buffer_size = triangle_soup_->triangles->size() *
+                             sizeof((*triangle_soup_->triangles)[0]);
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       index_buffer,
       vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -185,7 +185,7 @@ std::optional<vulkan_utils::Error> FlatShadedTriangleRenderer3::SetTriangleSoup(
       index_buffer_memory,
       vulkan_utils::AllocateAndBindBufferMemory(
           data_.physical_device, data_.device, index_buffer.value(),
-          reinterpret_cast<const uint8_t*>(triangle_soup_->triangles.data()),
+          reinterpret_cast<const uint8_t*>(triangle_soup_->triangles->data()),
           index_buffer_size));
 
   vulkan_triangle_soup_ =
