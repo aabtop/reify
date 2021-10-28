@@ -5,37 +5,106 @@
 #include "imfilebrowser.h"
 // clang-format on
 
+#include <optional>
+
 #include "cgal/construct_trianglesoup3.h"
 #include "cgal/errors.h"
 #include "hypo/geometry/export_to_stl.h"
 #include "hypo/geometry/triangle_soup.h"
+#include "reify/pure_cpp/scene_visualizer_camera_3d_arcball.h"
 #include "reify/purecpp/hypo.h"
+#include "src/visualizer/vulkan/flat_shaded_triangle_renderer3.h"
 
 namespace hypo {
 namespace visualizer {
 
+class SceneObjectTriangleSoupSet3
+    : public reify::pure_cpp::SceneObject<glm::mat4>,
+      public reify::pure_cpp::ImGuiVisualizer {
+ public:
+  // We re-use this class for other types, so make the title customizable.
+  SceneObjectTriangleSoupSet3(
+      const std::string& window_panel_title,
+      const std::shared_ptr<const hypo::geometry::TriangleSoupSet>&
+          triangle_soup_set);
+  ~SceneObjectTriangleSoupSet3();
+
+  reify::utils::ErrorOr<
+      std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>>
+  CreateSceneObjectRenderable(VkInstance instance,
+                              VkPhysicalDevice physical_device, VkDevice device,
+                              VkFormat output_image_format,
+                              VkRenderPass render_pass) override;
+
+  reify::pure_cpp::ImGuiVisualizer* GetImGuiVisualizer() const override {
+    return const_cast<SceneObjectTriangleSoupSet3*>(this);
+  }
+
+  std::string ImGuiWindowPanelTitle() const override;
+  void RenderImGuiWindow() override;
+
+ private:
+  const std::string window_panel_title_;
+  const std::shared_ptr<const hypo::geometry::TriangleSoupSet>
+      triangle_soup_set_;
+
+  std::unique_ptr<ImGui::FileBrowser> export_file_selector_;
+};
+
+class SceneObjectRenderableTriangleSoup3
+    : public reify::pure_cpp::SceneObjectRenderable<glm::mat4> {
+ public:
+  SceneObjectRenderableTriangleSoup3(
+      std::unique_ptr<FlatShadedTriangleRenderer3>&&
+          flat_shaded_triangle_renderer)
+      : flat_shaded_triangle_renderer_(
+            std::move(flat_shaded_triangle_renderer)) {}
+
+  reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
+      VkCommandBuffer command_buffer,
+      const glm::mat4& view_projection_matrix) override;
+
+ private:
+  std::unique_ptr<FlatShadedTriangleRenderer3> flat_shaded_triangle_renderer_;
+};
+
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
 CreateSceneObjectTriangleSoup3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
-                               const hypo::TriangleSoup3& data) {
+                               const hypo::TriangleSoup3& data,
+                               const std::string& window_panel_title) {
+  return CreateSceneObjectTriangleSoupSet3(
+      runner, hypo::TriangleSoupSet3({{reify::New(hypo::TriangleSoup3(data))}}),
+      "TriangleSoup3");
+}
+
+reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
+CreateSceneObjectTriangleSoupSet3(
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
+    const hypo::TriangleSoupSet3& data, const std::string& window_panel_title) {
   REIFY_UTILS_ASSIGN_OR_RETURN(
-      triangle_soup, hypo::cgal::CallCgalAndCatchExceptions(
-                         &hypo::cgal::ConstructTriangleSoup3, runner, data));
+      triangle_soup_set,
+      hypo::cgal::CallCgalAndCatchExceptions(
+          &hypo::cgal::ConstructTriangleSoupSet3, runner, data));
 
   return std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>(
-      new SceneObjectTriangleSoup3("TriangleSoup3", triangle_soup));
+      new SceneObjectTriangleSoupSet3(
+          window_panel_title.empty() ? "TriangleSoupSet3" : window_panel_title,
+          triangle_soup_set));
 }
 
-SceneObjectTriangleSoup3::SceneObjectTriangleSoup3(
+SceneObjectTriangleSoupSet3::SceneObjectTriangleSoupSet3(
     const std::string& window_panel_title,
-    const std::shared_ptr<const hypo::geometry::TriangleSoup>& triangle_soup)
-    : window_panel_title_(window_panel_title), triangle_soup_(triangle_soup) {}
+    const std::shared_ptr<const hypo::geometry::TriangleSoupSet>&
+        triangle_soup_set)
+    : window_panel_title_(window_panel_title),
+      triangle_soup_set_(triangle_soup_set) {}
 
-SceneObjectTriangleSoup3::~SceneObjectTriangleSoup3() {}
+SceneObjectTriangleSoupSet3::~SceneObjectTriangleSoupSet3() {}
 
-std::string SceneObjectTriangleSoup3::ImGuiWindowPanelTitle() const {
+std::string SceneObjectTriangleSoupSet3::ImGuiWindowPanelTitle() const {
   return window_panel_title_;
 }
-void SceneObjectTriangleSoup3::RenderImGuiWindow() {
+void SceneObjectTriangleSoupSet3::RenderImGuiWindow() {
   if (ImGui::Button("Export to STL")) {
     export_file_selector_.reset(
         new ImGui::FileBrowser(ImGuiFileBrowserFlags_CloseOnEsc |
@@ -55,7 +124,7 @@ void SceneObjectTriangleSoup3::RenderImGuiWindow() {
         selected_path.replace_extension("stl");
       }
 
-      hypo::geometry::ExportToSTL(*triangle_soup_,
+      hypo::geometry::ExportToSTL(**triangle_soup_set_->begin(),
                                   std::filesystem::absolute(selected_path));
       export_file_selector_->Close();
     }
@@ -67,7 +136,7 @@ void SceneObjectTriangleSoup3::RenderImGuiWindow() {
 
 reify::utils::ErrorOr<
     std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>>
-SceneObjectTriangleSoup3::CreateSceneObjectRenderable(
+SceneObjectTriangleSoupSet3::CreateSceneObjectRenderable(
     VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
     VkFormat output_image_format, VkRenderPass render_pass) {
   auto renderer_or_error = FlatShadedTriangleRenderer3::Create(
@@ -80,7 +149,7 @@ SceneObjectTriangleSoup3::CreateSceneObjectRenderable(
       std::unique_ptr<FlatShadedTriangleRenderer3>(
           new FlatShadedTriangleRenderer3(
               std::move(std::get<1>(renderer_or_error))));
-  flat_shaded_triangle_renderer->SetTriangleSoup(triangle_soup_);
+  flat_shaded_triangle_renderer->SetTriangleSoup(*triangle_soup_set_->begin());
 
   return std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>(
       new SceneObjectRenderableTriangleSoup3(
