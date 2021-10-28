@@ -87,7 +87,6 @@ TriangleSoup TriangleSoupForVerticesAndTriangles(
        0.0f, 0.0f, 0.0f, 1.0f}  // Identity transform
   };
 };
-}  // namespace
 
 TriangleSoup ConstructTriangleSoup3(
     reify::pure_cpp::ThreadPoolCacheRunner* runner,
@@ -145,17 +144,34 @@ TriangleSoup ConstructTriangleSoup3(
 TriangleSoupSet _ConstructTriangleSoupSet3(
     reify::pure_cpp::ThreadPoolCacheRunner* runner,
     const hypo::TriangleSoupSet3& x) {
+  std::vector<FutureTriangleSoupSet3> set_children;
   std::vector<FutureTriangleSoup3> children;
-  children.reserve(x.triangle_soups.size());
-  for (const auto& triangle_soup : x.triangle_soups) {
-    children.push_back(ConstructTriangleSoup3(runner, triangle_soup));
+  for (const auto& triangle_soup_or_set : x.triangle_soups) {
+    if (auto triangle_soup_ref =
+            std::get_if<reify::Reference<const hypo::TriangleSoup3>>(
+                &triangle_soup_or_set)) {
+      children.push_back(
+          ::hypo::cgal::ConstructTriangleSoup3(runner, **triangle_soup_ref));
+    } else {
+      auto& triangle_soup_set_ref =
+          std::get<reify::Reference<const hypo::TriangleSoupSet3>>(
+              triangle_soup_or_set);
+      set_children.push_back(
+          ::hypo::cgal::ConstructTriangleSoupSet3(runner, *triangle_soup_set_ref));
+    }
   }
 
   TriangleSoupSet result;
   for (auto& child : children) {
     result.insert(child.Get());
   }
+  for (auto& set_child : set_children) {
+    for (const auto& grand_child : *set_child.Get()) {
+      result.insert(grand_child);
+    }
+  }
   return result;
+}
 }  // namespace
 
 FutureTriangleSoup3 ConstructTriangleSoup3(

@@ -403,10 +403,17 @@ idt =
               ("color", "The color which the input triangle soup is to be set with.", Concrete sRGB)
             ]
 
+      triangleSoupOrTriangleSoupSet3 =
+        NamedType
+          "TriangleSoupOrTriangleSoupSet3"
+          "A TriangleSoup3 or a TriangleSoupSet3."
+          $ TaggedUnion
+            [Reference triangleSoup3, Reference triangleSoupSet3]
+
       triangleSoupSet3 =
         NamedType "TriangleSoupSet3" "A set of triangle soups. Useful for expressing the desire to render a collection of meshes at the same time." $
           Struct
-            [("triangle_soups", "The collection of triangle soups.", List $ Concrete triangleSoup3)]
+            [("triangle_soups", "The collection of triangle soups.", List $ Concrete triangleSoupOrTriangleSoupSet3)]
    in [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, sRGB, region2, region3, boundary2, mesh3, triangleSoup3, triangleSoupSet3]
 
 -- The directory containing typescript files which defines the interface.

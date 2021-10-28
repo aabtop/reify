@@ -11,6 +11,7 @@
 #include <variant>
 #include <vector>
 #include <iostream>
+#include <type_traits>
 
 {{#enable_hashes}}
 #include "reify/pure_cpp/hashing.h"
