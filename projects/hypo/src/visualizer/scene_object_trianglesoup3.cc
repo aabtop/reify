@@ -149,7 +149,7 @@ SceneObjectTriangleSoupSet3::CreateSceneObjectRenderable(
       std::unique_ptr<FlatShadedTriangleRenderer3>(
           new FlatShadedTriangleRenderer3(
               std::move(std::get<1>(renderer_or_error))));
-  flat_shaded_triangle_renderer->SetTriangleSoup(*triangle_soup_set_->begin());
+  flat_shaded_triangle_renderer->SetTriangleSoupSet(triangle_soup_set_);
 
   return std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat4>>(
       new SceneObjectRenderableTriangleSoup3(

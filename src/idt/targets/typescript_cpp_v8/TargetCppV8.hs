@@ -129,11 +129,11 @@ typeString (TaggedUnion l) =
 
 enumTypeNames ts = map (("p" ++) . show) [0 .. length ts - 1]
 
-unionMemberToStacheObject :: (String, [(String, Type)]) -> Value
+unionMemberToStacheObject :: (String, [(String, Type, Type)]) -> Value
 unionMemberToStacheObject (k, ts) =
   let params =
-          [ object ["name" .= DT.pack tn, "type" .= DT.pack (typeString t)]
-          | (tn, t) <- ts
+          [ object ["name" .= DT.pack tn, "type" .= DT.pack (typeString t), "topLevelType" .= DT.pack (typeString topLevelType)]
+          | (tn, t, topLevelType) <- ts
           ]
   in  object
         (  ["__kind" .= DT.pack k, "params" .= params]
@@ -142,7 +142,8 @@ unionMemberToStacheObject (k, ts) =
 
 enumMembers :: [(String, String, [Type])] -> [Value]
 enumMembers es =
-  [ unionMemberToStacheObject (n, zip (enumTypeNames ts) ts)
+  -- This topLevelParam shit makes no sense for enumMembers.
+  [ unionMemberToStacheObject (n, zip3 (enumTypeNames ts) ts ts)
   | (n, _, ts) <- es
   ]
 
@@ -152,9 +153,26 @@ taggedUnionTypeName t = case t of
   Reference (NamedType n _ _) -> n
   _ -> panic "TaggedUnions may only be passed named types."
 
+taggedUnionMember :: Type -> Type -> Value
+taggedUnionMember topLevelType t = unionMemberToStacheObject (taggedUnionTypeName t, [("p0", t, topLevelType)])
+
 taggedUnionMembers :: [Type] -> [Value]
 taggedUnionMembers ts =
-  [ unionMemberToStacheObject (taggedUnionTypeName t, [("p0", t)]) | t <- ts ]
+  [taggedUnionMember t t | t <- ts]
+
+recursiveTaggedUnionMember :: Maybe Type -> Bool -> Type -> [Value]
+recursiveTaggedUnionMember topLevelType leavesOnly t = 
+  let topLevelTypeOr n = fromMaybe n topLevelType
+      recursiveCall parentType topLevelType ts =
+        (if leavesOnly then [] else [taggedUnionMember (topLevelTypeOr parentType) parentType]) ++ (recursiveTaggedUnionMembers topLevelType leavesOnly ts)
+  in
+    case t of
+      Reference (NamedType n _ (TaggedUnion l)) -> recursiveCall t (Just (topLevelTypeOr t)) l
+      Concrete (NamedType n _ (TaggedUnion l)) -> recursiveCall t (Just (topLevelTypeOr t)) l
+      _ -> [taggedUnionMember (topLevelTypeOr t) t]
+
+recursiveTaggedUnionMembers :: Maybe Type -> Bool -> [Type] -> [Value]
+recursiveTaggedUnionMembers topLevelType leavesOnly ts = concat [recursiveTaggedUnionMember topLevelType leavesOnly t | t <- ts]
 
 member :: (String, String, Type) -> Value
 member (n, _, t) =
@@ -173,7 +191,10 @@ templateObjectForDecl namespace immRefCntNamespace (NamedType n _ t) =
     ++ case t of
          Struct      l -> ["members" .= members l]
          Enum        l -> ["unionMembers" .= enumMembers l]
-         TaggedUnion l -> ["unionMembers" .= taggedUnionMembers l]
+         TaggedUnion l -> [ "unionMembers" .= taggedUnionMembers l
+                          , "recursiveUnionMembersLeavesOnly" .= recursiveTaggedUnionMembers Nothing True l
+                          , "recursiveUnionMembers" .= recursiveTaggedUnionMembers Nothing False l
+                          ]
          _             -> panic "Unexpected object in templateObjectForDecl."
 
 wrapWithNamespace :: String -> String -> String

@@ -301,10 +301,26 @@ export function RowOfHouses() {
   const house = SingleHouse();
   const NUM_HOUSES = 6;
   const SPACING_BETWEEN_HOUSES = 10.0;
+  const COLORS: h.Vec3[] = [
+    [1, 0.3, 0.3],
+    [0.4, 1, 0.4],
+    [0.2, 0.2, 1],
+    [1, 0.4, 1],
+    [1, 1, 0.4],
+    [0.3, 1, 1],
+  ];
 
-  const house_x_positions = [...Array(NUM_HOUSES).keys()].map((i) => (i - (NUM_HOUSES / 2)) * SPACING_BETWEEN_HOUSES);
-  return h.Union3({
-    regions: house_x_positions.map(
-      ((x_translation) => h.Transform3({ source: house, transform: h.Translate3([x_translation, 0, 0]) }))),
+  const house_x_positions_and_colors: [number, h.Vec3][] = [...Array(NUM_HOUSES).keys()].map((i) => [(i - (NUM_HOUSES / 2)) * SPACING_BETWEEN_HOUSES, COLORS[i]]);
+  return h.TriangleSoupSet3({
+    triangle_soups: house_x_positions_and_colors.map(
+      (([x_translation, color]) =>
+        h.TriangleSoupWithColor3({
+          triangle_soup:
+            h.AffineTransformTriangleSoup3({
+              triangle_soup: h.TriangleSoupFromRegion3({ region: house }),
+              transform: h.Translate3([x_translation, 0, 0]),
+            }),
+          color: color
+        })))
   });
 }

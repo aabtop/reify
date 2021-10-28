@@ -353,9 +353,7 @@ idt =
       mesh3 =
         NamedType "Mesh3" "A set of connected polygons representing a piecewise linear 2D manifold in 3D. Polygon/edge/vertex connectivity information is preserved and stored." $
           TaggedUnion
-            [ Reference closedMesh3,
-              Reference meshFromRegion3
-            ]
+            [ Reference closedMesh3 ]
 
       closedMesh3 =
         NamedType "ClosedMesh3" "A Mesh3 instance, but it is closed, i.e. it encloses a volume." $

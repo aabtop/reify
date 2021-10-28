@@ -124,10 +124,11 @@ TriangleSoup ConstructTriangleSoup3(
   auto previous_triangle_soup =
       *hypo::cgal::ConstructTriangleSoup3(runner, x.triangle_soup).Get();
 
-  return TriangleSoup{
-      previous_triangle_soup.vertices, previous_triangle_soup.triangles,
-      previous_triangle_soup.color,
-      glm::make_mat4(x.transform.data()) * previous_triangle_soup.transform};
+  return TriangleSoup{previous_triangle_soup.vertices,
+                      previous_triangle_soup.triangles,
+                      previous_triangle_soup.color,
+                      glm::transpose(glm::make_mat4(x.transform.data())) *
+                          previous_triangle_soup.transform};
 }
 
 TriangleSoup ConstructTriangleSoup3(
@@ -156,8 +157,8 @@ TriangleSoupSet _ConstructTriangleSoupSet3(
       auto& triangle_soup_set_ref =
           std::get<reify::Reference<const hypo::TriangleSoupSet3>>(
               triangle_soup_or_set);
-      set_children.push_back(
-          ::hypo::cgal::ConstructTriangleSoupSet3(runner, *triangle_soup_set_ref));
+      set_children.push_back(::hypo::cgal::ConstructTriangleSoupSet3(
+          runner, *triangle_soup_set_ref));
     }
   }
 

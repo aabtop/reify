@@ -13,6 +13,7 @@ namespace {
 struct MvpUniform {
   alignas(16) glm::mat4 model;
   alignas(16) glm::mat4 projection_view_matrix;
+  alignas(16) glm::vec4 color;
 };
 
 }  // namespace
@@ -95,106 +96,125 @@ FlatShadedTriangleRenderer3::~FlatShadedTriangleRenderer3() {}
 auto FlatShadedTriangleRenderer3::RenderFrame(
     VkCommandBuffer command_buffer, const glm::mat4& projection_view_matrix)
     -> vulkan_utils::ErrorOr<vulkan_utils::FrameResources> {
-  glm::mat4 model_matrix = glm::mat4(1.0f);
-  MvpUniform uniform_data{model_matrix, projection_view_matrix};
+  std::vector<std::any> per_triangle_soup_resources;
+  if (!vulkan_triangle_soup_set_.empty()) {
+    for (const auto& vulkan_triangle_soup : vulkan_triangle_soup_set_) {
+      MvpUniform uniform_data{
+          vulkan_triangle_soup->transform,
+          projection_view_matrix,
+          vulkan_triangle_soup->color,
+      };
 
-  VULKAN_UTILS_ASSIGN_OR_RETURN(
-      uniform_buffer,
-      vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                               sizeof(uniform_data)));
-  VULKAN_UTILS_ASSIGN_OR_RETURN(
-      uniform_buffer_memory,
-      vulkan_utils::AllocateAndBindBufferMemory(
-          data_.physical_device, data_.device, uniform_buffer.value(),
-          reinterpret_cast<uint8_t*>(&uniform_data), sizeof(uniform_data)));
+      VULKAN_UTILS_ASSIGN_OR_RETURN(
+          uniform_buffer, vulkan_utils::MakeBuffer(
+                              data_.device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                              sizeof(uniform_data)));
+      VULKAN_UTILS_ASSIGN_OR_RETURN(
+          uniform_buffer_memory,
+          vulkan_utils::AllocateAndBindBufferMemory(
+              data_.physical_device, data_.device, uniform_buffer.value(),
+              reinterpret_cast<uint8_t*>(&uniform_data), sizeof(uniform_data)));
 
-  // Set up descriptor set and its layout.
-  VULKAN_UTILS_ASSIGN_OR_RETURN(
-      descriptor_pool,
-      vulkan_utils::MakeDescriptorPool(
-          data_.device,
-          {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}}, 1));
+      // Set up descriptor set and its layout.
+      VULKAN_UTILS_ASSIGN_OR_RETURN(
+          descriptor_pool,
+          vulkan_utils::MakeDescriptorPool(
+              data_.device,
+              {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}}, 1));
 
-  VULKAN_UTILS_ASSIGN_OR_RETURN(
-      uniform_descriptor_set,
-      vulkan_utils::MakeDescriptorSet(
-          data_.device, descriptor_pool.value(),
-          data_.descriptor_set_layout.value(),
-          {VkDescriptorBufferInfo{uniform_buffer.value(), 0,
-                                  sizeof(MvpUniform)}}));
+      VULKAN_UTILS_ASSIGN_OR_RETURN(
+          uniform_descriptor_set,
+          vulkan_utils::MakeDescriptorSet(
+              data_.device, descriptor_pool.value(),
+              data_.descriptor_set_layout.value(),
+              {VkDescriptorBufferInfo{uniform_buffer.value(), 0,
+                                      sizeof(MvpUniform)}}));
 
-  if (vulkan_triangle_soup_) {
-    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      data_.pipeline->value());
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            data_.pipeline_layout.value(), 0, 1,
-                            &(uniform_descriptor_set.value()), 0, nullptr);
+      vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        data_.pipeline->value());
+      vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              data_.pipeline_layout.value(), 0, 1,
+                              &(uniform_descriptor_set.value()), 0, nullptr);
 
-    VkDeviceSize vertex_buffer_offset = 0;
-    vkCmdBindVertexBuffers(command_buffer, 0, 1,
-                           &(vulkan_triangle_soup_->vertex_buffer.value()),
-                           &vertex_buffer_offset);
-    vkCmdBindIndexBuffer(command_buffer,
-                         vulkan_triangle_soup_->index_buffer.value(), 0,
-                         VK_INDEX_TYPE_UINT32);
+      VkDeviceSize vertex_buffer_offset = 0;
+      vkCmdBindVertexBuffers(command_buffer, 0, 1,
+                             &(vulkan_triangle_soup->vertex_buffer.value()),
+                             &vertex_buffer_offset);
+      vkCmdBindIndexBuffer(command_buffer,
+                           vulkan_triangle_soup->index_buffer.value(), 0,
+                           VK_INDEX_TYPE_UINT32);
 
-    vkCmdDrawIndexed(
-        command_buffer,
-        static_cast<uint32_t>(triangle_soup_->triangles->size() * 3), 1, 0, 0,
-        0);
+      vkCmdDrawIndexed(
+          command_buffer,
+          static_cast<uint32_t>(vulkan_triangle_soup->num_triangles * 3), 1, 0,
+          0, 0);
+
+      auto triangle_soup_resources = std::make_tuple(
+          std::move(uniform_descriptor_set), std::move(descriptor_pool),
+          std::move(uniform_buffer_memory), std::move(uniform_buffer));
+      per_triangle_soup_resources.push_back(
+          std::make_shared<decltype(triangle_soup_resources)>(
+              std::move(triangle_soup_resources)));
+    }
   }
 
-  auto resources = std::make_tuple(
-      vulkan_triangle_soup_, std::move(uniform_descriptor_set),
-      std::move(descriptor_pool), std::move(uniform_buffer_memory),
-      std::move(uniform_buffer), data_.pipeline);
+  auto resources =
+      std::make_tuple(vulkan_triangle_soup_set_,
+                      std::move(per_triangle_soup_resources), data_.pipeline);
   // std::any doesn't support move only types, so we wrap it in a shared_ptr.
   return vulkan_utils::FrameResources(
       std::make_shared<decltype(resources)>(std::move(resources)));
 }
 
-std::optional<vulkan_utils::Error> FlatShadedTriangleRenderer3::SetTriangleSoup(
-    std::shared_ptr<const hypo::geometry::TriangleSoup> triangle_soup) {
-  triangle_soup_ = triangle_soup;
-  if (!triangle_soup_) {
-    vulkan_triangle_soup_ = nullptr;
+std::optional<vulkan_utils::Error>
+FlatShadedTriangleRenderer3::SetTriangleSoupSet(
+    std::shared_ptr<const hypo::geometry::TriangleSoupSet> triangle_soup_set) {
+  triangle_soup_set_ = triangle_soup_set;
+  vulkan_triangle_soup_set_.clear();
+  if (!triangle_soup_set_) {
     return std::nullopt;
   }
 
-  size_t vertex_buffer_size =
-      triangle_soup_->vertices->size() * sizeof((*triangle_soup_->vertices)[0]);
+  for (const auto& triangle_soup : *triangle_soup_set) {
+    size_t vertex_buffer_size =
+        triangle_soup->vertices->size() * sizeof((*triangle_soup->vertices)[0]);
 
-  VULKAN_UTILS_ASSIGN_OR_RETURN(
-      vertex_buffer,
-      vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                               vertex_buffer_size));
-  VULKAN_UTILS_ASSIGN_OR_RETURN(
-      vertex_buffer_memory,
-      vulkan_utils::AllocateAndBindBufferMemory(
-          data_.physical_device, data_.device, vertex_buffer.value(),
-          reinterpret_cast<const uint8_t*>(triangle_soup_->vertices->data()),
-          vertex_buffer_size));
+    VULKAN_UTILS_ASSIGN_OR_RETURN(
+        vertex_buffer, vulkan_utils::MakeBuffer(
+                           data_.device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                           vertex_buffer_size));
+    VULKAN_UTILS_ASSIGN_OR_RETURN(
+        vertex_buffer_memory,
+        vulkan_utils::AllocateAndBindBufferMemory(
+            data_.physical_device, data_.device, vertex_buffer.value(),
+            reinterpret_cast<const uint8_t*>(triangle_soup->vertices->data()),
+            vertex_buffer_size));
 
-  size_t index_buffer_size = triangle_soup_->triangles->size() *
-                             sizeof((*triangle_soup_->triangles)[0]);
-  VULKAN_UTILS_ASSIGN_OR_RETURN(
-      index_buffer,
-      vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                               index_buffer_size));
-  VULKAN_UTILS_ASSIGN_OR_RETURN(
-      index_buffer_memory,
-      vulkan_utils::AllocateAndBindBufferMemory(
-          data_.physical_device, data_.device, index_buffer.value(),
-          reinterpret_cast<const uint8_t*>(triangle_soup_->triangles->data()),
-          index_buffer_size));
+    size_t index_buffer_size = triangle_soup->triangles->size() *
+                               sizeof((*triangle_soup->triangles)[0]);
+    VULKAN_UTILS_ASSIGN_OR_RETURN(
+        index_buffer,
+        vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                 index_buffer_size));
+    VULKAN_UTILS_ASSIGN_OR_RETURN(
+        index_buffer_memory,
+        vulkan_utils::AllocateAndBindBufferMemory(
+            data_.physical_device, data_.device, index_buffer.value(),
+            reinterpret_cast<const uint8_t*>(triangle_soup->triangles->data()),
+            index_buffer_size));
 
-  vulkan_triangle_soup_ =
-      std::shared_ptr<VulkanTriangleSoup>(new VulkanTriangleSoup{
-          std::move(vertex_buffer),
-          std::move(vertex_buffer_memory),
-          std::move(index_buffer),
-          std::move(index_buffer_memory),
-      });
+    vulkan_triangle_soup_set_.push_back(
+        std::shared_ptr<VulkanTriangleSoup>(new VulkanTriangleSoup{
+            std::move(vertex_buffer),
+            std::move(vertex_buffer_memory),
+            std::move(index_buffer),
+            std::move(index_buffer_memory),
+            triangle_soup->triangles->size(),
+            glm::vec4(triangle_soup->color[0], triangle_soup->color[1],
+                      triangle_soup->color[2], 1.0f),
+            triangle_soup->transform,
+        }));
+  }
 
   return std::nullopt;
 }

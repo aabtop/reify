@@ -26,8 +26,8 @@ class FlatShadedTriangleRenderer3 {
   FlatShadedTriangleRenderer3(FlatShadedTriangleRenderer3&& other) = default;
   ~FlatShadedTriangleRenderer3();
 
-  std::optional<vulkan_utils::Error> SetTriangleSoup(
-      std::shared_ptr<const hypo::geometry::TriangleSoup> triangle_soup);
+  std::optional<vulkan_utils::Error> SetTriangleSoupSet(
+      std::shared_ptr<const hypo::geometry::TriangleSoupSet> triangle_soup_set);
 
   vulkan_utils::ErrorOr<vulkan_utils::FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, const glm::mat4& projection_view_matrix);
@@ -51,7 +51,7 @@ class FlatShadedTriangleRenderer3 {
 
   FlatShadedTriangleRenderer3ConstructorData data_;
 
-  std::shared_ptr<const hypo::geometry::TriangleSoup> triangle_soup_;
+  std::shared_ptr<const hypo::geometry::TriangleSoupSet> triangle_soup_set_;
 
   struct VulkanTriangleSoup {
     WithDeleter<VkBuffer> vertex_buffer;
@@ -59,8 +59,13 @@ class FlatShadedTriangleRenderer3 {
 
     WithDeleter<VkBuffer> index_buffer;
     WithDeleter<VkDeviceMemory> index_buffer_memory;
+
+    size_t num_triangles;
+
+    glm::vec4 color;
+    glm::mat4 transform;
   };
-  std::shared_ptr<VulkanTriangleSoup> vulkan_triangle_soup_;
+  std::vector<std::shared_ptr<VulkanTriangleSoup>> vulkan_triangle_soup_set_;
 };
 
 #endif  // _IDE_VULKAN_FLAT_SHADED_TRIANGLE_RENDERER3_H

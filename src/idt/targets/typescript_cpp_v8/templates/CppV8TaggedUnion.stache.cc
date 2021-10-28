@@ -7,10 +7,10 @@ namespace {{namespace}} {
 auto {{name}}::kind() -> Kind {
   std::string kind_value = internal::GetPropertyAsString(this, "__kind");
   if (false) {
-{{#unionMembers}}
+{{#recursiveUnionMembersLeavesOnly}}
   } else if (kind_value == "{{__kind}}") {
     return Kind_{{__kind}};
-{{/unionMembers}}
+{{/recursiveUnionMembersLeavesOnly}}
   } else {
     assert(false);
     return static_cast<Kind>(-1);
@@ -26,10 +26,10 @@ auto {{name}}::kind() -> Kind {
       {{! // This lets us not only assert an impossibility, but fall through
           // to validly return something and avoid a compiler warning. }}
       assert(false);
-{{#unionMembers}}
+{{#recursiveUnionMembersLeavesOnly}}
     case {{namespace}}::{{name}}::Kind_{{__kind}}:
-      return Value<{{{firstParam.type}}}>::Call(
-          isolate, x.template As<{{{firstParam.type}}}>());
-{{/unionMembers}}
+      return Value<{{{firstParam.topLevelType}}}>::Call(
+          isolate, x.template As<{{{firstParam.topLevelType}}}>());
+{{/recursiveUnionMembersLeavesOnly}}
   }
 }

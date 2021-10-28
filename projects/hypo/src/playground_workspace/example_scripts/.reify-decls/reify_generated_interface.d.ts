@@ -340,7 +340,7 @@ export declare function MeshFromRegion3(x: {
 /** A Mesh3 instance, but it is closed, i.e. it encloses a volume. */
 export declare type ClosedMesh3 = MeshFromRegion3;
 /** A set of connected polygons representing a piecewise linear 2D manifold in 3D. Polygon/edge/vertex connectivity information is preserved and stored. */
-export declare type Mesh3 = ClosedMesh3;
+export declare type Mesh3 = ClosedMesh3 | MeshFromRegion3;
 /** Converts a Mesh3 into an unstructured TriangleSoup3, which is just a set of triangles and vertices, with out any structural or connectivity information. */
 export declare type TriangleSoupFromMesh3Params = {
     /** The Mesh3 which is to be converted into a triangle soup. */
@@ -373,10 +373,12 @@ export declare function TriangleSoupFromRegion3(x: {
 }): TriangleSoupFromRegion3;
 /** An unstructured collection of triangles and vertices, which is fast to render and export, but since it doesn't store any connectivity information it's not as flexible as other mesh formats. */
 export declare type TriangleSoup3 = TriangleSoupFromMesh3 | TriangleSoupFromRegion3 | AffineTransformTriangleSoup3 | TriangleSoupWithColor3;
+/** A TriangleSoup3 or a TriangleSoupSet3. */
+export declare type TriangleSoupOrTriangleSoupSet3 = TriangleSoup3 | TriangleSoupSet3;
 /** A set of triangle soups. Useful for expressing the desire to render a collection of meshes at the same time. */
 export declare type TriangleSoupSet3Params = {
     /** The collection of triangle soups. */
-    triangle_soups: TriangleSoup3[];
+    triangle_soups: TriangleSoupOrTriangleSoupSet3[];
 };
 interface TriangleSoupSet3WithKind extends TriangleSoupSet3Params {
     __kind: 'TriangleSoupSet3';
@@ -386,7 +388,7 @@ export interface TriangleSoupSet3 extends Readonly<TriangleSoupSet3WithKind> {
 /** A set of triangle soups. Useful for expressing the desire to render a collection of meshes at the same time. */
 export declare function TriangleSoupSet3(x: {
     /** The collection of triangle soups. */
-    triangle_soups: TriangleSoup3[];
+    triangle_soups: TriangleSoupOrTriangleSoupSet3[];
 }): TriangleSoupSet3;
 /** Applies an affine transform to a TriangleSoup3. */
 export declare type AffineTransformTriangleSoup3Params = {

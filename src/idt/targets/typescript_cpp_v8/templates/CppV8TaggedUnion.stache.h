@@ -14,9 +14,9 @@ class {{name}} : public v8::Object {
   }
 
   enum Kind {
-{{#unionMembers}}
+{{#recursiveUnionMembersLeavesOnly}}
     Kind_{{__kind}},
-{{/unionMembers}}
+{{/recursiveUnionMembersLeavesOnly}}
   };
 
   Kind kind();
@@ -43,9 +43,9 @@ template <>
 struct TypeMatchesTypeScriptString<{{immRefCntNamespace}}::{{name}}> {
   static bool Result(std::string_view ts) {
     return ts == "{{name}}"
-{{#unionMembers}}
+{{#recursiveUnionMembers}}
            || ts == "{{__kind}}"
-{{/unionMembers}}
+{{/recursiveUnionMembers}}
     ;
   }
 };
