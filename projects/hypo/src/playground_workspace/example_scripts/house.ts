@@ -297,10 +297,10 @@ export function SingleHouse() {
   return h.Transform3({ source: house.build(), transform: h.Rotate3X(0) });
 }
 
-export function RowOfHouses() {
+function TranslatedRowOfHouses(transform: h.Matrix44, colorIndexOffset: number) {
   const house = SingleHouse();
-  const NUM_HOUSES = 6;
-  const SPACING_BETWEEN_HOUSES = 10.0;
+  const NUM_HOUSES = 20;
+  const SPACING_BETWEEN_HOUSES = 12.0;
   const COLORS: h.Vec3[] = [
     [1, 0.3, 0.3],
     [0.4, 1, 0.4],
@@ -308,9 +308,10 @@ export function RowOfHouses() {
     [1, 0.4, 1],
     [1, 1, 0.4],
     [0.3, 1, 1],
+    [1, 0.6, 0.4],
   ];
 
-  const house_x_positions_and_colors: [number, h.Vec3][] = [...Array(NUM_HOUSES).keys()].map((i) => [(i - (NUM_HOUSES / 2)) * SPACING_BETWEEN_HOUSES, COLORS[i]]);
+  const house_x_positions_and_colors: [number, h.Vec3][] = [...Array(NUM_HOUSES).keys()].map((i) => [(i - (NUM_HOUSES / 2)) * SPACING_BETWEEN_HOUSES, COLORS[(i + colorIndexOffset) % COLORS.length]]);
   return h.TriangleSoupSet3({
     triangle_soups: house_x_positions_and_colors.map(
       (([x_translation, color]) =>
@@ -318,9 +319,24 @@ export function RowOfHouses() {
           triangle_soup:
             h.AffineTransformTriangleSoup3({
               triangle_soup: h.TriangleSoupFromRegion3({ region: house }),
-              transform: h.Translate3([x_translation, 0, 0]),
+              transform: h.MMul4(h.Translate3([x_translation, 0, 0]), transform),
             }),
           color: color
         })))
+  });
+}
+
+export function RowOfHouses() {
+  return TranslatedRowOfHouses(h.Identity3, 0);
+}
+
+export function MatrixOfHouses() {
+  const NUM_ROWS = 20;
+  const SPACING_BETWEEN_ROWS = 14.0;
+
+  const house_y_positions = [...Array(NUM_ROWS).keys()].map((i) => [i, (i - (NUM_ROWS / 2)) * SPACING_BETWEEN_ROWS]);
+  return h.TriangleSoupSet3({
+    triangle_soups: house_y_positions.map(
+      ([index, y_translation]) => TranslatedRowOfHouses(h.Translate3([0, y_translation, 0]), index)),
   });
 }
