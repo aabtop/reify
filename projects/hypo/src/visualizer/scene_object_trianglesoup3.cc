@@ -124,7 +124,7 @@ void SceneObjectTriangleSoupSet3::RenderImGuiWindow() {
         selected_path.replace_extension("stl");
       }
 
-      hypo::geometry::ExportToSTL(**triangle_soup_set_->begin(),
+      hypo::geometry::ExportToSTL(*triangle_soup_set_,
                                   std::filesystem::absolute(selected_path));
       export_file_selector_->Close();
     }

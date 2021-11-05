@@ -13,7 +13,7 @@ namespace hypo {
 namespace geometry {
 
 struct TriangleSoup {
-  using Vector3 = Vec3;
+  using Vector3 = glm::vec3;
   struct Vertex {
     Vector3 position;
     Vector3 normal;

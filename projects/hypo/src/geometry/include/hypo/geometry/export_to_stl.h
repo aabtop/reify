@@ -8,7 +8,7 @@
 namespace hypo {
 namespace geometry {
 
-bool ExportToSTL(const hypo::geometry::TriangleSoup& triangle_soup,
+bool ExportToSTL(const hypo::geometry::TriangleSoupSet& triangle_soup_set,
                  const std::filesystem::path& output_filepath);
 
 }  // namespace geometry

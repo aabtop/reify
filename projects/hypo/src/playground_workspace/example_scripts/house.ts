@@ -300,7 +300,7 @@ export function SingleHouse() {
 function TranslatedRowOfHouses(transform: h.Matrix44, colorIndexOffset: number) {
   const house = SingleHouse();
   const NUM_HOUSES = 20;
-  const SPACING_BETWEEN_HOUSES = 12.0;
+  const SPACING_BETWEEN_HOUSES = 22.0;
   const COLORS: h.Vec3[] = [
     [1, 0.3, 0.3],
     [0.4, 1, 0.4],
@@ -332,7 +332,7 @@ export function RowOfHouses() {
 
 export function MatrixOfHouses() {
   const NUM_ROWS = 20;
-  const SPACING_BETWEEN_ROWS = 14.0;
+  const SPACING_BETWEEN_ROWS = 24.0;
 
   const house_y_positions = [...Array(NUM_ROWS).keys()].map((i) => [i, (i - (NUM_ROWS / 2)) * SPACING_BETWEEN_ROWS]);
   return h.TriangleSoupSet3({
