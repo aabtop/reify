@@ -74,7 +74,7 @@ CreateSceneObjectTriangleSoup3(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                                const std::string& window_panel_title) {
   return CreateSceneObjectTriangleSoupSet3(
       runner, hypo::TriangleSoupSet3({{reify::New(hypo::TriangleSoup3(data))}}),
-      "TriangleSoup3");
+      window_panel_title.empty() ? "TriangleSoup3" : window_panel_title);
 }
 
 reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat4>>>
