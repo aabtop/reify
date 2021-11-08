@@ -34,7 +34,25 @@ idt_as_typescript_cpp_v8(
 )
 
 cc_library(
-    name = "hypo_lib",
+    name = "hypo_svg_lib",
+    srcs = [
+        "src/svg/construct_svg.h",
+        "src/svg/construct_svg.cc",
+        "src/svg/export_to_svg.cc",
+        "src/svg/export_to_svg.h",
+    ],
+    includes = [
+        "src/",
+    ],
+    deps = [
+        ":hypo-purecpp",
+        ":hypo_cgal_lib",
+        "@reify//src/idt/targets/pure_cpp/hashing:thread_pool_cache_runner",
+    ]
+)
+
+cc_library(
+    name = "hypo_cgal_lib",
     srcs = [
         "src/cgal/construct_mesh3.cc",
         "src/cgal/construct_mesh3.h",
@@ -49,8 +67,6 @@ cc_library(
         "src/cgal/embed_2d_in_3d.h",
         "src/cgal/errors.h",
         "src/cgal/export_to_file.h",
-        "src/cgal/export_to_svg.cc",
-        "src/cgal/export_to_svg.h",
         "src/cgal/extrude.cc",
         "src/cgal/extrude.h",
         "src/cgal/primitives_3d.cc",
@@ -83,7 +99,8 @@ cc_binary(
     deps = [
         ":hypo-purecpp",
         ":hypo-typescript_cpp_v8",
-        ":hypo_lib",
+        ":hypo_cgal_lib",
+        ":hypo_svg_lib",
         "@CLI11",
         "@cgal",
         "@reify//src/idt/targets/typescript_cpp_v8:command_line_tool",

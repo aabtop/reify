@@ -11,11 +11,12 @@
 #include "cgal/construct_region2.h"
 #include "cgal/construct_trianglesoup3.h"
 #include "cgal/errors.h"
-#include "export_to_svg.h"
 #include "hypo/geometry/export_to_stl.h"
 #include "reify/pure_cpp/thread_pool_cache_runner.h"
 #include "reify/purecpp/hypo.h"
 #include "reify/utils/error.h"
+#include "svg/construct_svg.h"
+#include "svg/export_to_svg.h"
 
 namespace hypo {
 namespace cgal {
@@ -33,11 +34,18 @@ auto BuildObject(const T& object) {
           std::thread::hardware_concurrency(), 256 * 1024,
           ebb::ThreadPool::SchedulingPolicy::LIFO));
   if constexpr (std::is_same<T, hypo::Region2>::value) {
-    return hypo::cgal::CallCgalAndCatchExceptions(&hypo::cgal::ConstructRegion2,
-                                                  &runner, object);
+    return hypo::cgal::CallCgalAndCatchExceptions(
+        &hypo::svg::ConstructSvgElements, &runner,
+        hypo::SvgElements(
+            {{reify::New(hypo::SvgPathElement(hypo::SvgPathElementFromRegion2{
+                object, hypo::SvgSolidColor{{0.8, 0.8, 0.8, 1.0}}}))}}));
   } else if constexpr (std::is_same<T, hypo::Boundary2>::value) {
     return hypo::cgal::CallCgalAndCatchExceptions(
-        &hypo::cgal::ConstructBoundary2, &runner, object);
+        &hypo::svg::ConstructSvgElements, &runner,
+        hypo::SvgElements(
+            {{reify::New(hypo::SvgPathElement(hypo::SvgPathElementFromBoundary2{
+                object, hypo::SvgSolidColor{{0.95, 0.95, 0.95, 1.0}},
+                hypo::SvgPercentage{1.0f}}))}}));
   } else if constexpr (std::is_same<T, hypo::Mesh3>::value) {
     return hypo::cgal::CallCgalAndCatchExceptions(
         &hypo::cgal::ConstructTriangleSoupSet3, &runner,
@@ -75,14 +83,11 @@ reify::utils::ErrorOr<BuildAndExportResults> BuildAndExportToFile(
       std::chrono::high_resolution_clock::now();
 
   bool export_success = false;
-  if constexpr (std::is_same<T, hypo::Region2>::value) {
+  if constexpr (std::is_same<T, hypo::Region2>::value ||
+                std::is_same<T, hypo::Boundary2>::value) {
     results.output_filepath = output_base_filepath + ".svg";
     export_success =
-        hypo::cgal::ExportRegionToSVG(*built_object, results.output_filepath);
-  } else if constexpr (std::is_same<T, hypo::Boundary2>::value) {
-    results.output_filepath = output_base_filepath + ".svg";
-    export_success =
-        hypo::cgal::ExportBoundaryToSVG(*built_object, results.output_filepath);
+        hypo::svg::ExportToSVG(*built_object, results.output_filepath);
   } else if constexpr (std::is_same<T, hypo::Mesh3>::value ||
                        std::is_same<T, hypo::Region3>::value ||
                        std::is_same<T, hypo::TriangleSoup3>::value ||

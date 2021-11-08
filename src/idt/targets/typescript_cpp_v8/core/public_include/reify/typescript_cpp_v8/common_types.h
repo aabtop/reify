@@ -188,7 +188,10 @@ struct FromImmRefCnt<std::vector<T>> {
 };
 template <typename T>
 struct TypeScriptTypeString<std::vector<T>> {
-  // Not implemented.
+  static std::string value() {
+    std::cerr << TypeScriptTypeString<T>::value() + "[]" << std::endl;
+    return TypeScriptTypeString<T>::value() + "[]";
+  }
 };
 
 template <typename T, int S>

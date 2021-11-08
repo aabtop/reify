@@ -20,10 +20,13 @@ struct MvpUniform {
 }  // namespace
 
 // static
-vulkan_utils::ErrorOr<SimpleSimplexRenderer2> SimpleSimplexRenderer2::Create(
+vulkan_utils::ErrorOr<SimpleSimplexRenderer2>
+SimpleSimplexRenderer2::CreateInternal(
     VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
     VkFormat output_image_format, VkRenderPass render_pass,
-    int embedded_dimension) {
+    int embedded_dimension,
+    std::shared_ptr<SimplexSoupVulkanBuffers> simplex_soup_vulkan_buffer,
+    const glm::vec4& color) {
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       descriptor_set_layout,
       vulkan_utils::MakeDescriptorSetLayout(
@@ -93,14 +96,15 @@ vulkan_utils::ErrorOr<SimpleSimplexRenderer2> SimpleSimplexRenderer2::Create(
       std::move(pipeline_cache),
       std::move(pipeline_layout),
       std::make_shared<WithDeleter<VkPipeline>>(std::move(pipeline)),
+      color,
+      simplex_soup_vulkan_buffer,
   });
 }
 
 SimpleSimplexRenderer2::~SimpleSimplexRenderer2() {}
 
 auto SimpleSimplexRenderer2::RenderFrame(
-    VkCommandBuffer command_buffer, const glm::mat3& projection_view_matrix,
-    const glm::vec4& color)
+    VkCommandBuffer command_buffer, const glm::mat3& projection_view_matrix)
     -> vulkan_utils::ErrorOr<vulkan_utils::FrameResources> {
   glm::mat4 model_matrix = glm::mat4(1.0f);
   MvpUniform mvp_uniform_data{model_matrix, glm::mat4(projection_view_matrix)};
@@ -119,12 +123,12 @@ auto SimpleSimplexRenderer2::RenderFrame(
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       color_uniform_buffer,
       vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                               sizeof(color)));
+                               sizeof(data_.color)));
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       color_uniform_buffer_memory,
       vulkan_utils::AllocateAndBindBufferMemory(
           data_.physical_device, data_.device, color_uniform_buffer.value(),
-          reinterpret_cast<const uint8_t*>(&color), sizeof(color)));
+          reinterpret_cast<const uint8_t*>(&data_.color), sizeof(data_.color)));
 
   // Set up descriptor set and its layout.
   VULKAN_UTILS_ASSIGN_OR_RETURN(
@@ -145,7 +149,7 @@ auto SimpleSimplexRenderer2::RenderFrame(
            VkDescriptorBufferInfo{color_uniform_buffer.value(), 0,
                                   sizeof(glm::vec4)}}));
 
-  if (simplex_soup_vulkan_buffers_) {
+  if (data_.simplex_soup_vulkan_buffer) {
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       data_.pipeline->value());
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -155,20 +159,20 @@ auto SimpleSimplexRenderer2::RenderFrame(
     VkDeviceSize vertex_buffer_offset = 0;
     vkCmdBindVertexBuffers(
         command_buffer, 0, 1,
-        &(simplex_soup_vulkan_buffers_->vertex_buffer.value()),
+        &(data_.simplex_soup_vulkan_buffer->vertex_buffer.value()),
         &vertex_buffer_offset);
     vkCmdBindIndexBuffer(command_buffer,
-                         simplex_soup_vulkan_buffers_->index_buffer.value(), 0,
-                         VK_INDEX_TYPE_UINT32);
+                         data_.simplex_soup_vulkan_buffer->index_buffer.value(),
+                         0, VK_INDEX_TYPE_UINT32);
 
     vkCmdDrawIndexed(
         command_buffer,
-        static_cast<uint32_t>(simplex_soup_vulkan_buffers_->indices_count), 1,
-        0, 0, 0);
+        static_cast<uint32_t>(data_.simplex_soup_vulkan_buffer->indices_count),
+        1, 0, 0, 0);
   }
 
   auto resources = std::make_tuple(
-      simplex_soup_vulkan_buffers_, std::move(uniform_descriptor_set),
+      data_.simplex_soup_vulkan_buffer, std::move(uniform_descriptor_set),
       std::move(descriptor_pool), std::move(mvp_uniform_buffer_memory),
       std::move(mvp_uniform_buffer), std::move(color_uniform_buffer_memory),
       std::move(color_uniform_buffer), data_.pipeline);
@@ -177,41 +181,35 @@ auto SimpleSimplexRenderer2::RenderFrame(
       std::make_shared<decltype(resources)>(std::move(resources)));
 }
 
-std::optional<vulkan_utils::Error>
-SimpleSimplexRenderer2::SetSimplexSoupInternal(
-    int embedder_dimension, int embedded_dimension, const void* vertex_data,
+vulkan_utils::ErrorOr<
+    std::shared_ptr<SimpleSimplexRenderer2::SimplexSoupVulkanBuffers>>
+SimpleSimplexRenderer2::MakeSimplexSoupVulkanBuffers(
+    int embedder_dimension, int embedded_dimension,
+    VkPhysicalDevice physical_device, VkDevice device, const void* vertex_data,
     size_t vertex_data_size, const void* simplex_data, size_t simplex_data_size,
     size_t indices_count) {
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       vertex_buffer,
-      vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      vulkan_utils::MakeBuffer(device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                vertex_data_size));
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       vertex_buffer_memory,
       vulkan_utils::AllocateAndBindBufferMemory(
-          data_.physical_device, data_.device, vertex_buffer.value(),
+          physical_device, device, vertex_buffer.value(),
           reinterpret_cast<const uint8_t*>(vertex_data), vertex_data_size));
 
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       index_buffer,
-      vulkan_utils::MakeBuffer(data_.device, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      vulkan_utils::MakeBuffer(device, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                                simplex_data_size));
   VULKAN_UTILS_ASSIGN_OR_RETURN(
       index_buffer_memory,
       vulkan_utils::AllocateAndBindBufferMemory(
-          data_.physical_device, data_.device, index_buffer.value(),
+          physical_device, device, index_buffer.value(),
           reinterpret_cast<const uint8_t*>(simplex_data), simplex_data_size));
 
-  simplex_soup_vulkan_buffers_ =
-      std::shared_ptr<SimplexSoupVulkanBuffers>(new SimplexSoupVulkanBuffers{
-          std::move(vertex_buffer), std::move(vertex_buffer_memory),
-          std::move(index_buffer), std::move(index_buffer_memory),
-          indices_count});
-
   // Success!
-  return std::nullopt;
-}
-
-void SimpleSimplexRenderer2::ClearSimplexSoup() {
-  simplex_soup_vulkan_buffers_ = nullptr;
+  return std::shared_ptr<SimplexSoupVulkanBuffers>(new SimplexSoupVulkanBuffers{
+      std::move(vertex_buffer), std::move(vertex_buffer_memory),
+      std::move(index_buffer), std::move(index_buffer_memory), indices_count});
 }

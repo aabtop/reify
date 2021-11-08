@@ -50,6 +50,7 @@ idt =
             ]
 
       sRGB = NamedType "sRGB" "A color in the sRGB colorspace." $ cvec 3
+      sRGBA = NamedType "sRGBA" "A color in the sRGB colorspace, with alpha." $ cvec 4
 
       polygon =
         NamedType "Polygon" "A closed polygon." $
@@ -172,6 +173,105 @@ idt =
         NamedType "Boundary2" "A set of closed polylines that envelope a 2D region." $
           TaggedUnion
             [ Reference boundaryOfRegion2
+            ]
+
+      svgElements =
+        NamedType "SvgElements" "A sequence of elements, where the ordering represents the draw order (in back-to-front order)." $
+          Struct
+            [ ( "elements",
+                "The elements that define this element sequence.",
+                List $ Concrete svgElement
+              )
+            ]
+      svgElement =
+        NamedType "SvgElement" "An object representing a single SVG element." $
+          TaggedUnion
+            [ Reference svgPathElement
+            ]
+      svgPathElement =
+        NamedType
+          "SvgPathElement"
+          "A representation of the SVG `path` element, used to represent a polygon."
+          $ TaggedUnion
+            [ Concrete svgPathElementFromRegion2,
+              Concrete svgPathElementFromBoundary2
+            ]
+      svgPathElementFromRegion2 =
+        NamedType
+          "SvgPathElementFromRegion2"
+          "Returns a SVG `path` element based on a 2D region."
+          $ Struct
+            [ ( "region",
+                "The 2D region representing the fill region for the SVG path.",
+                Concrete region2
+              ),
+              ("fill", "The fill style for the region.", Concrete svgFillStyle)
+            ]
+      svgFillStyle =
+        NamedType
+          "SvgFillStyle"
+          "Defines the fill pattern used for a 2D area, e.g. a fill color."
+          $ TaggedUnion
+            [ Concrete svgSolidColor
+            ]
+      svgSolidColor =
+        NamedType
+          "SvgSolidColor"
+          "Defines a solid color to be associated with SVG elements."
+          $ Struct
+            [ ( "color",
+                "The color, which includes an alpha component.",
+                Concrete sRGBA
+              )
+            ]
+      svgPathElementFromBoundary2 =
+        NamedType
+          "SvgPathElementFromBoundary2"
+          "Returns a SVG `path` element based on a 2D boundary."
+          $ Struct
+            [ ( "boundary",
+                "The 2D boundary representing the border for the SVG path.",
+                Concrete boundary2
+              ),
+              ("stroke", "The stroke style for drawing along the boundary.", Concrete svgStrokeStyle),
+              ("width", "The width of the stroke for rendering the boundary.", Concrete svgWidth)
+            ]
+      svgStrokeStyle =
+        NamedType
+          "SvgStrokeStyle"
+          "Defines the stroke pattern used for the a 2D boundary edge, e.g. a fill color."
+          $ TaggedUnion
+            [ Concrete svgSolidColor
+            ]
+      svgWidth =
+        NamedType
+          "SvgWidth"
+          "Defines a width in SVG, in absolute value or percentages."
+          $ TaggedUnion
+            [ Concrete svgPercentage,
+              Concrete svgAbsolute
+            ]
+      svgPercentage =
+        NamedType
+          "SvgPercentage"
+          "Defines a scalar percentage value."
+          $ Struct
+            [("value", "The scalar percentage value.", f32)]
+
+      svgAbsolute =
+        NamedType
+          "SvgAbsolute"
+          "Defines a scalar absolute value in the given type of units."
+          $ Struct
+            [ ("value", "The scalar value in the specified units.", f32),
+              ("units", "The type of units that the value represents.", Concrete svgScalarUnitType)
+            ]
+      svgScalarUnitType =
+        NamedType
+          "SvgScalarUnitType"
+          "Defines a type of scalar measurement, e.g. `px` for pixels."
+          $ Enum
+            [ ("px", "Pixels", [])
             ]
 
       triangleList n =
@@ -353,7 +453,7 @@ idt =
       mesh3 =
         NamedType "Mesh3" "A set of connected polygons representing a piecewise linear 2D manifold in 3D. Polygon/edge/vertex connectivity information is preserved and stored." $
           TaggedUnion
-            [ Reference closedMesh3 ]
+            [Reference closedMesh3]
 
       closedMesh3 =
         NamedType "ClosedMesh3" "A Mesh3 instance, but it is closed, i.e. it encloses a volume." $
@@ -412,7 +512,7 @@ idt =
         NamedType "TriangleSoupSet3" "A set of triangle soups. Useful for expressing the desire to render a collection of meshes at the same time." $
           Struct
             [("triangle_soups", "The collection of triangle soups.", List $ Concrete triangleSoupOrTriangleSoupSet3)]
-   in [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, sRGB, region2, region3, boundary2, mesh3, triangleSoup3, triangleSoupSet3]
+   in [vec 2, vec 3, mat 4 4, mat 4 3, mat 3 3, sRGB, region2, region3, boundary2, mesh3, triangleSoup3, triangleSoupSet3, svgElements]
 
 -- The directory containing typescript files which defines the interface.
 -- Within these files one may import reify_generated_interface to access the

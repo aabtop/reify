@@ -340,7 +340,7 @@ export declare function MeshFromRegion3(x: {
 /** A Mesh3 instance, but it is closed, i.e. it encloses a volume. */
 export declare type ClosedMesh3 = MeshFromRegion3;
 /** A set of connected polygons representing a piecewise linear 2D manifold in 3D. Polygon/edge/vertex connectivity information is preserved and stored. */
-export declare type Mesh3 = ClosedMesh3 | MeshFromRegion3;
+export declare type Mesh3 = ClosedMesh3;
 /** Converts a Mesh3 into an unstructured TriangleSoup3, which is just a set of triangles and vertices, with out any structural or connectivity information. */
 export declare type TriangleSoupFromMesh3Params = {
     /** The Mesh3 which is to be converted into a triangle soup. */
@@ -390,6 +390,131 @@ export declare function TriangleSoupSet3(x: {
     /** The collection of triangle soups. */
     triangle_soups: TriangleSoupOrTriangleSoupSet3[];
 }): TriangleSoupSet3;
+/** A 4-dimensional cartesian coordinate vector. */
+export declare type Vec4 = [number, number, number, number];
+/** A color in the sRGB colorspace, with alpha. */
+export declare type sRGBA = Vec4;
+/** Defines a solid color to be associated with SVG elements. */
+export declare type SvgSolidColorParams = {
+    /** The color, which includes an alpha component. */
+    color: sRGBA;
+};
+interface SvgSolidColorWithKind extends SvgSolidColorParams {
+    __kind: 'SvgSolidColor';
+}
+export interface SvgSolidColor extends Readonly<SvgSolidColorWithKind> {
+}
+/** Defines a solid color to be associated with SVG elements. */
+export declare function SvgSolidColor(x: {
+    /** The color, which includes an alpha component. */
+    color: sRGBA;
+}): SvgSolidColor;
+/** Defines the fill pattern used for a 2D area, e.g. a fill color. */
+export declare type SvgFillStyle = SvgSolidColor;
+/** Returns a SVG `path` element based on a 2D region. */
+export declare type SvgPathElementFromRegion2Params = {
+    /** The 2D region representing the fill region for the SVG path. */
+    region: Region2;
+    /** The fill style for the region. */
+    fill: SvgFillStyle;
+};
+interface SvgPathElementFromRegion2WithKind extends SvgPathElementFromRegion2Params {
+    __kind: 'SvgPathElementFromRegion2';
+}
+export interface SvgPathElementFromRegion2 extends Readonly<SvgPathElementFromRegion2WithKind> {
+}
+/** Returns a SVG `path` element based on a 2D region. */
+export declare function SvgPathElementFromRegion2(x: {
+    /** The 2D region representing the fill region for the SVG path. */
+    region: Region2;
+    /** The fill style for the region. */
+    fill: SvgFillStyle;
+}): SvgPathElementFromRegion2;
+/** Defines the stroke pattern used for the a 2D boundary edge, e.g. a fill color. */
+export declare type SvgStrokeStyle = SvgSolidColor;
+/** Defines a scalar percentage value. */
+export declare type SvgPercentageParams = {
+    /** The scalar percentage value. */
+    value: number;
+};
+interface SvgPercentageWithKind extends SvgPercentageParams {
+    __kind: 'SvgPercentage';
+}
+export interface SvgPercentage extends Readonly<SvgPercentageWithKind> {
+}
+/** Defines a scalar percentage value. */
+export declare function SvgPercentage(x: {
+    /** The scalar percentage value. */
+    value: number;
+}): SvgPercentage;
+/** Defines a type of scalar measurement, e.g. `px` for pixels. */
+export declare const enum SvgScalarUnitType {
+    /** Pixels */
+    px = 0
+}
+/** Defines a scalar absolute value in the given type of units. */
+export declare type SvgAbsoluteParams = {
+    /** The scalar value in the specified units. */
+    value: number;
+    /** The type of units that the value represents. */
+    units: SvgScalarUnitType;
+};
+interface SvgAbsoluteWithKind extends SvgAbsoluteParams {
+    __kind: 'SvgAbsolute';
+}
+export interface SvgAbsolute extends Readonly<SvgAbsoluteWithKind> {
+}
+/** Defines a scalar absolute value in the given type of units. */
+export declare function SvgAbsolute(x: {
+    /** The scalar value in the specified units. */
+    value: number;
+    /** The type of units that the value represents. */
+    units: SvgScalarUnitType;
+}): SvgAbsolute;
+/** Defines a width in SVG, in absolute value or percentages. */
+export declare type SvgWidth = SvgPercentage | SvgAbsolute;
+/** Returns a SVG `path` element based on a 2D boundary. */
+export declare type SvgPathElementFromBoundary2Params = {
+    /** The 2D boundary representing the border for the SVG path. */
+    boundary: Boundary2;
+    /** The stroke style for drawing along the boundary. */
+    stroke: SvgStrokeStyle;
+    /** The width of the stroke for rendering the boundary. */
+    width: SvgWidth;
+};
+interface SvgPathElementFromBoundary2WithKind extends SvgPathElementFromBoundary2Params {
+    __kind: 'SvgPathElementFromBoundary2';
+}
+export interface SvgPathElementFromBoundary2 extends Readonly<SvgPathElementFromBoundary2WithKind> {
+}
+/** Returns a SVG `path` element based on a 2D boundary. */
+export declare function SvgPathElementFromBoundary2(x: {
+    /** The 2D boundary representing the border for the SVG path. */
+    boundary: Boundary2;
+    /** The stroke style for drawing along the boundary. */
+    stroke: SvgStrokeStyle;
+    /** The width of the stroke for rendering the boundary. */
+    width: SvgWidth;
+}): SvgPathElementFromBoundary2;
+/** A representation of the SVG `path` element, used to represent a polygon. */
+export declare type SvgPathElement = SvgPathElementFromRegion2 | SvgPathElementFromBoundary2;
+/** An object representing a single SVG element. */
+export declare type SvgElement = SvgPathElement;
+/** A sequence of elements, where the ordering represents the draw order (in back-to-front order). */
+export declare type SvgElementsParams = {
+    /** The elements that define this element sequence. */
+    elements: SvgElement[];
+};
+interface SvgElementsWithKind extends SvgElementsParams {
+    __kind: 'SvgElements';
+}
+export interface SvgElements extends Readonly<SvgElementsWithKind> {
+}
+/** A sequence of elements, where the ordering represents the draw order (in back-to-front order). */
+export declare function SvgElements(x: {
+    /** The elements that define this element sequence. */
+    elements: SvgElement[];
+}): SvgElements;
 /** Applies an affine transform to a TriangleSoup3. */
 export declare type AffineTransformTriangleSoup3Params = {
     /** The triangle soup which is to be transformed. */

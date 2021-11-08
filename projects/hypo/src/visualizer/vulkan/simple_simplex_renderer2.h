@@ -34,24 +34,31 @@ class SimpleSimplexRenderer2 {
         simplices;  // E.g. "triangles" for EmbeddedDimension = 2
   };
 
+  template <int EmbedderDimension, int EmbeddedDimension>
   static vulkan_utils::ErrorOr<SimpleSimplexRenderer2> Create(
       VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
       VkFormat output_image_format, VkRenderPass render_pass,
-      int embedded_dimension);
+      const SimplexSoup<EmbedderDimension, EmbeddedDimension>& simplex_soup,
+      const glm::vec4& color);
 
+  SimpleSimplexRenderer2(const SimpleSimplexRenderer2& other) = delete;
   SimpleSimplexRenderer2(SimpleSimplexRenderer2&& other) = default;
   ~SimpleSimplexRenderer2();
 
-  template <int EmbedderDimension, int EmbeddedDimension>
-  std::optional<vulkan_utils::Error> SetSimplexSoup(
-      const SimplexSoup<EmbedderDimension, EmbeddedDimension>& simplex_soup);
-  void ClearSimplexSoup();
-
   vulkan_utils::ErrorOr<vulkan_utils::FrameResources> RenderFrame(
-      VkCommandBuffer command_buffer, const glm::mat3& projection_view_matrix,
-      const glm::vec4& color);
+      VkCommandBuffer command_buffer, const glm::mat3& projection_view_matrix);
 
  private:
+  struct SimplexSoupVulkanBuffers {
+    WithDeleter<VkBuffer> vertex_buffer;
+    WithDeleter<VkDeviceMemory> vertex_buffer_memory;
+
+    WithDeleter<VkBuffer> index_buffer;
+    WithDeleter<VkDeviceMemory> index_buffer_memory;
+
+    size_t indices_count;
+  };
+
   struct SimpleSimplexRenderer2ConstructorData {
     VkInstance instance;
     VkPhysicalDevice physical_device;
@@ -63,43 +70,53 @@ class SimpleSimplexRenderer2 {
     WithDeleter<VkPipelineLayout> pipeline_layout;
 
     std::shared_ptr<WithDeleter<VkPipeline>> pipeline;
+
+    glm::vec4 color;
+
+    std::shared_ptr<SimplexSoupVulkanBuffers> simplex_soup_vulkan_buffer;
   };
 
-  struct SimplexSoupVulkanBuffers {
-    WithDeleter<VkBuffer> vertex_buffer;
-    WithDeleter<VkDeviceMemory> vertex_buffer_memory;
-
-    WithDeleter<VkBuffer> index_buffer;
-    WithDeleter<VkDeviceMemory> index_buffer_memory;
-
-    size_t indices_count;
-  };
-  using MakeSimplexSoupVulkanBuffers =
-      std::function<SimplexSoupVulkanBuffers(VkPhysicalDevice, VkDevice)>;
+  static vulkan_utils::ErrorOr<SimpleSimplexRenderer2> CreateInternal(
+      VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
+      VkFormat output_image_format, VkRenderPass render_pass,
+      int embedded_dimension,
+      std::shared_ptr<SimplexSoupVulkanBuffers> simplex_soup_vulkan_buffer,
+      const glm::vec4& color);
 
   SimpleSimplexRenderer2(SimpleSimplexRenderer2ConstructorData&& data)
       : data_(std::move(data)) {}
 
-  std::optional<vulkan_utils::Error> SetSimplexSoupInternal(
-      int embedder_dimension, int embedded_dimension, const void* vertex_data,
-      size_t vertex_data_size, const void* simplex_data,
-      size_t simplex_data_size, size_t indices_count);
+  static vulkan_utils::ErrorOr<std::shared_ptr<SimplexSoupVulkanBuffers>>
+  MakeSimplexSoupVulkanBuffers(int embedder_dimension, int embedded_dimension,
+                               VkPhysicalDevice physical_device,
+                               VkDevice device, const void* vertex_data,
+                               size_t vertex_data_size,
+                               const void* simplex_data,
+                               size_t simplex_data_size, size_t indices_count);
 
   SimpleSimplexRenderer2ConstructorData data_;
-
-  std::shared_ptr<SimplexSoupVulkanBuffers> simplex_soup_vulkan_buffers_;
 };
 
 template <int EmbedderDimension, int EmbeddedDimension>
-std::optional<vulkan_utils::Error> SimpleSimplexRenderer2::SetSimplexSoup(
-    const SimplexSoup<EmbedderDimension, EmbeddedDimension>& simplex_soup) {
+vulkan_utils::ErrorOr<SimpleSimplexRenderer2> SimpleSimplexRenderer2::Create(
+    VkInstance instance, VkPhysicalDevice physical_device, VkDevice device,
+    VkFormat output_image_format, VkRenderPass render_pass,
+    const SimplexSoup<EmbedderDimension, EmbeddedDimension>& simplex_soup,
+    const glm::vec4& color) {
   // Move from template land to runtime land.
-  return SetSimplexSoupInternal(
-      EmbedderDimension, EmbeddedDimension,
-      reinterpret_cast<const void*>(simplex_soup.vertices.data()),
-      simplex_soup.vertices.size() * sizeof(simplex_soup.vertices[0]),
-      reinterpret_cast<const void*>(simplex_soup.simplices.data()),
-      simplex_soup.simplices.size() * sizeof(simplex_soup.simplices[0]),
-      simplex_soup.simplices.size() * (EmbeddedDimension + 1));
+  VULKAN_UTILS_ASSIGN_OR_RETURN(
+      simplex_soup_vulkan_buffer,
+      MakeSimplexSoupVulkanBuffers(
+          EmbedderDimension, EmbeddedDimension, physical_device, device,
+          reinterpret_cast<const void*>(simplex_soup.vertices.data()),
+          simplex_soup.vertices.size() * sizeof(simplex_soup.vertices[0]),
+          reinterpret_cast<const void*>(simplex_soup.simplices.data()),
+          simplex_soup.simplices.size() * sizeof(simplex_soup.simplices[0]),
+          simplex_soup.simplices.size() * (EmbeddedDimension + 1)));
+
+  return CreateInternal(instance, physical_device, device, output_image_format,
+                        render_pass, EmbeddedDimension,
+                        simplex_soup_vulkan_buffer, color);
 }
+
 #endif  // _IDE_VULKAN_SIMPLE_SIMPLEX_RENDERER2_H

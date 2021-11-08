@@ -12,6 +12,7 @@
 #include "src/visualizer/scene_object_mesh3.h"
 #include "src/visualizer/scene_object_region2.h"
 #include "src/visualizer/scene_object_region3.h"
+#include "src/visualizer/scene_object_svg_elements.h"
 #include "src/visualizer/scene_object_trianglesoup3.h"
 
 namespace hypo {
@@ -37,6 +38,15 @@ class TypeScriptSymbolVisualizer {
                             [runner = &this->runner](const auto& x) {
                               return CreateSceneObjectRegion2(runner, x);
                             }),
+        svg_elements_visualizer(&camera_2d,
+                                [runner = &this->runner](const auto& x) {
+                                  return CreateSceneObjectSvgElements(runner,
+                                                                      x);
+                                }),
+        svg_element_visualizer(&camera_2d,
+                               [runner = &this->runner](const auto& x) {
+                                 return CreateSceneObjectSvgElement(runner, x);
+                               }),
         region_3_visualizer(&camera_3d,
                             [runner = &this->runner](const auto& x) {
                               return CreateSceneObjectRegion3(runner, x);
@@ -61,6 +71,10 @@ class TypeScriptSymbolVisualizer {
                 *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
                     &region_2_visualizer),
                 *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
+                    &svg_elements_visualizer),
+                *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
+                    &svg_element_visualizer),
+                *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
                     &region_3_visualizer),
                 *reify::typescript_cpp_v8::MakeTypeScriptSymbolVisualizer(
                     &triangle_soup_3_visualizer),
@@ -78,6 +92,10 @@ class TypeScriptSymbolVisualizer {
   reify::pure_cpp::SceneVisualizer<hypo::Mesh3, glm::mat4> mesh_3_visualizer;
   reify::pure_cpp::SceneVisualizer<hypo::Region2, glm::mat3>
       region_2_visualizer;
+  reify::pure_cpp::SceneVisualizer<hypo::SvgElements, glm::mat3>
+      svg_elements_visualizer;
+  reify::pure_cpp::SceneVisualizer<hypo::SvgElement, glm::mat3>
+      svg_element_visualizer;
   reify::pure_cpp::SceneVisualizer<hypo::Region3, glm::mat4>
       region_3_visualizer;
   reify::pure_cpp::SceneVisualizer<hypo::TriangleSoup3, glm::mat4>
