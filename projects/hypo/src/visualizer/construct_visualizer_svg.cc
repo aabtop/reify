@@ -182,7 +182,7 @@ FutureVisualizerSvgElements ConstructVisualizerSvgElements(
   auto future = runner->MakeFutureWithoutCaching<VisualizerSvgElements>(
       &ConstructVisualizerSvgElementsInternal, x);
   future.Get();
-  return std::move(future);
+  return future;
 }
 
 }  // namespace visualizer

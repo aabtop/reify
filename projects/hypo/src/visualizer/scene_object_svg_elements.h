@@ -70,16 +70,14 @@ class SceneObjectRenderableSvgElements
     : public reify::pure_cpp::SceneObjectRenderable<glm::mat3> {
  public:
   SceneObjectRenderableSvgElements(
-      SceneObjectSvgElements* parent,
       std::vector<SimpleSimplexRenderer2>&& element_renderers)
-      : parent_(parent), element_renderers_(std::move(element_renderers)) {}
+      : element_renderers_(std::move(element_renderers)) {}
 
   reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources> Render(
       VkCommandBuffer command_buffer,
       const glm::mat3& view_projection_matrix) override;
 
  private:
-  SceneObjectSvgElements* parent_;
   std::vector<SimpleSimplexRenderer2> element_renderers_;
 };
 

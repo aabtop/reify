@@ -55,8 +55,8 @@ SceneObjectSvgElements::SceneObjectSvgElements(
     const std::shared_ptr<const VisualizerSvgElements>& visualizer_svg_elements,
     const std::shared_ptr<const svg::Elements>& svg_elements,
     const std::string& window_panel_title)
-    : visualizer_svg_elements_(visualizer_svg_elements),
-      svg_elements_(svg_elements),
+    : svg_elements_(svg_elements),
+      visualizer_svg_elements_(visualizer_svg_elements),
       window_panel_title_(window_panel_title) {}
 
 SceneObjectSvgElements::~SceneObjectSvgElements() {}
@@ -139,7 +139,7 @@ SceneObjectSvgElements::CreateSceneObjectRenderable(
   }
 
   return std::unique_ptr<reify::pure_cpp::SceneObjectRenderable<glm::mat3>>(
-      new SceneObjectRenderableSvgElements(this, std::move(renderers)));
+      new SceneObjectRenderableSvgElements(std::move(renderers)));
 }
 
 reify::utils::ErrorOr<reify::window::Window::Renderer::FrameResources>

@@ -68,7 +68,7 @@ FutureElements ConstructSvgElements(
   auto future = runner->MakeFutureWithoutCaching<Elements>(
       &ConstructSvgElementsInternal, x);
   future.Get();
-  return std::move(future);
+  return future;
 }
 
 }  // namespace svg

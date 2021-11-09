@@ -23,14 +23,7 @@ inline void AddObjectToHash(blake3_hasher* hasher, float input) {
 
 template <typename... U>
 inline void AddObjectToHash(blake3_hasher* hasher,
-                            const std::variant<U...>& input) {
-  size_t variant_index = input.index();
-  blake3_hasher_update(hasher, reinterpret_cast<const uint8_t*>(&variant_index),
-                       sizeof(variant_index));
-
-  std::visit([hasher](const auto& arg) { AddObjectToHash(hasher, arg); },
-             input);
-}
+                            const std::variant<U...>& input);
 
 inline void AddObjectToHash(blake3_hasher* hasher, const std::string& input) {
   blake3_hasher_update(hasher, reinterpret_cast<const uint8_t*>(input.data()),

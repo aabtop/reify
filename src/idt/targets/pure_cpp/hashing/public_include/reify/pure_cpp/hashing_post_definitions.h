@@ -18,6 +18,17 @@ inline uint64_t HashObject(const CachedHashReference<T>& input) {
   return input.hash();
 }
 
+template <typename... U>
+inline void AddObjectToHash(blake3_hasher* hasher,
+                            const std::variant<U...>& input) {
+  size_t variant_index = input.index();
+  blake3_hasher_update(hasher, reinterpret_cast<const uint8_t*>(&variant_index),
+                       sizeof(variant_index));
+
+  std::visit([hasher](const auto& arg) { AddObjectToHash(hasher, arg); },
+             input);
+}
+
 template <typename T>
 CachedHashReference<T>::CachedHashReference(BaseType&& x)
     : ptr_(std::make_shared<T>(std::move(x))), hash_(HashObject(*ptr_)) {}

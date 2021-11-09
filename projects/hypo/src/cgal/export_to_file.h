@@ -46,6 +46,13 @@ auto BuildObject(const T& object) {
             {{reify::New(hypo::SvgPathElement(hypo::SvgPathElementFromBoundary2{
                 object, hypo::SvgSolidColor{{0.95, 0.95, 0.95, 1.0}},
                 hypo::SvgPercentage{1.0f}}))}}));
+  } else if constexpr (std::is_same<T, hypo::SvgElement>::value) {
+    return hypo::cgal::CallCgalAndCatchExceptions(
+        &hypo::svg::ConstructSvgElements, &runner,
+        hypo::SvgElements({{object}}));
+  } else if constexpr (std::is_same<T, hypo::SvgElements>::value) {
+    return hypo::cgal::CallCgalAndCatchExceptions(
+        &hypo::svg::ConstructSvgElements, &runner, object);
   } else if constexpr (std::is_same<T, hypo::Mesh3>::value) {
     return hypo::cgal::CallCgalAndCatchExceptions(
         &hypo::cgal::ConstructTriangleSoupSet3, &runner,
@@ -84,7 +91,9 @@ reify::utils::ErrorOr<BuildAndExportResults> BuildAndExportToFile(
 
   bool export_success = false;
   if constexpr (std::is_same<T, hypo::Region2>::value ||
-                std::is_same<T, hypo::Boundary2>::value) {
+                std::is_same<T, hypo::Boundary2>::value ||
+                std::is_same<T, hypo::SvgElement>::value ||
+                std::is_same<T, hypo::SvgElements>::value) {
     results.output_filepath = output_base_filepath + ".svg";
     export_success =
         hypo::svg::ExportToSVG(*built_object, results.output_filepath);

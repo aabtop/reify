@@ -36,10 +36,13 @@ idt_as_typescript_cpp_v8(
 cc_library(
     name = "hypo_svg_lib",
     srcs = [
-        "src/svg/construct_svg.h",
         "src/svg/construct_svg.cc",
         "src/svg/export_to_svg.cc",
+    ],
+    hdrs = [
+        "src/svg/construct_svg.h",
         "src/svg/export_to_svg.h",
+        "src/svg/svg_types.h",
     ],
     includes = [
         "src/",
@@ -48,7 +51,7 @@ cc_library(
         ":hypo-purecpp",
         ":hypo_cgal_lib",
         "@reify//src/idt/targets/pure_cpp/hashing:thread_pool_cache_runner",
-    ]
+    ],
 )
 
 cc_library(

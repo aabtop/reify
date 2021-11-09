@@ -101,6 +101,14 @@ std::optional<CallAndExportResults> BuildOutputAndSaveToFile(
     return CallFunctionAndExportOutput<hypo::Boundary2>(
         runtime_env, entry_point_function->name, output_base_file_path);
   } else if (entry_point_function->HasType<
+                 reify::typescript_cpp_v8::Function<hypo::SvgElement()>>()) {
+    return CallFunctionAndExportOutput<hypo::SvgElement>(
+        runtime_env, entry_point_function->name, output_base_file_path);
+  } else if (entry_point_function->HasType<
+                 reify::typescript_cpp_v8::Function<hypo::SvgElements()>>()) {
+    return CallFunctionAndExportOutput<hypo::SvgElements>(
+        runtime_env, entry_point_function->name, output_base_file_path);
+  } else if (entry_point_function->HasType<
                  reify::typescript_cpp_v8::Function<hypo::Mesh3()>>()) {
     return CallFunctionAndExportOutput<hypo::Mesh3>(
         runtime_env, entry_point_function->name, output_base_file_path);
