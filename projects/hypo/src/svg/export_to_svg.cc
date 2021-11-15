@@ -70,7 +70,8 @@ std::string sRGBAToCssColorString(const hypo::sRGBA& color) {
   return oss.str();
 }
 
-std::string SvgWidthToCss(const hypo::SvgWidth& x) {
+std::string SvgWidthToCss(const cgal::Bbox_2& bounding_box,
+                          const hypo::SvgWidth& x) {
   std::ostringstream oss;
 
   if (auto percentage = std::get_if<hypo::SvgPercentage>(&x)) {
@@ -84,6 +85,13 @@ std::string SvgWidthToCss(const hypo::SvgWidth& x) {
       default:
         assert(false);
     }
+  } else if (std::holds_alternative<hypo::SvgInfinitesimal>(x)) {
+    oss << (0.001f * std::min(bounding_box.ymax() - bounding_box.ymin(),
+                              bounding_box.xmax() - bounding_box.xmin()));
+    oss << "px";
+  } else {
+    // Unknown width type.
+    assert(false);
   }
 
   return oss.str();
@@ -135,17 +143,18 @@ bool ExportToSVG(const Elements& svg_elements,
                      std::get_if<PathElementFromBoundary2>(svg_path_element)) {
         render_polygon_set(
             *path_element_from_boundary2->boundary,
-            [color = std::get<hypo::SvgSolidColor>(
+            [&bounding_box,
+             color = std::get<hypo::SvgSolidColor>(
                          path_element_from_boundary2->stroke)
                          .color,
              width = path_element_from_boundary2->width](
                 std::ostream* out,
                 const cgal::Polygon_with_holes_2& polygon_with_holes) {
-              OutputPolygonWithHoles(out, polygon_with_holes,
-                                     "fill=\"transparent\" stroke=\"" +
-                                         sRGBAToCssColorString(color) +
-                                         "\" stroke-width=\"" +
-                                         SvgWidthToCss(width) + "\"");
+              OutputPolygonWithHoles(
+                  out, polygon_with_holes,
+                  "fill=\"transparent\" stroke=\"" +
+                      sRGBAToCssColorString(color) + "\" stroke-width=\"" +
+                      SvgWidthToCss(bounding_box, width) + "\"");
             });
       } else {
         assert(false);  // Unknown SVG path element.
@@ -157,6 +166,7 @@ bool ExportToSVG(const Elements& svg_elements,
 
   out << "<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\""
       << std::endl;
+  out << "             style=\"background: black\" " << std::endl;
   out << "             viewBox=\"" << bounding_box.xmin() << " "
       << bounding_box.ymin() << " " << bounding_box.xmax() - bounding_box.xmin()
       << " " << bounding_box.ymax() - bounding_box.ymin() << "\">" << std::endl;

@@ -249,7 +249,9 @@ idt =
           "Defines a width in SVG, in absolute value or percentages."
           $ TaggedUnion
             [ Concrete svgPercentage,
-              Concrete svgAbsolute
+              Concrete svgAbsolute,
+              -- Interpret width relative to Hypo's arbitrary coordinate system.
+              Concrete svgInfinitesimal
             ]
       svgPercentage =
         NamedType
@@ -273,6 +275,11 @@ idt =
           $ Enum
             [ ("px", "Pixels", [])
             ]
+      svgInfinitesimal =
+        NamedType
+          "SvgInfinitesimal"
+          "Defines a distance that approaches zero. Not a standards-defined unit."
+          $ Struct []
 
       triangleList n =
         NamedType

@@ -12,7 +12,7 @@ CreateSceneObjectBoundary2(reify::pure_cpp::ThreadPoolCacheRunner* runner,
       hypo::SvgElement(
           reify::New(hypo::SvgPathElement(hypo::SvgPathElementFromBoundary2{
               data, hypo::SvgSolidColor{{0.95, 0.95, 0.95, 1.0}},
-              hypo::SvgPercentage{1.0f}}))),
+              hypo::SvgInfinitesimal()}))),
       "Boundary2");
 }
 
