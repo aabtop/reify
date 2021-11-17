@@ -74,9 +74,7 @@ std::string SvgWidthToCss(const cgal::Bbox_2& bounding_box,
                           const hypo::SvgWidth& x) {
   std::ostringstream oss;
 
-  if (auto percentage = std::get_if<hypo::SvgPercentage>(&x)) {
-    oss << percentage->value << "%";
-  } else if (auto absolute = std::get_if<hypo::SvgAbsolute>(&x)) {
+  if (auto absolute = std::get_if<hypo::SvgAbsolute>(&x)) {
     oss << absolute->value;
     switch (absolute->units) {
       case hypo::SvgScalarUnitType::px: {

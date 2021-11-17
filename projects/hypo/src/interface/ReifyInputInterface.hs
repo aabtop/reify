@@ -248,17 +248,10 @@ idt =
           "SvgWidth"
           "Defines a width in SVG, in absolute value or percentages."
           $ TaggedUnion
-            [ Concrete svgPercentage,
-              Concrete svgAbsolute,
+            [ Concrete svgAbsolute,
               -- Interpret width relative to Hypo's arbitrary coordinate system.
               Concrete svgInfinitesimal
             ]
-      svgPercentage =
-        NamedType
-          "SvgPercentage"
-          "Defines a scalar percentage value."
-          $ Struct
-            [("value", "The scalar percentage value.", f32)]
 
       svgAbsolute =
         NamedType

@@ -28,10 +28,14 @@ reify::utils::ErrorOr<std::shared_ptr<reify::pure_cpp::SceneObject<glm::mat3>>>
 CreateSceneObjectSvgElements(reify::pure_cpp::ThreadPoolCacheRunner* runner,
                              const hypo::SvgElements& data,
                              const std::string& window_panel_title) {
+  // Build the SVG elements into efficient structures for the purpose of
+  // rendering them.
   REIFY_UTILS_ASSIGN_OR_RETURN(
       visualizer_svg_elements,
       hypo::cgal::CallCgalAndCatchExceptions(&ConstructVisualizerSvgElements,
                                              runner, data));
+  // Also build the SVG elements for the purposes of exporting them, in case
+  // that's something the user wants to do.
   REIFY_UTILS_ASSIGN_OR_RETURN(svg_elements,
                                hypo::cgal::CallCgalAndCatchExceptions(
                                    &svg::ConstructSvgElements, runner, data));
@@ -120,6 +124,13 @@ SceneObjectSvgElements::CreateSceneObjectRenderable(
       } else if (auto path_element_from_boundary2 =
                      std::get_if<VisualizerSvgPathElementFromBoundary2>(
                          path_element)) {
+        // Of course width can be defined in other ways, but for the purposes
+        // of visualization, we should have converted all other units of
+        // measurement, which essentially give width to the boundary, into
+        // a region so that it can be handled by the region code.
+        assert(std::holds_alternative<hypo::SvgInfinitesimal>(
+            path_element_from_boundary2->width));
+
         auto error_or_renderer = SimpleSimplexRenderer2::Create(
             instance, physical_device, device, output_image_format, render_pass,
             *path_element_from_boundary2->boundary_line_segments,

@@ -432,21 +432,6 @@ export declare function SvgPathElementFromRegion2(x: {
 }): SvgPathElementFromRegion2;
 /** Defines the stroke pattern used for the a 2D boundary edge, e.g. a fill color. */
 export declare type SvgStrokeStyle = SvgSolidColor;
-/** Defines a scalar percentage value. */
-export declare type SvgPercentageParams = {
-    /** The scalar percentage value. */
-    value: number;
-};
-interface SvgPercentageWithKind extends SvgPercentageParams {
-    __kind: 'SvgPercentage';
-}
-export interface SvgPercentage extends Readonly<SvgPercentageWithKind> {
-}
-/** Defines a scalar percentage value. */
-export declare function SvgPercentage(x: {
-    /** The scalar percentage value. */
-    value: number;
-}): SvgPercentage;
 /** Defines a type of scalar measurement, e.g. `px` for pixels. */
 export declare const enum SvgScalarUnitType {
     /** Pixels */
@@ -471,8 +456,17 @@ export declare function SvgAbsolute(x: {
     /** The type of units that the value represents. */
     units: SvgScalarUnitType;
 }): SvgAbsolute;
+/** Defines a distance that approaches zero. Not a standards-defined unit. */
+export declare type SvgInfinitesimalParams = {};
+interface SvgInfinitesimalWithKind extends SvgInfinitesimalParams {
+    __kind: 'SvgInfinitesimal';
+}
+export interface SvgInfinitesimal extends Readonly<SvgInfinitesimalWithKind> {
+}
+/** Defines a distance that approaches zero. Not a standards-defined unit. */
+export declare function SvgInfinitesimal(x: {}): SvgInfinitesimal;
 /** Defines a width in SVG, in absolute value or percentages. */
-export declare type SvgWidth = SvgPercentage | SvgAbsolute;
+export declare type SvgWidth = SvgAbsolute | SvgInfinitesimal;
 /** Returns a SVG `path` element based on a 2D boundary. */
 export declare type SvgPathElementFromBoundary2Params = {
     /** The 2D boundary representing the border for the SVG path. */

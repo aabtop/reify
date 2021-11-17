@@ -126,12 +126,32 @@ VisualizerSvgPathElement ConstructVisualizerSvgPathElement(
 VisualizerSvgPathElement ConstructVisualizerSvgPathElement(
     reify::pure_cpp::ThreadPoolCacheRunner* runner,
     const hypo::SvgPathElementFromBoundary2& x) {
-  auto line_segment_soup =
-      runner
-          ->MakeFuture<LineSegmentSoup2>(&ConstructLineSegmentSoup, x.boundary)
-          .Get();
-  return VisualizerSvgPathElementFromBoundary2{line_segment_soup, x.stroke,
-                                               x.width};
+  if (std::holds_alternative<hypo::SvgInfinitesimal>(x.width)) {
+    auto line_segment_soup = runner
+                                 ->MakeFuture<LineSegmentSoup2>(
+                                     &ConstructLineSegmentSoup, x.boundary)
+                                 .Get();
+    return VisualizerSvgPathElementFromBoundary2{line_segment_soup, x.stroke,
+                                                 x.width};
+  } else {
+    // All other width types imply a width, and so we return a region for that
+    // since that's what we need to render widths.
+
+    // Okay actually we only have one supported width unit type, `px` or pixels,
+    // so right now that's pretty easy to handle.
+    const auto& width_absolute = std::get<hypo::SvgAbsolute>(x.width);
+    assert(width_absolute.units == hypo::SvgScalarUnitType::px);
+    float diameter_in_hypo_units = width_absolute.value;
+
+    auto triangle_soup = runner
+                             ->MakeFuture<TriangleSoup2, hypo::Region2>(
+                                 &ConstructTriangleSoup,
+                                 reify::New(hypo::WidenBoundary2(
+                                     {x.boundary, diameter_in_hypo_units / 2})))
+                             .Get();
+    return VisualizerSvgPathElementFromRegion2{
+        triangle_soup, std::get<hypo::SvgSolidColor>(x.stroke)};
+  }
 }
 
 VisualizerSvgElement ConstructVisualizerSvgElement(

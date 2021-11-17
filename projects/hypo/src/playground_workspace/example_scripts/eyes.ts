@@ -50,7 +50,7 @@ export function ColumnOfColoredEyes() {
       h.SvgPathElementFromBoundary2({
         boundary: h.BoundaryOfRegion2({ region: middleRegion }),
         stroke: h.SvgSolidColor({ color: [1.0, 0, 0, 1.0] }),
-        width: h.SvgPercentage({ value: 1 }),
+        width: h.SvgAbsolute({ value: 1, units: h.SvgScalarUnitType.px }),
       }),
       h.SvgPathElementFromRegion2({
         region: h.Transform2({ source: eyes, transform: h.Translate2([0, 15]) }),

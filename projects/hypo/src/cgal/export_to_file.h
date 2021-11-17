@@ -45,7 +45,7 @@ auto BuildObject(const T& object) {
         hypo::SvgElements(
             {{reify::New(hypo::SvgPathElement(hypo::SvgPathElementFromBoundary2{
                 object, hypo::SvgSolidColor{{0.95, 0.95, 0.95, 1.0}},
-                hypo::SvgPercentage{1.0f}}))}}));
+                hypo::SvgInfinitesimal()}))}}));
   } else if constexpr (std::is_same<T, hypo::SvgElement>::value) {
     return hypo::cgal::CallCgalAndCatchExceptions(
         &hypo::svg::ConstructSvgElements, &runner,
