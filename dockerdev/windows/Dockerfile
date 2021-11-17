@@ -17,7 +17,7 @@ RUN $p = Start-Process -Wait -PassThru -FilePath 'winsdksetup.exe' -ArgumentList
 # and that really messes with the installer :(.  We just steer clear of that.
 # We also need to ensure that "2019" appears in the path, or else Bazel doesn't
 # look for 2019 paths.
-RUN Invoke-WebRequest -UserAgent 'DockerCI' -outfile vs_buildtools.exe https://download.visualstudio.microsoft.com/download/pr/21e72f81-8e59-4e73-b244-b5ab994d7573/48045cb57586de2d3c0a3f658271f3dee6d40eb802683ddf94e3debc0738e734/vs_BuildTools.exe
+RUN Invoke-WebRequest -UserAgent 'DockerCI' -outfile vs_buildtools.exe https://download.visualstudio.microsoft.com/download/pr/f1e43525-cd53-4012-9644-d7846e2c4963/9eb84f3bf5695fd108713fb15b827fe3755fc7c9ea3fa78eb83ed40015fd866b/vs_BuildTools.exe
 RUN $p = Start-Process -Wait -PassThru -FilePath '.\vs_buildtools.exe' -ArgumentList ' \
   --quiet --wait --norestart --nocache \
   --add Microsoft.Component.MSBuild \
