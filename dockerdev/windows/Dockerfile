@@ -18,13 +18,25 @@ RUN $p = Start-Process -Wait -PassThru -FilePath 'winsdksetup.exe' -ArgumentList
 # We also need to ensure that "2019" appears in the path, or else Bazel doesn't
 # look for 2019 paths.
 RUN Invoke-WebRequest -UserAgent 'DockerCI' -outfile vs_buildtools.exe https://download.visualstudio.microsoft.com/download/pr/f1e43525-cd53-4012-9644-d7846e2c4963/9eb84f3bf5695fd108713fb15b827fe3755fc7c9ea3fa78eb83ed40015fd866b/vs_BuildTools.exe
+# Yup, we're calling the exact same command twice here. Not sure why but the first call
+# doesn't actually install anything, but the second one does. I suspect it has something
+# to do with the base image already having some components of VS installed and maybe
+# that's messing with the vs_buildtools.exe installer, really hard to debug though.
 RUN $p = Start-Process -Wait -PassThru -FilePath '.\vs_buildtools.exe' -ArgumentList ' \
   --quiet --wait --norestart --nocache \
+  --installPath "C:\2019\BuildTools \
   --add Microsoft.Component.MSBuild \
   --add Microsoft.VisualStudio.Workload.VCTools \
   --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 \
   --add Microsoft.VisualStudio.Component.VC.ATLMFC \
-  --installPath=C:\2019\BuildTools \
+  '; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { throw ('vs_buildtools.exe install failed with exit code 0x{0:x}' -f $ret) }
+RUN $p = Start-Process -Wait -PassThru -FilePath '.\vs_buildtools.exe' -ArgumentList ' \
+  --quiet --wait --norestart --nocache \
+  --installPath "C:\2019\BuildTools \
+  --add Microsoft.Component.MSBuild \
+  --add Microsoft.VisualStudio.Workload.VCTools \
+  --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 \
+  --add Microsoft.VisualStudio.Component.VC.ATLMFC \
   '; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { throw ('vs_buildtools.exe install failed with exit code 0x{0:x}' -f $ret) }
 ENV BAZEL_VC=C:/2019/BuildTools/VC
 
