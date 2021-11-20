@@ -52,6 +52,8 @@ IF NOT EXIST "%OUT_DIR%" (
   REM environment variable GYP_MSVS_OVERRIDE_PATH, so we do that here if
   REM %BAZEL_VC% is set in order to forward it on to GN.
   IF DEFINED BAZEL_VC SET GYP_MSVS_OVERRIDE_PATH=%BAZEL_VC%\..
+  REM Well this certainly will need to be changed when we update VS.
+  IF DEFINED BAZEL_VC SET vs2019_install=%BAZEL_VC%\..
 
   REM This is supposed to be done when `gclient sync` is called and the runhooks
   REM are called, but that seems to not always happen :(.
