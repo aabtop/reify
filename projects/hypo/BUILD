@@ -84,6 +84,7 @@ cc_library(
     includes = [
         "src/",
     ],
+    data = glob(["src/playground_workspace/example_scripts/**/*.*"]),
     deps = [
         ":hypo-purecpp",
         "//src/geometry",
