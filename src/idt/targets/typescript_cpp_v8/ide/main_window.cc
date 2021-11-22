@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QWebEngineView>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -18,11 +19,13 @@ namespace reify {
 namespace typescript_cpp_v8 {
 namespace ide {
 
-MainWindow::MainWindow(const std::string& window_title,
-                       SymbolVisualizer* symbol_visualizer,
-                       reify::pure_cpp::ThreadPoolCacheRunner* runner,
-                       QWidget* parent)
+MainWindow::MainWindow(
+    const std::string& window_title, SymbolVisualizer* symbol_visualizer,
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
+    const std::optional<std::filesystem::path>& examples_directory,
+    QWidget* parent)
     : QMainWindow(parent),
+      examples_directory_(examples_directory),
       ui_(new Ui::MainWindow),
       default_title_(QString(window_title.c_str())),
       symbol_visualizer_(symbol_visualizer),
@@ -137,32 +140,49 @@ void MainWindow::on_actionNew_triggered() {
   });
 }
 
+void MainWindow::Open(
+    const std::optional<std::filesystem::path>& initial_directory) {
+  QString dir = "";
+  if (initial_directory) {
+    dir = QString(initial_directory->string().c_str());
+  }
+
+  QString filepath = QFileDialog::getOpenFileName(
+      this, tr("Open"), dir, tr("Typescript (*.ts);;All Files (*)"));
+
+  if (filepath.isEmpty()) {
+    return;
+  }
+
+  std::ifstream file(filepath.toStdString().c_str());
+  std::stringstream content;
+  content << file.rdbuf();
+
+  if (file.fail()) {
+    QMessageBox::warning(this, "Error opening file",
+                         "Error while attempting to open file " + filepath);
+    return;
+  }
+
+  file_project_ = std::make_shared<FileProject>(CreateFileProject(
+      filepath.toStdString(), symbol_visualizer_->GetTypeScriptModules()));
+
+  current_file_is_dirty_ = false;
+  UpdateUiState();
+  monaco_interface_->Open(filepath, QString(content.str().c_str()));
+}
+
 void MainWindow::on_actionOpen_triggered() {
-  SaveIfDirtyCheck([this]() {
-    QString filepath = QFileDialog::getOpenFileName(
-        this, tr("Open"), "", tr("Typescript (*.ts);;All Files (*)"));
+  SaveIfDirtyCheck([this]() { Open(std::nullopt); });
+}
+void MainWindow::on_actionOpenFromExamplesDirectory_triggered() {
+  if (!examples_directory_) {
+    QMessageBox::warning(this, "Examples directory cannot be found",
+                         "Examples directory cannot be found!");
+    return;
+  }
 
-    if (filepath.isEmpty()) {
-      return;
-    }
-
-    std::ifstream file(filepath.toStdString().c_str());
-    std::stringstream content;
-    content << file.rdbuf();
-
-    if (file.fail()) {
-      QMessageBox::warning(this, "Error opening file",
-                           "Error while attempting to open file " + filepath);
-      return;
-    }
-
-    file_project_ = std::make_shared<FileProject>(CreateFileProject(
-        filepath.toStdString(), symbol_visualizer_->GetTypeScriptModules()));
-
-    current_file_is_dirty_ = false;
-    UpdateUiState();
-    monaco_interface_->Open(filepath, QString(content.str().c_str()));
-  });
+  SaveIfDirtyCheck([this]() { Open(examples_directory_); });
 }
 
 void MainWindow::on_actionSave_triggered() {

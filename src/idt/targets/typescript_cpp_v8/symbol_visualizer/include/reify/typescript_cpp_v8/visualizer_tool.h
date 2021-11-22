@@ -1,6 +1,7 @@
 #ifndef _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_VISUALIZER_TOOL_H
 #define _IDT_TARGETS_TYPESCRIPT_CPP_V8_SYMBOL_VISUALIZER_VISUALIZER_TOOL_H
 
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -13,6 +14,7 @@ namespace typescript_cpp_v8 {
 
 struct VisualizerToolOptions {
   std::optional<std::filesystem::path> project_path;
+  std::optional<std::filesystem::path> examples_directory;
 };
 
 std::variant<int, VisualizerToolOptions> ParseVisualizerToolOptions(

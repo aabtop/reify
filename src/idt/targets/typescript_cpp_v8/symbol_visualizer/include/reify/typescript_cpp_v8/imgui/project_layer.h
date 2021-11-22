@@ -26,6 +26,7 @@ class ProjectLayer {
   ProjectLayer(
       utils::WorkQueue* self_work_queue, StatusLayer* status_layer,
       RuntimeLayer* runtime_layer,
+      const std::optional<std::filesystem::path>& examples_directory,
       const std::optional<std::filesystem::path>& initial_project_path);
   ~ProjectLayer();
 
@@ -57,6 +58,8 @@ class ProjectLayer {
       compile_results_;
 
   utils::ScopedWorkQueue self_work_queue_;
+  const std::optional<std::filesystem::path> examples_directory_;
+
   std::optional<CompilerEnvironmentThreadSafe::MultiCompileFuture::Watch>
       pending_compile_results_;
 

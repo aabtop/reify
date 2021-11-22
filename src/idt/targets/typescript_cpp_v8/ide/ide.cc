@@ -34,16 +34,18 @@ QPalette DarkModePalette() {
 }
 }  // namespace
 
-int StartIdeWindow(const std::string& window_title,
-                   SymbolVisualizer* symbol_visualizer,
-                   reify::pure_cpp::ThreadPoolCacheRunner* runner) {
+int StartIdeWindow(
+    const std::string& window_title, SymbolVisualizer* symbol_visualizer,
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
+    const std::optional<std::filesystem::path>& examples_directory) {
   QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   int argc;
   QApplication a(argc, nullptr);
 
   a.setPalette(DarkModePalette());
 
-  ide::MainWindow w(window_title, symbol_visualizer, runner);
+  ide::MainWindow w(window_title, symbol_visualizer, runner,
+                    examples_directory);
   w.show();
   return a.exec();
 }

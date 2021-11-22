@@ -21,11 +21,13 @@ namespace imgui {
 ProjectLayer::ProjectLayer(
     utils::WorkQueue* self_work_queue, StatusLayer* status_layer,
     RuntimeLayer* runtime_layer,
+    const std::optional<std::filesystem::path>& examples_directory,
     const std::optional<std::filesystem::path>& initial_project_path)
     : status_layer_(status_layer),
       runtime_layer_(runtime_layer),
       symbol_visualizer_(runtime_layer_->symbol_visualizer()),
-      self_work_queue_(self_work_queue) {
+      self_work_queue_(self_work_queue),
+      examples_directory_(examples_directory) {
   if (initial_project_path) {
     LoadProject(*initial_project_path);
   }
@@ -195,10 +197,25 @@ void ProjectLayer::ExecuteImGuiCommands() {
           file_dialog_->file_browser->Open();
         },
         !file_dialog_);
+    Action open_example_project_directory_action(
+        "Open example project directory",
+        [this] {
+          if (std::filesystem::exists(*examples_directory_)) {
+            LoadProject(*examples_directory_);
+          } else {
+            std::cerr << "Could not open examples directory: "
+                      << *examples_directory_ << std::endl;
+          }
+        },
+        !file_dialog_);
 
     if (ImGui::BeginMenu("File")) {
       open_file_action.MenuItem(true);
       open_dir_action.MenuItem(true);
+      if (examples_directory_) {
+        ImGui::Separator();
+        open_example_project_directory_action.MenuItem(true);
+      }
       ImGui::Separator();
       create_project_directory_action.MenuItem(true);
       ImGui::EndMenu();

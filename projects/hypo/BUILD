@@ -94,6 +94,20 @@ cc_library(
     ],
 )
 
+# Some helper logic to discover the location of the examples directory.
+cc_library(
+    name = "examples_directory",
+    srcs = [
+        "src/examples_directory.cc",
+    ],
+    hdrs = [
+        "src/examples_directory.h",
+    ],
+    includes = [
+        "src",
+    ],
+)
+
 cc_binary(
     name = "hypo",
     srcs = [
@@ -117,6 +131,7 @@ qt_cc_binary(
         "src/main_ide.cc",
     ],
     deps = [
+        ":examples_directory",
         "//src/visualizer:typescript_symbol_visualizer",
         "@reify//src/idt/targets/typescript_cpp_v8:ide",
         "@reify//src/idt/targets/typescript_cpp_v8/symbol_visualizer:imgui_layer_stack",
@@ -132,6 +147,7 @@ cc_binary(
         "src/main_visualizer.cc",
     ],
     deps = [
+        ":examples_directory",
         "//src/visualizer:typescript_symbol_visualizer",
         "@reify//src/idt/targets/typescript_cpp_v8:visualizer_tool",
     ],

@@ -51,7 +51,8 @@ utils::MaybeError RunVisualizerTool(
       symbol_visualizer, runner);
   imgui::ProjectLayer project_layer(
       &visualizer_thread, &imgui_common_layers.status_layer,
-      &imgui_common_layers.runtime_layer, options.project_path);
+      &imgui_common_layers.runtime_layer, options.examples_directory,
+      options.project_path);
   imgui::LayerStack imgui_layer_stack = imgui::MergeCommonAndCustomLayers(
       &imgui_common_layers,
       {

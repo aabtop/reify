@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "reify/pure_cpp/thread_pool_cache_runner.h"
@@ -12,9 +13,10 @@
 namespace reify {
 namespace typescript_cpp_v8 {
 
-int StartIdeWindow(const std::string& window_title,
-                   SymbolVisualizer* symbol_visualizer,
-                   reify::pure_cpp::ThreadPoolCacheRunner* runner);
+int StartIdeWindow(
+    const std::string& window_title, SymbolVisualizer* symbol_visualizer,
+    reify::pure_cpp::ThreadPoolCacheRunner* runner,
+    const std::optional<std::filesystem::path>& examples_directory);
 
 }  // namespace typescript_cpp_v8
 }  // namespace reify

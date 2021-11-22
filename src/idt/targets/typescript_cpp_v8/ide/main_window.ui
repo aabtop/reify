@@ -101,6 +101,7 @@
     </property>
     <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
+    <addaction name="actionOpenFromExamplesDirectory"/>
     <addaction name="actionSave"/>
     <addaction name="actionSave_As"/>
     <addaction name="separator"/>
@@ -137,6 +138,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionOpenFromExamplesDirectory">
+   <property name="text">
+    <string>&amp;Open from examples directory</string>
    </property>
   </action>
   <action name="actionSave">

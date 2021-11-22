@@ -31,6 +31,8 @@ class MainWindow : public QMainWindow {
   MainWindow(const std::string& window_title,
              SymbolVisualizer* symbol_visualizer,
              reify::pure_cpp::ThreadPoolCacheRunner* runner,
+             const std::optional<std::filesystem::path>& examples_directory =
+                 std::nullopt,
              QWidget* parent = nullptr);
   ~MainWindow();
 
@@ -40,6 +42,7 @@ class MainWindow : public QMainWindow {
  private slots:
   void on_actionNew_triggered();
   void on_actionOpen_triggered();
+  void on_actionOpenFromExamplesDirectory_triggered();
   void on_actionSave_triggered();
   void on_actionSave_As_triggered();
   void on_actionExit_triggered();
@@ -62,6 +65,7 @@ class MainWindow : public QMainWindow {
 
   bool Save(const SaveCompleteFunction& save_complete_callback);
   bool SaveAs(const SaveCompleteFunction& save_complete_callback);
+  void Open(const std::optional<std::filesystem::path>& initial_directory);
   void OnSaveAsComplete(const QString& filepath, const QString& content);
   void QueryContent(const MonacoInterface::QueryContentReplyFunction&
                         query_content_complete_callback);
@@ -88,6 +92,8 @@ class MainWindow : public QMainWindow {
   bool HasPendingOperation() const {
     return GetCurrentPendingOperation() != PendingOperation::Idle;
   }
+
+  const std::optional<std::filesystem::path> examples_directory_;
 
   std::unique_ptr<Ui::MainWindow> ui_;
   QString default_title_;

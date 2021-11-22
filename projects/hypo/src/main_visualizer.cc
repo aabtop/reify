@@ -1,5 +1,7 @@
+#include <filesystem>
 #include <iostream>
 
+#include "examples_directory.h"
 #include "reify/typescript_cpp_v8/visualizer_tool.h"
 #include "reify/utils/error.h"
 #include "src/visualizer/typescript_symbol_visualizer.h"
@@ -10,6 +12,8 @@ int main(int argc, char* argv[]) {
       options, reify::typescript_cpp_v8::ParseVisualizerToolOptions(
                    APP_NAME, "Visualizer for Hypo TypeScript-defined geometry.",
                    argc, argv));
+
+  options.examples_directory = hypo::GetExamplesDirectory(argc, argv);
 
   hypo::visualizer::TypeScriptSymbolVisualizer hypo_visualizer_stack;
   auto maybe_error = reify::typescript_cpp_v8::RunVisualizerTool(
