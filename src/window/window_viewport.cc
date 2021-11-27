@@ -35,8 +35,9 @@ bool WindowViewport::OnInputEvent(const InputEvent& input_event) {
 }
 
 void WindowViewport::OnViewportResize(const std::array<int, 2>& size) {
-  // Don't try to do anything fancy here, the parent should be responsible and
-  // update the proper viewport.
+  // This value is saved and taken to mean the size of the parent window, and
+  // ultimately is used to size the renderer frame.
+  on_viewport_resize_size_ = size;
 }
 
 void WindowViewport::AdvanceTime(std::chrono::duration<float> seconds) {
@@ -63,13 +64,26 @@ class RendererWindowViewport : public Window::Renderer {
   utils::ErrorOr<FrameResources> RenderFrame(
       VkCommandBuffer command_buffer, VkFramebuffer framebuffer,
       VkImage output_color_image, const Rect& viewport_region) override {
-    if (!window_viewport_->viewport()) {
+    if (!window_viewport_->viewport() ||
+        !window_viewport_->get_on_viewport_resize_size()) {
       return FrameResources();
     }
 
+    // Scale the window viewport by the parent view's size.
+    std::array<float, 2> scale = {
+        viewport_region.width() /
+            (*window_viewport_->get_on_viewport_resize_size())[0],
+        viewport_region.height() /
+            (*window_viewport_->get_on_viewport_resize_size())[1],
+    };
+    Rect scaled_viewport = *window_viewport_->viewport();
+    scaled_viewport.left *= scale[0];
+    scaled_viewport.top *= scale[1];
+    scaled_viewport.right *= scale[0];
+    scaled_viewport.bottom *= scale[1];
     return sub_renderer_->RenderFrame(
         command_buffer, framebuffer, output_color_image,
-        Rect::Intersect(*window_viewport_->viewport(), viewport_region));
+        Rect::Intersect(scaled_viewport, viewport_region));
   }
 
  private:
