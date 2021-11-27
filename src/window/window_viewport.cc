@@ -72,9 +72,9 @@ class RendererWindowViewport : public Window::Renderer {
     // Scale the window viewport by the parent view's size.
     std::array<float, 2> scale = {
         viewport_region.width() /
-            (*window_viewport_->get_on_viewport_resize_size())[0],
+            static_cast<float>((*window_viewport_->get_on_viewport_resize_size())[0]),
         viewport_region.height() /
-            (*window_viewport_->get_on_viewport_resize_size())[1],
+            static_cast<float>((*window_viewport_->get_on_viewport_resize_size())[1]),
     };
     Rect scaled_viewport = *window_viewport_->viewport();
     scaled_viewport.left *= scale[0];
